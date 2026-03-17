@@ -6,28 +6,14 @@
   <title>防禦聖騎士儀表板 (2030目標)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <script src="https://unpkg.com/lucide@0.292.0"></script>
 
   <style>
-    /* 客製化捲軸 */
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: #1c1917; 
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #78350f; 
-      border-radius: 4px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #92400e; 
-    }
-    /* 淡入動畫 */
-    .animate-fade-in {
-      animation: fadeIn 0.5s ease-out forwards;
-    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #1c1917; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #78350f; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #92400e; }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -42,11 +28,11 @@
       
       <div class="flex justify-center mb-6 relative">
         <div class="absolute inset-0 bg-amber-500/20 blur-xl rounded-full"></div>
-        <i data-lucide="shield-check" class="text-amber-500 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] relative z-10" style="width: 64px; height: 64px;"></i>
+        <i data-lucide="shield-alert" class="text-amber-500 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] relative z-10" style="width: 64px; height: 64px;"></i>
       </div>
       
-      <h1 class="text-2xl text-center text-amber-500 font-bold mb-2 tracking-widest">每日防禦誓言</h1>
-      <p class="text-center text-stone-400 text-sm mb-8 italic">「紀律，是通往財富與自由的唯一捷徑。」</p>
+      <h1 class="text-2xl text-center text-amber-500 font-bold mb-2 tracking-widest">操作前三問</h1>
+      <p class="text-center text-stone-400 text-sm mb-8 italic">「將最鋒利的刃，用在最關鍵的刀口上。」</p>
 
       <div class="space-y-5">
         <label class="flex items-start gap-4 cursor-pointer group p-3 rounded-lg hover:bg-stone-800/40 transition-colors border border-transparent hover:border-stone-800">
@@ -55,8 +41,8 @@
             <i data-lucide="check-circle-2" class="check-icon absolute text-stone-950 pointer-events-none hidden" style="width: 16px; height: 16px;"></i>
           </div>
           <div>
-            <span class="oath-title block font-bold text-stone-300 transition-colors tracking-wide">遵守【生存優先】？</span>
-            <span class="text-xs text-stone-500 leading-relaxed block mt-1">4%信貸按時還款，絕不挪用防禦資金進行高風險槓桿。</span>
+            <span class="oath-title block font-bold text-stone-300 transition-colors tracking-wide">違反【生存優先】了嗎？</span>
+            <span class="text-xs text-stone-500 leading-relaxed block mt-1">絕對禁止挪用防禦資金進行高風險槓桿或借貸買股。</span>
           </div>
         </label>
 
@@ -66,8 +52,8 @@
             <i data-lucide="check-circle-2" class="check-icon absolute text-stone-950 pointer-events-none hidden" style="width: 16px; height: 16px;"></i>
           </div>
           <div>
-            <span class="oath-title block font-bold text-stone-300 transition-colors tracking-wide">專注【唯一主目標】？</span>
-            <span class="text-xs text-stone-500 leading-relaxed block mt-1">過濾市場雜訊與釣魚資訊，所有行動皆指向長期持有 3.0 BTC。</span>
+            <span class="oath-title block font-bold text-stone-300 transition-colors tracking-wide">偏離【唯一主目標】了嗎？</span>
+            <span class="text-xs text-stone-500 leading-relaxed block mt-1">所有行動與資源配置，皆須指向 2030 年達成 3.0 BTC。</span>
           </div>
         </label>
 
@@ -77,14 +63,14 @@
             <i data-lucide="check-circle-2" class="check-icon absolute text-stone-950 pointer-events-none hidden" style="width: 16px; height: 16px;"></i>
           </div>
           <div>
-            <span class="oath-title block font-bold text-stone-300 transition-colors tracking-wide">基於【規則】而非【情緒】？</span>
-            <span class="text-xs text-stone-500 leading-relaxed block mt-1">無視短期炒作與恐慌，堅定執行長線防禦型策略。</span>
+            <span class="oath-title block font-bold text-stone-300 transition-colors tracking-wide">此刻是基於【規則】還是【情緒】？</span>
+            <span class="text-xs text-stone-500 leading-relaxed block mt-1">淨空雜訊。無腦買入，關閉交易所，去讀書或運動。</span>
           </div>
         </label>
       </div>
 
       <button id="btn-take-oath" disabled class="w-full mt-8 py-3.5 font-bold tracking-widest uppercase transition-all duration-500 rounded-lg shadow-lg bg-stone-800/50 text-stone-600 border border-stone-800 cursor-not-allowed">
-        需完成所有誓言確認
+        需完成靈魂拷問
       </button>
     </div>
   </div>
@@ -104,7 +90,7 @@
         <div>
           <h1 class="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600 tracking-wider mb-1">防禦聖騎士</h1>
           <p class="text-xs md:text-sm text-stone-400 flex items-center gap-2 font-bold tracking-wide">
-            <span class="px-2 py-0.5 bg-stone-800 rounded text-stone-300">長線防護流派</span>
+            <span class="px-2 py-0.5 bg-stone-800 rounded text-stone-300">本業挖礦流派</span>
             <span class="w-1.5 h-1.5 bg-amber-700/50 rounded-full"></span>
             <span class="text-amber-500/80">目標 2030</span>
           </p>
@@ -136,7 +122,7 @@
       <div class="flex justify-between items-center text-xs text-stone-400 mb-2.5 font-bold tracking-widest">
         <span class="flex items-center gap-1.5"><i data-lucide="clock" style="width: 14px; height: 14px;" class="text-amber-600"></i> 2026 啟動</span>
         <span class="text-amber-300 border border-amber-600/50 bg-amber-900/40 px-3 py-1 rounded-full text-[10px] shadow-[0_0_10px_rgba(217,119,6,0.2)]">
-          大週期推進
+          防禦大週期
         </span>
         <span class="flex items-center gap-1.5">2030 收成 <i data-lucide="target" style="width: 14px; height: 14px;" class="text-amber-600"></i></span>
       </div>
@@ -148,6 +134,7 @@
     <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 relative">
       
       <div class="lg:col-span-4 xl:col-span-3 flex flex-col gap-6">
+        
         <div class="bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-5 md:p-6 rounded-xl relative">
           <h2 class="text-lg text-amber-500 font-bold border-b border-amber-900/50 pb-3 mb-5 flex items-center gap-2 tracking-wide">
             <i data-lucide="scroll" style="width: 18px; height: 18px;"></i> 屬性與裝備
@@ -195,10 +182,27 @@
                 <span id="btc-inventory-text" class="text-amber-400 font-bold font-mono text-lg drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">0.000 ₿</span>
               </div>
               <button id="btn-add-btc" class="w-full text-sm font-bold tracking-wide bg-amber-900/20 hover:bg-amber-800/40 text-amber-300 p-3 rounded-lg border border-amber-700/50 hover:border-amber-500 transition-all flex justify-center items-center gap-2 shadow-[0_0_10px_rgba(217,119,6,0.1)] hover:shadow-[0_0_15px_rgba(217,119,6,0.3)] transform hover:-translate-y-0.5">
-                <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i> 定投 0.05 提領入庫
+                <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i> 滿 0.05 提領入庫
               </button>
             </div>
           </div>
+        </div>
+
+        <div class="bg-stone-900/90 backdrop-blur-md border border-stone-800 shadow-[0_4px_20px_rgba(0,0,0,0.5)] p-5 rounded-xl border-l-4 border-l-blue-600">
+          <h3 class="text-sm text-blue-400 font-bold mb-3 flex items-center gap-2 tracking-wide">
+            <i data-lucide="clipboard-list" style="width: 16px; height: 16px;"></i> 每週 15 分鐘 SOP
+          </h3>
+          <ol class="text-xs text-stone-400 space-y-2.5 pl-1">
+            <li class="flex items-start gap-2">
+              <span class="text-blue-500 font-mono">1.</span> 打開恐貪指數確認額度。
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-blue-500 font-mono">2.</span> 買入對應 BTC，餘額轉預備金。
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-blue-500 font-mono">3.</span> <span class="text-stone-300 font-bold">關閉交易所，去運動或讀書。</span>
+            </li>
+          </ol>
         </div>
 
         <div class="bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-4 rounded-xl sticky top-6 hidden lg:block">
@@ -218,23 +222,23 @@
               ACT 1 / 2026 - 2027
             </div>
             <h2 id="act-title" class="text-3xl md:text-4xl font-bold text-amber-500 mb-4 tracking-wider drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]">
-              第一章：蓄能防禦期
+              階段一：極簡防禦與法幣挖礦
             </h2>
             <p id="act-desc" class="text-stone-400 italic text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-              「築起高牆...」
+              「淨空雜訊，打造最強礦機體質...」
             </p>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 flex-1">
             <div class="space-y-4">
               <h3 class="text-lg text-stone-300 font-bold flex items-center gap-2 border-b border-blue-900/30 pb-2">
-                <span class="bg-stone-900 p-1.5 rounded-md border border-stone-800"><i data-lucide="castle" class="text-blue-400" style="width: 18px; height: 18px;"></i></span> 生活本業
+                <span class="bg-stone-900 p-1.5 rounded-md border border-stone-800"><i data-lucide="castle" class="text-blue-400" style="width: 18px; height: 18px;"></i></span> 生活與本業
               </h3>
               <div id="quests-life" class="space-y-3"></div>
             </div>
             <div class="space-y-4">
               <h3 class="text-lg text-stone-300 font-bold flex items-center gap-2 border-b border-amber-900/30 pb-2">
-                <span class="bg-stone-900 p-1.5 rounded-md border border-stone-800"><i data-lucide="swords" class="text-amber-500" style="width: 18px; height: 18px;"></i></span> 防禦核心
+                <span class="bg-stone-900 p-1.5 rounded-md border border-stone-800"><i data-lucide="swords" class="text-amber-500" style="width: 18px; height: 18px;"></i></span> 投資核心
               </h3>
               <div id="quests-invest" class="space-y-3"></div>
             </div>
@@ -248,13 +252,13 @@
           
           <div class="mt-12 pt-6 border-t border-amber-900/30 flex justify-between items-center bg-stone-950/50 -mx-6 md:-mx-8 -mb-6 md:-mb-8 p-6 rounded-b-xl">
             <button id="btn-prev-act" class="text-sm flex items-center gap-1.5 transition-all px-4 py-2 rounded-lg font-bold tracking-wide text-stone-700 cursor-not-allowed">
-              上一章
+              上一階段
             </button>
             <span class="text-stone-600 text-xs tracking-[0.3em] font-bold hidden md:inline uppercase">
-              紀律是防禦的基石
+              本業即最大 Alpha
             </span>
             <button id="btn-next-act" class="text-sm flex items-center gap-1.5 transition-all px-4 py-2 rounded-lg font-bold tracking-wide text-amber-600 bg-stone-900 border border-amber-900/50 hover:text-amber-400 hover:border-amber-500 hover:shadow-[0_0_10px_rgba(217,119,6,0.2)]">
-              下一章 <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+              下一階段 <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
             </button>
           </div>
         </div>
@@ -320,87 +324,80 @@
   </div>
 
   <script>
-    // --- Data Structure ---
     const acts = [
       {
-        id: 1, title: "第一章：蓄能防禦期", years: "2026 - 2027",
-        description: "築起高牆，積蓄魔力。為即將到來的聖戰與晉升做好萬全準備。",
+        id: 1, title: "階段一：極簡防禦與法幣挖礦", years: "2026 - 2027",
+        description: "淨空雜訊，打造最強礦機體質。腦力與時間全數讓渡給法條與家人。",
         quests: [
-          { type: 'life', icon: 'castle', title: "據點轉移", desc: "精算租屋建立南部防線，穩定家庭堡壘大後方。" },
-          { type: 'life', icon: 'book-open', title: "全心備戰", desc: "備戰2028升官等與警佐2類考試，提升基礎數值與未來現金流。" },
-          { type: 'life', icon: 'scroll', title: "體力維持", desc: "利用閒暇時間運動維持基礎體能，健康是最終的防禦力。" },
-          { type: 'invest', icon: 'shield', title: "DCA 引擎", desc: "過濾市場短線雜訊，專注基本面與機構動向，每週無腦定投 BTC。" },
-          { type: 'invest', icon: 'lock', title: "安全鎖死", desc: "滿 0.05 BTC 即提至冷錢包，落實「自己的鑰匙，自己的幣」。" },
-          { type: 'invest', icon: 'gem', title: "實體防禦", desc: "黃金靜置不動，作為應對極端風險的最後護城河。" },
-          { type: 'finance', icon: 'coins', title: "固定買入", desc: "每月固定資金轉換為 BTC 碎片，策略收束為「只買BTC」。" },
-          { type: 'finance', icon: 'check-circle-2', title: "無風險債務", desc: "信貸 (4%) 正常繳款，遵守鐵律：絕不挪用進行高風險槓桿。" },
-          { type: 'finance', icon: 'shield-check', title: "絕對防禦", desc: "太太帳戶護好緊急預備金 (防禦陣法隨時啟動狀態)。" },
+          { type: 'life', icon: 'map-pin', title: "十月南遷會合", desc: "調回高雄與妻女團聚，精算租屋預算，穩定大後方軍心。" },
+          { type: 'life', icon: 'book-open', title: "法幣礦機升級", desc: "全心備戰 2028 警察升官等與警佐 2 類考試，決定未來退休金基數。" },
+          { type: 'life', icon: 'activity', title: "體能維持", desc: "建立適合輪班的運動紀律(每週3次)，維持精力抗壓，保護主節點。" },
+          { type: 'life', icon: 'code', title: "App 全面暫停", desc: "停止開發，將腦力 100% 讓渡給 2028 考試與陪伴家人。" },
+          { type: 'invest', icon: 'bar-chart', title: "舊幣不動如山", desc: "ETH/ADA 繼續質押，未達賣出匯率絕不操作，當作沒這筆錢。" },
+          { type: 'finance', icon: 'bitcoin', title: "無腦買入", desc: "每月 NT$13,000 依恐貪指數買 BTC，滿 0.05 提至冷錢包。" },
+          { type: 'finance', icon: 'shield-check', title: "防禦底線", desc: "60 萬黃金絕對不動，維持太太帳戶 6-12 個月預備金。" },
+          { type: 'finance', icon: 'credit-card', title: "穩定債務", desc: "236 萬 (4%) 信貸正常繳款，不提前還，絕不挪用防禦資金。" }
         ]
       },
       {
-        id: 2, title: "第二章：火力衝刺期", years: "2028 - 2030",
-        description: "神裝加身，主動出擊。迎來資源大爆發的黃金歲月。",
+        id: 2, title: "階段二：火力全開與主目標達陣", years: "2028 - 2030",
+        description: "收割考試成果，副業啟動，鎖死比特幣的黃金三年。",
         quests: [
-          { type: 'life', icon: 'target', title: "晉升儀式", desc: "考試順利通過，迎來職等提升與薪資加成，解鎖更高階資源。" },
-          { type: 'life', icon: 'flame', title: "心靈鍛鍊", desc: "面對市場狂暴牛市或無情熊市，維持內心平靜不FOMO。" },
-          { type: 'invest', icon: 'alert-triangle', title: "黑天鵝模組", desc: "遇大跌或機構恐慌時，過濾釣魚資訊，啟動加碼 (終極技能)。" },
-          { type: 'invest', icon: 'target', title: "目標達成", desc: "堅定持有至 2030 年，完成 3.0 BTC 終極收集目標。" },
-          { type: 'finance', icon: 'swords', title: "火力全開", desc: "新增收入 70% 投入購買 BTC，加速最終目標達成。" },
-          { type: 'finance', icon: 'shield', title: "防禦回補", desc: "剩餘 30% 補入家庭緊急預備金或投入實體黃金。" },
+          { type: 'life', icon: 'medal', title: "晉升收割期", desc: "考試順利通過，迎來職等提升與實質加薪。" },
+          { type: 'life', icon: 'smartphone', title: "副業重啟", desc: "具備實務與法律底子後，重啟「生活應用」與「法律」類 App 開發。" },
+          { type: 'invest', icon: 'alert-triangle', title: "黑天鵝加碼", desc: "遇極恐懼或大盤跌破 30% 啟動緊急加碼協議。" },
+          { type: 'invest', icon: 'timer', title: "時限熔斷", desc: "2030 年底，ETH/ADA 若未達標則強制熔斷 (70% 轉 VOO)。" },
+          { type: 'finance', icon: 'flame', title: "火力疊加", desc: "加薪 + 獎金 + App 收入，70% 買 BTC，30% 補預備金。" },
+          { type: 'finance', icon: 'target', title: "終極目標", desc: "2030 年達成唯一核心主目標：3.0 BTC。" }
         ]
       },
       {
-        id: 3, title: "第三章：系統轉型期", years: "2031 - 2033",
-        description: "轉換陣型，穩固王權。從衝鋒陷陣轉為領主經營。",
+        id: 3, title: "階段三：系統轉型與雙軌護城河", years: "2031 - 2033",
+        description: "停止進攻，構築大盤與實體雙重堡壘，從衝鋒轉為領主經營。",
         quests: [
-          { type: 'life', icon: 'castle', title: "穩固堡壘", desc: "享受高職等現金流，穩固家庭生活品質，陪伴家人。" },
-          { type: 'invest', icon: 'shield', title: "主角切換", desc: "大舉建倉 VOO 大盤，BTC退居守備，不再主動大額買入。" },
-          { type: 'finance', icon: 'target', title: "新陣型配置", desc: "資產屏障重組：60% VOO / 30% BTC / 10% 現金與實體資產。" },
-          { type: 'finance', icon: 'swords', title: "大戶打擊", desc: "若機構級法規完善，抵押BTC借出低息台幣清償前期信貸。" },
+          { type: 'life', icon: 'castle', title: "穩固堡壘", desc: "享受高職等現金流，女兒準備上小學，穩固高雄家庭堡壘。" },
+          { type: 'invest', icon: 'refresh-cw', title: "主角切換", desc: "大舉建倉 VOO 大盤。BTC 退居守備，不再主動大額買入。" },
+          { type: 'finance', icon: 'umbrella', title: "保單接軌", desc: "2031/8 保單到期，每月 6 千元全數轉入 VOO 買入計畫。" },
+          { type: 'finance', icon: 'pie-chart', title: "新配置比例", desc: "每月新增收入改為 60% VOO / 30% BTC / 10% 現金。" },
+          { type: 'finance', icon: 'landmark', title: "大戶降維打擊", desc: "若合規開放，抵押 BTC 借 2% 低息台幣清償 4% 信貸，或作自住房頭期款。" }
         ]
       },
       {
-        id: 4, title: "終章：跨世代收成", years: "2034 - 2040+",
-        description: "解鎖絕對自由，財富傳承，享受勝利者的果實。",
+        id: 4, title: "階段四：跨世代收成", years: "2034 - 2040+",
+        description: "財富系統自動運轉，奪回人生選擇權，享受勝利果實。",
         quests: [
-          { type: 'life', icon: 'check-circle-2', title: "絕對選擇權", desc: "隨時具備遞出辭呈的底氣，不被體制綁架，迎向提早退休。" },
-          { type: 'invest', icon: 'lock', title: "家庭責任條款", desc: "【鐵律】絕不輕易賣出 BTC/VOO 本金來支付生活費。" },
-          { type: 'finance', icon: 'coins', title: "完美覆蓋", desc: "生活開銷與家庭責任，皆由薪資、退休金及大盤孳息完美覆蓋。" },
+          { type: 'life', icon: 'door-open', title: "絕對選擇權", desc: "擁有隨時遞出辭呈的底氣，不被體制綁架，迎向提早退休。" },
+          { type: 'invest', icon: 'lock', title: "家庭責任條款", desc: "【鐵律】絕不賣出 BTC / VOO 本金來支付任何生活費。" },
+          { type: 'finance', icon: 'infinity', title: "完美覆蓋", desc: "孝親費、教育費與生活開銷，由薪資、退休金及 VOO 孳息完美覆蓋。" },
+          { type: 'finance', icon: 'gem', title: "跨世代資產", desc: "3 顆 BTC 完全不受法幣通膨剝削，成為真正傳承的跨世代財富。" }
         ]
       }
     ];
 
-    // --- State Initialization ---
     const TARGET_BTC = 3.0;
-    // 預設不包含公債屬性，避免混淆
     const defaultStats = { btc: 0.85, loanCurrent: 236, loanMax: 236, hpCurrent: 100, hpMax: 100, gold: 60 };
     
     let stats = JSON.parse(localStorage.getItem('paladin_stats')) || defaultStats;
-    // 確保舊玩家資料中的公債屬性被清除
     if (stats.bonds !== undefined) delete stats.bonds;
 
     let activeAct = parseInt(localStorage.getItem('paladin_act')) || 1;
     let lastOath = localStorage.getItem('paladin_last_oath') || '';
     const todayStr = new Date().toDateString();
 
-    // --- DOM Elements ---
     const dom = {
       oathView: document.getElementById('oath-view'),
       dashboardView: document.getElementById('dashboard-view'),
       btnSettings: document.getElementById('btn-open-settings'),
       
-      // Oath
       oathChecks: document.querySelectorAll('.oath-checkbox'),
       btnTakeOath: document.getElementById('btn-take-oath'),
       
-      // Header & Progress
       headerLevel: document.getElementById('header-level'),
       btcCurrent: document.getElementById('btc-current-text'),
       btcBar: document.getElementById('btc-progress-bar'),
       btcPercent: document.getElementById('btc-percent-text'),
       timelineBar: document.getElementById('timeline-bar'),
       
-      // Left Panel Stats
       hpText: document.getElementById('hp-text'),
       hpBar: document.getElementById('hp-progress-bar'),
       loanText: document.getElementById('loan-text'),
@@ -410,10 +407,8 @@
       btnAddBtc: document.getElementById('btn-add-btc'),
       btnPayLoan: document.getElementById('btn-pay-loan'),
       
-      // Desktop Nav
       desktopNav: document.getElementById('desktop-nav'),
       
-      // Right Panel
       actBadge: document.getElementById('act-badge'),
       actTitle: document.getElementById('act-title'),
       actDesc: document.getElementById('act-desc'),
@@ -423,7 +418,6 @@
       btnPrevAct: document.getElementById('btn-prev-act'),
       btnNextAct: document.getElementById('btn-next-act'),
 
-      // Settings
       settingsModal: document.getElementById('settings-modal'),
       btnCloseSettings: document.getElementById('btn-close-settings'),
       btnSaveSettings: document.getElementById('btn-save-settings'),
@@ -437,7 +431,6 @@
       }
     };
 
-    // --- Functions ---
     function init() {
       lucide.createIcons();
       if (lastOath !== todayStr) {
@@ -456,18 +449,16 @@
     }
 
     function calculatePercent(current, max) {
-      if (max <= 0) return 0; // 防禦性除以零
+      if (max <= 0) return 0;
       return Math.max(0, Math.min((current / max) * 100, 100));
     }
 
     function updateDashboard() {
-      // Setup timeline
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth(); 
       const passedMonths = (currentYear - 2026) * 12 + currentMonth;
       dom.timelineBar.style.width = `${calculatePercent(passedMonths, 60)}%`;
 
-      // Update Stats
       dom.headerLevel.innerText = `Lv.${activeAct}`;
       
       const btcPercentVal = calculatePercent(stats.btc, TARGET_BTC);
@@ -495,12 +486,10 @@
     function renderAct() {
       const act = acts.find(a => a.id === activeAct) || acts[0];
       
-      // Update Texts
       dom.actBadge.innerText = `ACT ${act.id} / ${act.years}`;
       dom.actTitle.innerText = act.title;
       dom.actDesc.innerText = `「${act.description}」`;
 
-      // Generate Quests HTML
       const getQuestHTML = (q, colorClass, hoverClass) => `
         <div class="bg-stone-900/40 border border-stone-800/80 p-3.5 rounded-lg transition-all duration-300 group cursor-default ${hoverClass}">
           <div class="flex items-center gap-2 mb-1.5 font-bold ${colorClass} tracking-wide">
@@ -519,7 +508,6 @@
       dom.questsFinance.innerHTML = act.quests.filter(q => q.type === 'finance')
         .map(q => getQuestHTML(q, 'text-green-400', 'hover:border-green-800/50 hover:bg-green-950/20 hover:shadow-[0_0_15px_rgba(34,197,94,0.1)]')).join('');
 
-      // Render Desktop Nav
       dom.desktopNav.innerHTML = acts.map(a => `
         <button onclick="changeAct(${a.id})" class="w-full text-left px-4 py-3 rounded-lg text-sm transition-all border flex items-center justify-between group
           ${activeAct === a.id 
@@ -533,18 +521,15 @@
         </button>
       `).join('');
 
-      // Bottom Nav Buttons
       dom.btnPrevAct.disabled = activeAct === 1;
       dom.btnPrevAct.className = `text-sm flex items-center gap-1.5 transition-all px-4 py-2 rounded-lg font-bold tracking-wide ${activeAct === 1 ? 'text-stone-700 cursor-not-allowed' : 'text-amber-600 bg-stone-900 border border-amber-900/50 hover:text-amber-400 hover:border-amber-500 hover:shadow-[0_0_10px_rgba(217,119,6,0.2)]'}`;
       
       dom.btnNextAct.disabled = activeAct === acts.length;
       dom.btnNextAct.className = `text-sm flex items-center gap-1.5 transition-all px-4 py-2 rounded-lg font-bold tracking-wide ${activeAct === acts.length ? 'text-stone-700 cursor-not-allowed' : 'text-amber-600 bg-stone-900 border border-amber-900/50 hover:text-amber-400 hover:border-amber-500 hover:shadow-[0_0_10px_rgba(217,119,6,0.2)]'}`;
 
-      // Re-initialize Lucide icons for the newly injected HTML
       lucide.createIcons();
     }
 
-    // --- Actions ---
     function saveStats() {
       localStorage.setItem('paladin_stats', JSON.stringify(stats));
       updateDashboard();
@@ -557,7 +542,6 @@
     };
 
     function bindEvents() {
-      // Oath Logic
       dom.oathChecks.forEach(cb => {
         cb.addEventListener('change', (e) => {
           const title = e.target.closest('label').querySelector('.oath-title');
@@ -575,10 +559,10 @@
           dom.btnTakeOath.disabled = !allChecked;
           
           if(allChecked) {
-            dom.btnTakeOath.innerText = '起誓並進入道途';
+            dom.btnTakeOath.innerText = '完成拷問，進入防禦狀態';
             dom.btnTakeOath.className = 'w-full mt-8 py-3.5 font-bold tracking-widest uppercase transition-all duration-500 rounded-lg shadow-lg bg-gradient-to-r from-amber-800 to-amber-600 text-amber-50 hover:from-amber-700 hover:to-amber-500 hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] cursor-pointer transform hover:-translate-y-0.5';
           } else {
-            dom.btnTakeOath.innerText = '需完成所有誓言確認';
+            dom.btnTakeOath.innerText = '需完成靈魂拷問';
             dom.btnTakeOath.className = 'w-full mt-8 py-3.5 font-bold tracking-widest uppercase transition-all duration-500 rounded-lg shadow-lg bg-stone-800/50 text-stone-600 border border-stone-800 cursor-not-allowed';
           }
         });
@@ -589,7 +573,6 @@
         showDashboard();
       });
 
-      // Quick Actions
       dom.btnAddBtc.addEventListener('click', () => {
         stats.btc = parseFloat((stats.btc + 0.05).toFixed(3));
         saveStats();
@@ -600,13 +583,10 @@
         saveStats();
       });
 
-      // Nav Actions
       dom.btnPrevAct.addEventListener('click', () => changeAct(Math.max(1, activeAct - 1)));
       dom.btnNextAct.addEventListener('click', () => changeAct(Math.min(acts.length, activeAct + 1)));
 
-      // Settings Modal
       dom.btnSettings.addEventListener('click', () => {
-        // Populate inputs
         Object.keys(dom.inputs).forEach(k => dom.inputs[k].value = stats[k]);
         dom.settingsModal.classList.remove('hidden');
       });
@@ -629,7 +609,6 @@
       });
     }
 
-    // Run app
     init();
   </script>
 </body>
