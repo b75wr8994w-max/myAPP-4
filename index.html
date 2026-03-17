@@ -132,7 +132,7 @@
           <div class="space-y-6">
             <div>
               <div class="flex justify-between text-xs text-stone-400 mb-2 font-bold tracking-wide">
-                <span class="flex items-center gap-1.5"><i data-lucide="shield" class="text-green-500" style="width: 14px; height: 14px;"></i> 預備金</span>
+                <span class="flex items-center gap-1.5"><i data-lucide="shield" class="text-green-500" style="width: 14px; height: 14px;"></i> 家庭總預備金</span>
                 <span id="hp-text" class="font-mono text-green-400">100/100</span>
               </div>
               <div class="w-full h-2.5 bg-stone-950/80 border border-stone-800 rounded-full overflow-hidden shadow-inner relative">
@@ -154,11 +154,7 @@
             </div>
 
             <div class="pt-5 border-t border-amber-900/30 space-y-3">
-              <div class="text-xs text-stone-500 font-bold mb-3 tracking-widest uppercase">防禦陣地資源</div>
-              <div class="flex justify-between items-center bg-stone-950/80 p-2.5 rounded border border-stone-800 transition-colors">
-                <span class="text-sm text-stone-400 flex items-center gap-2"><i data-lucide="wallet" class="text-green-600" style="width: 16px; height: 16px;"></i> 備用現金</span>
-                <span id="cash-text" class="text-stone-300 font-mono font-bold">55 w</span>
-              </div>
+              <div class="text-xs text-stone-500 font-bold mb-3 tracking-widest uppercase">實體防禦庫存</div>
               <div class="flex justify-between items-center bg-stone-950/80 p-2.5 rounded border border-stone-800 transition-colors">
                 <span class="text-sm text-stone-400 flex items-center gap-2"><i data-lucide="gem" class="text-yellow-600 drop-shadow-[0_0_5px_rgba(202,138,4,0.5)]" style="width: 16px; height: 16px;"></i> 實體黃金</span>
                 <span id="gold-text" class="text-stone-300 font-mono font-bold">70 w</span>
@@ -250,11 +246,11 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="bg-stone-950/80 p-3 rounded border border-stone-800/80">
-            <label class="text-xs text-stone-400 mb-1.5 block font-bold">預備金水位</label>
+            <label class="text-xs text-stone-400 mb-1.5 block font-bold">家庭總現金 (萬)</label>
             <input type="number" min="0" id="input-hp-current" class="w-full bg-stone-900 border border-green-900/50 text-green-100 p-2 rounded focus:outline-none focus:ring-1 font-mono" />
           </div>
           <div class="bg-stone-950/80 p-3 rounded border border-stone-800/80">
-            <label class="text-xs text-stone-400 mb-1.5 block font-bold">預備金上限</label>
+            <label class="text-xs text-stone-400 mb-1.5 block font-bold">安全水位目標 (萬)</label>
             <input type="number" min="1" id="input-hp-max" class="w-full bg-stone-900 border border-green-900/50 text-green-100 p-2 rounded focus:outline-none focus:ring-1 font-mono" />
           </div>
         </div>
@@ -268,15 +264,9 @@
             <input type="number" min="1" id="input-loan-max" class="w-full bg-stone-900 border border-red-900/50 text-red-100 p-2 rounded focus:outline-none focus:ring-1 font-mono" />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3 pt-2 border-t border-stone-800/50">
-          <div class="bg-stone-950/80 p-3 rounded border border-stone-800/80">
-            <label class="text-xs text-stone-400 mb-1.5 block font-bold">現金總額 (萬)</label>
-            <input type="number" min="0" id="input-cash" class="w-full bg-stone-900 border border-stone-700 text-stone-100 p-2 rounded focus:outline-none focus:ring-1 font-mono" />
-          </div>
-          <div class="bg-stone-950/80 p-3 rounded border border-stone-800/80">
+        <div class="bg-stone-950/80 p-3 rounded border border-stone-800/80 pt-2 border-t border-stone-800/50 mt-2">
             <label class="text-xs text-stone-400 mb-1.5 block font-bold">實體黃金 (萬)</label>
             <input type="number" min="0" id="input-gold" class="w-full bg-stone-900 border border-yellow-900/50 text-yellow-100 p-2 rounded focus:outline-none focus:ring-1 font-mono" />
-          </div>
         </div>
         <div class="pt-4 border-t border-stone-800/50 space-y-3">
           <h3 class="text-xs font-bold text-stone-500 uppercase tracking-widest">系統資料管理</h3>
@@ -309,7 +299,7 @@
           { id: "q1_4", type: 'invest', icon: 'code', title: "App 全面暫停", desc: "將腦力與時間 100% 讓渡給空大、法律條文與家人。" },
           { id: "q1_5", type: 'invest', icon: 'anchor', title: "舊幣不動如山", desc: "ETH/ADA 繼續質押放著，警報未響當作沒這筆錢。" },
           { id: "q1_6", type: 'finance', icon: 'bitcoin', title: "無腦買入", desc: "每月 NT$13,000 依恐貪指數買 BTC，滿 0.05 提冷錢包。" },
-          { id: "q1_7", type: 'finance', icon: 'shield-check', title: "防禦墊", desc: "55萬現金+70萬黃金絕對不動。太太帳戶維持6-12個月預備金。" },
+          { id: "q1_7", type: 'finance', icon: 'shield-check', title: "聯合防禦", desc: "家庭總現金+70萬黃金絕對不動。維持全家6-12個月預備水位。" },
           { id: "q1_8", type: 'finance', icon: 'alert-triangle', title: "債務控管", desc: "290萬(4%)信貸正常繳，現金流吃緊時絕不提前還本，把現金留身邊。" }
         ]
       },
@@ -348,9 +338,17 @@
     ];
 
     const TARGET_BTC = 3.0;
-    const defaultStats = { btc: 0.85, loanCurrent: 290, loanMax: 290, hpCurrent: 100, hpMax: 100, gold: 70, cash: 55 };
+    // 預設將現有現金與太太預備金概念合併。例如目前你有55萬，設定目標為100萬(可自行修改)
+    const defaultStats = { btc: 0.85, loanCurrent: 290, loanMax: 290, hpCurrent: 55, hpMax: 100, gold: 70 };
     
     let stats = JSON.parse(localStorage.getItem('paladin_stats')) || defaultStats;
+    // 清除舊資料中殘留的 cash 屬性
+    if (stats.cash !== undefined) {
+      // 第一次轉移，將原本的 cash 數字加總到 hpCurrent 中，然後刪除 cash 欄位
+      stats.hpCurrent = (stats.hpCurrent || 0) + stats.cash;
+      delete stats.cash;
+    }
+    
     let questData = JSON.parse(localStorage.getItem('paladin_quests')) || {};
     let activeAct = parseInt(localStorage.getItem('paladin_act')) || 1;
     let lastOath = localStorage.getItem('paladin_last_oath') || '';
@@ -370,7 +368,6 @@
       hpBar: document.getElementById('hp-progress-bar'),
       loanText: document.getElementById('loan-text'),
       loanBar: document.getElementById('loan-progress-bar'),
-      cashText: document.getElementById('cash-text'),
       goldText: document.getElementById('gold-text'),
       btcInventory: document.getElementById('btc-inventory-text'),
       btnAddBtc: document.getElementById('btn-add-btc'),
@@ -393,7 +390,6 @@
         hpMax: document.getElementById('input-hp-max'),
         loanCurrent: document.getElementById('input-loan-current'),
         loanMax: document.getElementById('input-loan-max'),
-        cash: document.getElementById('input-cash'),
         gold: document.getElementById('input-gold')
       }
     };
@@ -441,7 +437,6 @@
       dom.loanBar.style.width = `${loanPercentVal}%`;
       dom.btnPayLoan.disabled = stats.loanCurrent <= 0;
 
-      dom.cashText.innerText = `${stats.cash || 55} w`;
       dom.goldText.innerText = `${stats.gold} w`;
 
       renderAct();
@@ -631,7 +626,6 @@
           loanMax: Math.max(1, parseInt(dom.inputs.loanMax.value, 10) || 1),
           hpCurrent: Math.max(0, parseInt(dom.inputs.hpCurrent.value, 10) || 0),
           hpMax: Math.max(1, parseInt(dom.inputs.hpMax.value, 10) || 1),
-          cash: Math.max(0, parseInt(dom.inputs.cash.value, 10) || 0),
           gold: Math.max(0, parseInt(dom.inputs.gold.value, 10) || 0),
         };
         window.saveStatsAndQuests();
