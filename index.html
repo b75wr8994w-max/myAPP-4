@@ -3,285 +3,144 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>防禦聖騎士儀表板 (2030目標)</title>
-
+<title>防禦聖騎士：進度宇宙 (2030目標)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@0.292.0"></script>
-
 <style>
-  /* 捲軸美化 */
   .custom-scrollbar::-webkit-scrollbar { width: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: #1c1917; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #78350f; border-radius: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #92400e; }
-  
-  /* 動畫擴充 */
   .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
   .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
   .flash-gold { animation: flashGold 0.8s ease-out; }
+  .progress-stripe { background-image: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%, transparent); background-size: 1rem 1rem; animation: progress-move 2s linear infinite; }
   
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes pop {
-    0% { transform: scale(0.9); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  @keyframes flashGold {
-    0% { background-color: rgba(245, 158, 11, 0.5); text-shadow: 0 0 10px #f59e0b; }
-    100% { background-color: transparent; text-shadow: none; }
-  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flashGold { 0% { box-shadow: 0 0 20px #f59e0b; background-color: rgba(245,158,11,0.2); } 100% { box-shadow: none; background-color: transparent; } }
+  @keyframes progress-move { 0% { background-position: 1rem 0; } 100% { background-position: 0 0; } }
 
-  .quest-completed p, .quest-completed .quest-title {
-    text-decoration: line-through;
-    opacity: 0.5;
-  }
-
-  /* Toast 提示容器 */
-  #toast-container {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: none;
-  }
-  .toast {
-    background: rgba(28, 25, 23, 0.95);
-    border: 1px solid rgba(217, 119, 6, 0.5);
-    color: #fdba74;
-    padding: 8px 16px;
-    border-radius: 9999px;
-    font-size: 12px;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    animation: fadeIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
-  }
-  @keyframes fadeOut {
-    to { opacity: 0; transform: translateY(-10px); }
-  }
+  #toast-container { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  .toast { background: rgba(28, 25, 23, 0.95); border: 1px solid rgba(217, 119, 6, 0.5); color: #fdba74; padding: 10px 20px; border-radius: 9999px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.5); animation: fadeIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards; }
+  @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
 </style>
 </head>
-<body class="bg-black text-stone-300 font-serif antialiased bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-stone-900 via-stone-950 to-black min-h-screen pb-20">
+<body class="bg-black text-stone-300 font-serif antialiased bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-stone-900 via-stone-950 to-black min-h-screen pb-24">
+
+<div id="oath-view" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/95 backdrop-blur-md hidden">
+  <div class="max-w-md w-full bg-stone-900 border border-amber-900/50 shadow-2xl p-8 rounded-xl animate-fade-in text-center relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-900 via-amber-500 to-amber-900"></div>
+    <i data-lucide="shield" class="text-amber-500 mx-auto mb-4 w-16 h-16 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]"></i>
+    <h1 class="text-2xl text-amber-500 font-bold mb-2 tracking-widest">啟動防禦狀態</h1>
+    <p class="text-stone-400 text-sm mb-8">「淨空雜訊。今天只要推進 1%，系統就會讓你看到成長。」</p>
+    <button onclick="document.getElementById('oath-view').classList.add('hidden')" class="w-full py-4 font-bold tracking-widest uppercase rounded-lg shadow-lg bg-gradient-to-r from-amber-800 to-amber-600 text-amber-50 hover:from-amber-700 active:scale-95 transition-all">
+      進入進度宇宙
+    </button>
+  </div>
+</div>
 
 <div id="event-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-fade-in">
-  <div class="max-w-sm w-full bg-stone-900 border border-blue-500/40 shadow-[0_0_40px_rgba(37,99,235,0.3)] p-6 rounded-xl relative text-center">
-    <div class="w-16 h-16 mx-auto bg-blue-900/30 rounded-full flex items-center justify-center mb-4 border border-blue-500/50">
-      <i data-lucide="sparkles" class="text-blue-400" style="width: 32px; height: 32px;"></i>
+  <div class="max-w-sm w-full bg-stone-900 border border-blue-500/50 shadow-[0_0_40px_rgba(37,99,235,0.3)] p-6 rounded-xl text-center relative">
+    <div id="event-icon-bg" class="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 border">
+      <i id="event-icon" data-lucide="sparkles" class="w-8 h-8"></i>
     </div>
-    <h2 class="text-xl font-bold text-blue-400 mb-2 tracking-wider">今日遭遇事件</h2>
-    <p id="event-desc" class="text-stone-300 text-sm mb-6 leading-relaxed"></p>
-    <button onclick="closeEventModal()" class="w-full py-2 bg-blue-900/50 hover:bg-blue-800 text-blue-200 rounded-lg border border-blue-700 transition-colors font-bold tracking-widest">
-      確認並啟動防禦
+    <h2 id="event-title" class="text-xl font-bold mb-2 tracking-wider">遭遇事件</h2>
+    <p id="event-desc" class="text-stone-300 text-sm mb-6"></p>
+    <button onclick="resolveRngEvent()" class="w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg border border-stone-600 transition-colors font-bold tracking-widest">
+      收下結果並推進
     </button>
   </div>
 </div>
 
-<div id="oath-view" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] hidden">
-  <div class="max-w-md w-full bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-8 relative overflow-hidden rounded-xl animate-fade-in">
-    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-900 via-amber-500 to-amber-900"></div>
-    <div class="flex justify-center mb-6 relative">
-      <div class="absolute inset-0 bg-amber-500/20 blur-xl rounded-full"></div>
-      <i data-lucide="shield-alert" class="text-amber-500 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] relative z-10" style="width: 64px; height: 64px;"></i>
-    </div>
-    <h1 class="text-2xl text-center text-amber-500 font-bold mb-2 tracking-widest">操作前三問</h1>
-    <p class="text-center text-stone-400 text-sm mb-8 italic">「將最鋒利的刃，用在最關鍵的刀口上。」</p>
-    <div class="space-y-5">
-      <label class="flex items-start gap-4 cursor-pointer group p-3 rounded-lg hover:bg-stone-800/40 transition-colors border border-transparent hover:border-stone-800">
-        <input type="checkbox" class="oath-checkbox mt-1 w-5 h-5 accent-amber-600" />
-        <div>
-          <span class="block font-bold text-stone-300 tracking-wide">違反【生存優先】了嗎？</span>
-          <span class="text-xs text-stone-500 leading-relaxed block mt-1">絕對禁止挪用防禦資金進行高風險槓桿或借貸買股。</span>
-        </div>
-      </label>
-      <label class="flex items-start gap-4 cursor-pointer group p-3 rounded-lg hover:bg-stone-800/40 transition-colors border border-transparent hover:border-stone-800">
-        <input type="checkbox" class="oath-checkbox mt-1 w-5 h-5 accent-amber-600" />
-        <div>
-          <span class="block font-bold text-stone-300 tracking-wide">偏離【唯一主目標】了嗎？</span>
-          <span class="text-xs text-stone-500 leading-relaxed block mt-1">所有行動與資源配置，皆須指向 2030 年達成 3.0 BTC。</span>
-        </div>
-      </label>
-      <label class="flex items-start gap-4 cursor-pointer group p-3 rounded-lg hover:bg-stone-800/40 transition-colors border border-transparent hover:border-stone-800">
-        <input type="checkbox" class="oath-checkbox mt-1 w-5 h-5 accent-amber-600" />
-        <div>
-          <span class="block font-bold text-stone-300 tracking-wide">此刻是基於【規則】還是【情緒】？</span>
-          <span class="text-xs text-stone-500 leading-relaxed block mt-1">淨空雜訊。無腦買入，關閉交易所，去讀書或運動。</span>
-        </div>
-      </label>
-    </div>
-    <button id="btn-take-oath" disabled class="w-full mt-8 py-3.5 font-bold tracking-widest uppercase transition-all duration-500 rounded-lg shadow-lg bg-stone-800/50 text-stone-600 border border-stone-800 cursor-not-allowed">
-      需完成靈魂拷問
-    </button>
-  </div>
-</div>
-
-<div id="dashboard-view" class="p-3 md:p-6 lg:p-8 flex flex-col items-center hidden animate-fade-in">
+<div class="p-3 md:p-6 max-w-5xl mx-auto flex flex-col gap-6">
   
-  <header class="w-full max-w-6xl bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-5 md:p-6 mb-6 flex flex-col md:flex-row justify-between items-center relative rounded-xl transition-all" id="header-card">
-    <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-amber-500 to-amber-800 rounded-l-xl"></div>
-    <div class="flex items-center gap-5 mb-6 md:mb-0 pl-4 w-full md:w-auto">
-      <div class="w-16 h-16 shrink-0 rounded-full bg-stone-950 border-2 border-amber-600 flex items-center justify-center shadow-[0_0_20px_rgba(217,119,6,0.3)] relative">
-        <i data-lucide="shield" class="text-amber-500" style="width: 32px; height: 32px;"></i>
-        <div id="header-level" class="absolute -bottom-2 -right-2 bg-stone-900 border border-amber-500 text-[10px] font-bold px-2 py-0.5 rounded-full text-amber-400 shadow-md">Lv.1</div>
-      </div>
-      <div class="flex-1">
-        <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600 tracking-wider mb-1">防禦聖騎士</h1>
-        <div class="w-full bg-stone-950 h-2 rounded-full mt-2 relative overflow-hidden border border-stone-800">
-          <div id="exp-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: 0%"></div>
+  <header id="header-card" class="bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-5 md:p-6 rounded-xl transition-all relative overflow-hidden">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      
+      <div class="flex items-center gap-4 w-full md:w-auto">
+        <div class="w-16 h-16 rounded-full bg-stone-950 border-2 border-amber-600 flex items-center justify-center shadow-[0_0_15px_rgba(217,119,6,0.3)] relative shrink-0">
+          <i data-lucide="swords" class="text-amber-500 w-8 h-8"></i>
+          <div id="char-level" class="absolute -bottom-2 -right-2 bg-stone-900 border border-amber-500 text-[10px] font-bold px-2 py-0.5 rounded-full text-amber-400">Lv.1</div>
         </div>
-        <p class="text-[10px] text-stone-500 mt-1 text-right tracking-widest" id="exp-text">EXP 0 / 100</p>
+        <div class="flex-1">
+          <h1 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600 tracking-wider">防禦聖騎士</h1>
+          <div class="w-full bg-stone-950 h-2 rounded-full mt-2 relative border border-stone-800 overflow-hidden">
+            <div id="char-exp-bar" class="h-full bg-amber-500 transition-all duration-500 progress-stripe" style="width: 0%"></div>
+          </div>
+          <p id="char-exp-text" class="text-[10px] text-stone-500 mt-1 font-mono">EXP: 0 / 1000</p>
+        </div>
+      </div>
+
+      <div class="w-full md:w-64 bg-stone-950/50 p-3 rounded-lg border border-stone-800">
+        <div class="flex justify-between items-end mb-1">
+          <span class="text-amber-500 text-xs font-bold tracking-wide"><i data-lucide="bitcoin" class="inline w-4 h-4 mr-1"></i>BTC 儲備</span>
+          <div>
+            <span id="btc-text" class="text-lg font-mono font-bold text-amber-400">0.850</span><span class="text-stone-500 text-xs ml-1">/ 3.0</span>
+          </div>
+        </div>
+        <div class="w-full h-1.5 bg-stone-900 rounded-full overflow-hidden">
+          <div id="btc-bar" class="h-full bg-amber-500 transition-all" style="width: 28%"></div>
+        </div>
+        <button onclick="dispatch('ADD_BTC')" class="w-full mt-2 py-1.5 bg-stone-800 hover:bg-stone-700 text-amber-400/80 text-[10px] font-bold rounded flex items-center justify-center gap-1 transition-colors">
+          <i data-lucide="plus" class="w-3 h-3"></i> 滿 0.05 入庫
+        </button>
+      </div>
+
+      <div class="w-full md:w-auto flex flex-row md:flex-col gap-3 md:gap-2">
+        <div class="flex-1 bg-stone-950/50 px-3 py-2 rounded border border-red-900/30 flex justify-between items-center gap-4">
+          <span class="text-[10px] text-stone-500 font-bold"><i data-lucide="alert-triangle" class="inline text-red-500 w-3 h-3 mr-1"></i>信貸負重</span>
+          <span id="loan-text" class="text-red-400 font-mono text-sm font-bold">236w</span>
+        </div>
+        <div class="flex-1 bg-stone-950/50 px-3 py-2 rounded border border-yellow-900/30 flex justify-between items-center gap-4">
+          <span class="text-[10px] text-stone-500 font-bold"><i data-lucide="gem" class="inline text-yellow-500 w-3 h-3 mr-1"></i>實體黃金</span>
+          <span id="gold-text" class="text-yellow-400 font-mono text-sm font-bold">60w</span>
+        </div>
       </div>
     </div>
-    <div class="flex-1 max-w-md w-full px-2 md:px-0 md:pr-4">
-      <div class="flex justify-between items-end text-sm mb-2">
-        <span class="text-amber-500 font-bold flex items-center gap-1.5 tracking-wide"><i data-lucide="target" style="width: 16px; height: 16px;"></i> 終極目標</span>
-        <div class="text-right">
-          <span id="btc-current-text" class="text-2xl font-mono font-bold text-amber-400 tracking-tighter shadow-amber-500/50 drop-shadow-md transition-all rounded px-1">0.000</span>
-          <span class="text-stone-500 font-mono text-sm ml-1">/ 3.0 ₿</span>
-        </div>
-      </div>
-      <div class="w-full h-2.5 bg-stone-950/80 border border-stone-800 rounded-full overflow-hidden shadow-inner relative">
-        <div id="btc-progress-bar" class="h-full transition-all duration-1000 ease-out bg-gradient-to-r from-amber-700 to-amber-400 relative" style="width: 0%"></div>
-      </div>
+
+    <div class="mt-4 pt-4 border-t border-amber-900/30 flex gap-4 overflow-x-auto custom-scrollbar pb-1">
+      <div class="flex items-center gap-2 text-xs text-stone-400 whitespace-nowrap"><i data-lucide="zap" class="text-blue-400 w-4 h-4"></i> 全局吸收率 <span id="buff-exp" class="text-blue-300 font-bold font-mono">+0%</span></div>
+      <div class="flex items-center gap-2 text-xs text-stone-400 whitespace-nowrap"><i data-lucide="book-open" class="text-green-400 w-4 h-4"></i> 記憶定著率 <span id="buff-prog" class="text-green-300 font-bold font-mono">+0%</span></div>
+      <div class="flex items-center gap-2 text-xs text-stone-400 whitespace-nowrap"><i data-lucide="shield" class="text-stone-300 w-4 h-4"></i> 雜訊抗性 <span id="buff-res" class="text-stone-200 font-bold font-mono">Lv.0</span></div>
     </div>
   </header>
 
-  <div class="w-full max-w-6xl grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-stone-900/80 border border-emerald-900/50 p-3 rounded-lg flex items-center gap-3">
-      <div class="w-10 h-10 rounded-full bg-emerald-900/30 flex justify-center items-center border border-emerald-700/50">
-        <i data-lucide="bug" class="text-emerald-500"></i> </div>
-      <div>
-        <div class="text-[10px] text-stone-500 font-bold">鎮座神龜狀態</div>
-        <div id="pet-name" class="text-sm text-emerald-400 font-bold tracking-wide">幼龜 (Lv.1)</div>
-      </div>
-    </div>
-    <div class="bg-stone-900/80 border border-amber-900/50 p-3 rounded-lg flex items-center gap-3">
-      <div class="w-10 h-10 rounded-full bg-amber-900/30 flex justify-center items-center border border-amber-700/50 relative">
-        <i data-lucide="puzzle" class="text-amber-500"></i>
-      </div>
-      <div>
-        <div class="text-[10px] text-stone-500 font-bold">BTC 碎片 (滿10融煉)</div>
-        <div id="frag-text" class="text-sm text-amber-400 font-bold tracking-wide font-mono">0 / 10</div>
-      </div>
-    </div>
-    <div class="col-span-2 bg-stone-900/80 border border-blue-900/50 p-3 rounded-lg flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <i data-lucide="calendar-days" class="text-blue-500"></i>
-        <div>
-          <div class="text-[10px] text-stone-500 font-bold">防禦登入連續紀錄</div>
-          <div id="streak-text" class="text-sm text-blue-400 font-bold font-mono">0 天</div>
-        </div>
-      </div>
-      <i data-lucide="flame" class="text-orange-500 animate-pulse"></i>
-    </div>
-  </div>
-
-  <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 relative">
-    
-    <div class="lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
-      <div class="bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-5 rounded-xl">
-        <h2 class="text-lg text-amber-500 font-bold border-b border-amber-900/50 pb-3 mb-5 flex items-center gap-2 tracking-wide">
-          <i data-lucide="scroll" style="width: 18px; height: 18px;"></i> 屬性與裝備
-        </h2>
-        <div class="space-y-5">
-          <div>
-            <div class="flex justify-between text-xs text-stone-400 mb-1.5 font-bold">
-              <span class="flex items-center gap-1.5"><i data-lucide="shield" class="text-green-500" style="width: 14px; height: 14px;"></i> 家庭總預備金</span>
-              <span id="hp-text" class="font-mono text-green-400">100/100</span>
-            </div>
-            <div class="w-full h-2 bg-stone-950/80 border border-stone-800 rounded-full overflow-hidden relative">
-              <div id="hp-progress-bar" class="h-full bg-green-600 transition-all duration-1000" style="width: 100%"></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex justify-between text-xs text-stone-400 mb-1.5 font-bold">
-              <span class="flex items-center gap-1.5"><i data-lucide="alert-triangle" class="text-red-500" style="width: 14px; height: 14px;"></i> 負重 (4%信貸)</span>
-              <span id="loan-text" class="text-red-400 font-mono">236 / 236 w</span>
-            </div>
-            <div class="w-full h-2 bg-stone-950/80 border border-stone-800 rounded-full overflow-hidden relative">
-              <div id="loan-progress-bar" class="h-full bg-red-700/80 transition-all duration-1000" style="width: 100%"></div>
-            </div>
-            <button onclick="dispatch('PAY_LOAN')" class="mt-2 text-xs bg-stone-950 hover:bg-stone-800 active:scale-95 px-3 py-1.5 rounded border border-stone-700 transition-all w-full flex justify-center items-center gap-1 font-bold text-stone-300">
-              <i data-lucide="coins" style="width: 12px; height: 12px;"></i> 穩定還本 (-1w)
-            </button>
-          </div>
-
-          <div class="pt-4 border-t border-stone-800/50 flex justify-between items-center">
-            <span class="text-sm text-stone-400 flex items-center gap-2"><i data-lucide="gem" class="text-yellow-600" style="width: 16px; height: 16px;"></i> 實體黃金</span>
-            <span id="gold-text" class="text-stone-300 font-mono font-bold">60 w</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-stone-900/90 backdrop-blur-md border border-stone-800 p-4 rounded-xl border-l-4 border-l-blue-600">
-        <h3 class="text-sm text-blue-400 font-bold mb-2 flex items-center gap-2 tracking-wide"><i data-lucide="clipboard-list" style="width: 16px; height: 16px;"></i> 每週 15 分鐘 SOP</h3>
-        <ol class="text-xs text-stone-400 space-y-2 pl-1">
-          <li><span class="text-blue-500 font-mono mr-1">1.</span>打開恐貪指數。</li>
-          <li><span class="text-blue-500 font-mono mr-1">2.</span>買對應 BTC，餘額存預備金。</li>
-          <li><span class="text-blue-500 font-mono mr-1">3.</span><span class="text-stone-300 font-bold">關閉交易所，運動或讀書。</span></li>
-        </ol>
-      </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="goals-container">
     </div>
 
-    <div class="lg:col-span-8 xl:col-span-9 flex flex-col gap-4">
-      <div class="bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-5 md:p-8 flex-1 rounded-xl flex flex-col">
-        <div class="flex justify-between items-center mb-6">
-          <button onclick="dispatch('CHANGE_ACT', -1)" id="btn-prev-act" class="p-2 text-stone-500 hover:text-amber-500 transition-colors"><i data-lucide="chevron-left"></i></button>
-          <div class="text-center">
-            <div id="act-badge" class="inline-block px-3 py-1 bg-stone-950 border border-amber-900/50 rounded-full text-xs font-mono text-amber-500/70 mb-2 tracking-widest">ACT 1</div>
-            <h2 id="act-title" class="text-2xl md:text-3xl font-bold text-amber-500 tracking-wider">階段標題</h2>
-          </div>
-          <button onclick="dispatch('CHANGE_ACT', 1)" id="btn-next-act" class="p-2 text-stone-500 hover:text-amber-500 transition-colors"><i data-lucide="chevron-right"></i></button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 flex-1">
-          <div class="space-y-3"><h3 class="text-sm text-stone-300 font-bold flex items-center gap-2 border-b border-blue-900/30 pb-2"><i data-lucide="castle" class="text-blue-400 w-4 h-4"></i> 生活與本業</h3><div id="quests-life" class="space-y-3"></div></div>
-          <div class="space-y-3"><h3 class="text-sm text-stone-300 font-bold flex items-center gap-2 border-b border-amber-900/30 pb-2"><i data-lucide="swords" class="text-amber-500 w-4 h-4"></i> 投資核心</h3><div id="quests-invest" class="space-y-3"></div></div>
-          <div class="space-y-3"><h3 class="text-sm text-stone-300 font-bold flex items-center gap-2 border-b border-green-900/30 pb-2"><i data-lucide="coins" class="text-green-500 w-4 h-4"></i> 資金流道</h3><div id="quests-finance" class="space-y-3"></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
-<div class="fixed bottom-0 left-0 w-full bg-stone-950 border-t border-stone-800 p-2 flex justify-around items-center z-40 lg:hidden">
-  <button onclick="dispatch('ADD_BTC')" class="flex flex-col items-center p-2 text-amber-500 active:scale-90 transition-transform">
-    <i data-lucide="plus-circle" class="mb-1"></i><span class="text-[10px]">入庫</span>
+<div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+  <button onclick="dispatch('PAY_LOAN')" class="p-3 bg-stone-900 text-red-400 rounded-full border border-red-900/50 shadow-lg hover:bg-stone-800 transition-transform active:scale-90" title="還本 1 萬">
+    <i data-lucide="coins"></i>
   </button>
-  <button onclick="openSettings()" class="flex flex-col items-center p-2 text-stone-400 active:scale-90 transition-transform">
-    <i data-lucide="settings" class="mb-1"></i><span class="text-[10px]">設定</span>
+  <button onclick="openSettings()" class="p-4 bg-stone-900 text-stone-400 rounded-full border border-stone-700 shadow-lg hover:text-amber-500 hover:border-amber-500 transition-transform active:scale-90">
+    <i data-lucide="settings"></i>
   </button>
 </div>
-
-<button onclick="openSettings()" class="fixed bottom-6 right-6 p-4 bg-stone-900 text-stone-400 rounded-full border border-stone-700 hover:text-amber-500 hover:border-amber-500 hover:scale-110 transition-all z-40 hidden lg:block shadow-lg">
-  <i data-lucide="settings"></i>
-</button>
 
 <div id="settings-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
-  <div class="max-w-md w-full bg-stone-900 border border-stone-700 shadow-2xl p-6 rounded-xl relative">
+  <div class="max-w-sm w-full bg-stone-900 border border-stone-700 shadow-2xl p-6 rounded-xl relative">
     <button onclick="closeSettings()" class="absolute top-4 right-4 text-stone-500 hover:text-white"><i data-lucide="x"></i></button>
-    <h2 class="text-lg font-bold text-stone-300 mb-4 border-b border-stone-800 pb-2">系統數值校準</h2>
-    <div class="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-      <div><label class="text-xs text-stone-400 block mb-1">BTC 庫存</label><input type="number" step="0.001" id="in-btc" class="w-full bg-stone-950 border border-stone-700 text-amber-100 p-2 rounded text-sm font-mono"></div>
-      <div class="grid grid-cols-2 gap-2">
-        <div><label class="text-xs text-stone-400 block mb-1">信貸餘額(萬)</label><input type="number" id="in-loanC" class="w-full bg-stone-950 border border-stone-700 text-red-100 p-2 rounded text-sm font-mono"></div>
-        <div><label class="text-xs text-stone-400 block mb-1">信貸總額(萬)</label><input type="number" id="in-loanM" class="w-full bg-stone-950 border border-stone-700 text-red-100 p-2 rounded text-sm font-mono"></div>
+    <h2 class="text-lg font-bold text-stone-300 mb-4 border-b border-stone-800 pb-2">系統設定與備份</h2>
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-[10px] text-stone-500 block mb-1">BTC 庫存</label><input type="number" step="0.001" id="in-btc" class="w-full bg-stone-950 border border-stone-700 text-amber-100 p-2 rounded text-sm font-mono"></div>
+        <div><label class="text-[10px] text-stone-500 block mb-1">實體黃金(萬)</label><input type="number" id="in-gold" class="w-full bg-stone-950 border border-stone-700 text-yellow-100 p-2 rounded text-sm font-mono"></div>
+        <div><label class="text-[10px] text-stone-500 block mb-1">信貸餘額(萬)</label><input type="number" id="in-loan" class="w-full bg-stone-950 border border-stone-700 text-red-100 p-2 rounded text-sm font-mono"></div>
       </div>
-      <div class="grid grid-cols-2 gap-2">
-        <div><label class="text-xs text-stone-400 block mb-1">預備金(萬)</label><input type="number" id="in-hpC" class="w-full bg-stone-950 border border-stone-700 text-green-100 p-2 rounded text-sm font-mono"></div>
-        <div><label class="text-xs text-stone-400 block mb-1">預備金目標(萬)</label><input type="number" id="in-hpM" class="w-full bg-stone-950 border border-stone-700 text-green-100 p-2 rounded text-sm font-mono"></div>
-      </div>
-      <div><label class="text-xs text-stone-400 block mb-1">黃金(萬)</label><input type="number" id="in-gold" class="w-full bg-stone-950 border border-stone-700 text-yellow-100 p-2 rounded text-sm font-mono"></div>
-      <div class="flex gap-2 pt-2 border-t border-stone-800">
-        <button onclick="dispatch('EXPORT_DATA')" class="flex-1 bg-stone-800 py-2 rounded text-xs text-stone-300">匯出備份</button>
+      
+      <div class="pt-4 border-t border-stone-800 space-y-2">
+        <button onclick="dispatch('SAVE_SETTINGS')" class="w-full py-2 bg-stone-800 hover:bg-stone-700 text-amber-500 rounded font-bold text-sm transition-colors border border-stone-600">儲存數值</button>
+        <div class="flex gap-2">
+          <button onclick="dispatch('EXPORT_DATA')" class="flex-1 py-2 bg-stone-950 text-stone-400 rounded text-xs border border-stone-800 hover:text-white">匯出備份</button>
+          <label class="flex-1 py-2 bg-stone-950 text-stone-400 rounded text-xs border border-stone-800 hover:text-white text-center cursor-pointer">
+            匯入還原
+            <input type="file" id="import-file" accept=".json" class="hidden">
+          </label>
+        </div>
       </div>
     </div>
-    <button onclick="dispatch('SAVE_SETTINGS')" class="w-full mt-4 py-3 bg-stone-800 hover:bg-stone-700 text-white rounded-lg font-bold text-sm transition-colors">儲存</button>
   </div>
 </div>
 
@@ -289,343 +148,308 @@
 
 <script>
 // ==========================================
-// 核心架構：Game Engine & State Management
+// 核心狀態定義 (State)
 // ==========================================
 const TARGET_BTC = 3.0;
 
-// 定義系統初始狀態 (對齊最新資訊：信貸236萬、黃金60萬)
+const defaultGoals = [
+  { id: 'law', name: '行政法學', current: 0, total: 2000, level: 1, color: 'blue', desc: '核心主武裝。升級提供全局 EXP 加成。', icon: 'book' },
+  { id: 'crime', name: '刑事法學', current: 0, total: 2000, level: 1, color: 'red', desc: '程序法防禦盾。升級提升推進暴擊率。', icon: 'gavel' },
+  { id: 'admin', name: '共同法學', current: 0, total: 2000, level: 1, color: 'green', desc: '底層架構網。升級降低干擾事件機率。', icon: 'network' }
+];
+
 const initialState = {
-  meta: {
-    lastLoginDate: '', streak: 0, exp: 0, level: 1, act: 1, 
-    fragments: 0, petLevel: 1, oathTaken: false
-  },
-  stats: { btc: 0.85, loanCurrent: 236, loanMax: 236, hpCurrent: 55, hpMax: 100, gold: 60 },
-  quests: {} // 動態儲存任務狀態
+  meta: { charLevel: 1, charExp: 0 },
+  stats: { btc: 0.85, loanCurrent: 236, gold: 60 },
+  globalBuff: { expBonus: 0, progressBonus: 0, resistLevel: 0 },
+  goals: JSON.parse(JSON.stringify(defaultGoals))
 };
 
 let state = null;
+let pendingRngEvent = null;
 
-// 防呆讀取
 try {
-  const saved = localStorage.getItem('paladin_state');
+  const saved = localStorage.getItem('paladin_rpg_state');
   state = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(initialState));
+  // 合併可能缺少的新目標結構
+  state.goals.forEach((g, idx) => {
+    g.color = defaultGoals[idx].color; g.desc = defaultGoals[idx].desc; g.icon = defaultGoals[idx].icon;
+  });
 } catch(e) {
   state = JSON.parse(JSON.stringify(initialState));
 }
 
-// 每日隨機事件庫
-const dailyEvents = [
-  { type: 'buff', text: '今日專注力+20%，讀書效率提升！', effect: () => dispatch('GAIN_EXP', 20) },
-  { type: 'debuff', text: '市場恐慌測試：你的心態不動如山。', effect: () => {} },
-  { type: 'bonus', text: '意外在舊錢包找到粉塵！獲得 BTC 碎片 x2', effect: () => dispatch('ADD_FRAGMENTS', 2) }
-];
-
-// 關卡與任務定本
-const acts = [
-  {
-    id: 1, title: "極簡防禦與法幣挖礦", years: "2026 - 2027",
-    quests: [
-      { id: "q1", type: 'life', title: "十月南遷會合", desc: "調回高雄與妻女團聚" },
-      { id: "q2", type: 'life', title: "學歷戰隘口", desc: "取得專科文憑" },
-      { id: "q3", type: 'life', title: "體能維持", desc: "規律運動紀律" },
-      { id: "q4", type: 'invest', title: "App 暫停", desc: "腦力讓渡給法律條文" },
-      { id: "q5", type: 'invest', title: "舊幣不動", desc: "警報未響當沒這筆錢" },
-      { id: "q6", type: 'finance', title: "無腦買入", desc: "每月依恐貪買 BTC" }
-    ]
-  },
-  // 簡化示範，後續階段依此類推...
-  {
-    id: 2, title: "火力全開與主目標達陣", years: "2028 - 2030",
-    quests: [
-      { id: "q2_1", type: 'life', title: "2028 警察考試", desc: "順利通過，實質加薪" }
-    ]
-  }
-];
-
-// 震動回饋封裝
-const vibrate = (ms) => { if(navigator.vibrate) navigator.vibrate(ms); };
-
-// UI 提示封裝 (瞬間爽感)
-const showToast = (msg) => {
-  const container = document.getElementById('toast-container');
-  const el = document.createElement('div');
-  el.className = 'toast'; el.innerText = msg;
-  container.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
-};
+// 階段名稱產生器 (依進度比例)
+function getStageName(current, total) {
+  const pct = current / total;
+  if(pct < 0.2) return "階段一：法理萌芽";
+  if(pct < 0.5) return "階段二：體系建構";
+  if(pct < 0.8) return "階段三：實務見解交鋒";
+  if(pct < 1.0) return "階段四：考前火力全開";
+  return "領域展開：精通";
+}
 
 // ==========================================
-// 引擎核心 Dispatcher (Reducer)
+// 遊戲引擎 (Dispatcher)
 // ==========================================
 function dispatch(action, payload) {
   let shouldRender = true;
 
   switch(action) {
-    case 'LOGIN_CHECK':
-      const today = new Date().toDateString();
-      if(state.meta.lastLoginDate !== today) {
-        state.meta.streak += 1;
-        state.meta.lastLoginDate = today;
-        state.meta.oathTaken = false;
-        // 觸發隨機事件
-        triggerDailyEvent();
+    case 'PUSH':
+      const goal = state.goals.find(g => g.id === payload.id);
+      if(!goal || goal.current >= goal.total) return;
+
+      let baseAmount = payload.amount;
+      // 套用推進增益 (共同法/刑事法等級影響)
+      let finalAmount = Math.floor(baseAmount * (1 + state.globalBuff.progressBonus));
+
+      // RNG 判定 (20% 機率，受共同法抗性影響)
+      const rngChance = Math.max(0.05, 0.2 - (state.globalBuff.resistLevel * 0.02));
+      if(Math.random() < rngChance && !payload.skipRng) {
+        triggerRng(goal, finalAmount);
+        return; // 暫停推進，等待 Modal 互動
       }
+
+      executePush(goal, finalAmount);
       break;
-    
-    case 'TAKE_OATH':
-      state.meta.oathTaken = true;
-      document.getElementById('oath-view').classList.add('hidden');
-      document.getElementById('dashboard-view').classList.remove('hidden');
+
+    case 'RNG_RESOLVE':
+      executePush(pendingRngEvent.goal, pendingRngEvent.finalAmount);
+      closeRngEvent();
       break;
 
     case 'ADD_BTC':
       state.stats.btc = parseFloat((state.stats.btc + 0.05).toFixed(3));
-      vibrate([50, 50]);
+      showToast('⚔️ 防禦力提升！入庫 +0.05 BTC');
       document.getElementById('header-card').classList.add('flash-gold');
       setTimeout(() => document.getElementById('header-card').classList.remove('flash-gold'), 800);
-      showToast('⚔️ 實體防禦力提升！入庫 +0.05 BTC');
       break;
 
     case 'PAY_LOAN':
       if (state.stats.loanCurrent > 0) {
         state.stats.loanCurrent -= 1;
-        vibrate(30);
         showToast('🛡️ 負重減輕！信貸 -1萬');
       }
       break;
 
-    case 'TOGGLE_QUEST':
-      if(!state.quests[payload]) state.quests[payload] = { completed: false, subs: [] };
-      state.quests[payload].completed = !state.quests[payload].completed;
-      if(state.quests[payload].completed) {
-        vibrate(50);
-        dispatch('GAIN_EXP', 50);
-        if(Math.random() < 0.4) dispatch('ADD_FRAGMENTS', 1); // 40% 掉寶率
-      }
-      break;
-
-    case 'ADD_SUBQUEST':
-      if(!state.quests[payload.qId]) state.quests[payload.qId] = { completed: false, subs: [] };
-      state.quests[payload.qId].subs.push({ id: Date.now(), text: payload.text, completed: false });
-      break;
-
-    case 'TOGGLE_SUBQUEST':
-      const sq = state.quests[payload.qId].subs.find(s => s.id === payload.sqId);
-      if(sq) {
-        sq.completed = !sq.completed;
-        if(sq.completed) {
-          vibrate(20);
-          dispatch('GAIN_EXP', 10);
-          if(Math.random() < 0.3) dispatch('ADD_FRAGMENTS', 1); // 30% 掉寶率
-        }
-      }
-      break;
-
-    case 'DELETE_SUBQUEST': // 新增：刪除小目標
-      if(state.quests[payload.qId]) {
-        state.quests[payload.qId].subs = state.quests[payload.qId].subs.filter(s => s.id !== payload.sqId);
-      }
-      break;
-
-    case 'GAIN_EXP':
-      state.meta.exp += payload;
-      showToast(`🌟 獲得 ${payload} EXP`);
-      checkLevelUp();
-      break;
-
-    case 'ADD_FRAGMENTS':
-      state.meta.fragments += payload;
-      showToast(`🧩 掉落！獲得 BTC 碎片 x${payload}`);
-      if(state.meta.fragments >= 10) {
-        state.meta.fragments -= 10;
-        state.stats.btc = parseFloat((state.stats.btc + 0.01).toFixed(3));
-        showToast(`🔥 碎片融煉成功！BTC +0.01`);
-        document.getElementById('header-card').classList.add('flash-gold');
-      }
-      break;
-
-    case 'CHANGE_ACT':
-      const newAct = state.meta.act + payload;
-      if(newAct >= 1 && newAct <= acts.length) state.meta.act = newAct;
-      break;
-
     case 'SAVE_SETTINGS':
       state.stats.btc = parseFloat(document.getElementById('in-btc').value) || 0;
-      state.stats.loanCurrent = parseInt(document.getElementById('in-loanC').value) || 0;
-      state.stats.loanMax = parseInt(document.getElementById('in-loanM').value) || 1;
-      state.stats.hpCurrent = parseInt(document.getElementById('in-hpC').value) || 0;
-      state.stats.hpMax = parseInt(document.getElementById('in-hpM').value) || 1;
+      state.stats.loanCurrent = parseInt(document.getElementById('in-loan').value) || 0;
       state.stats.gold = parseInt(document.getElementById('in-gold').value) || 0;
       closeSettings();
-      showToast('💾 系統數值已校準並備份');
+      showToast('💾 數值已覆寫並備份');
       break;
 
     case 'EXPORT_DATA':
       const blob = new Blob([JSON.stringify(state)], {type: 'application/json'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `Paladin_Backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.download = `Paladin_RPG_Backup_${new Date().toISOString().slice(0,10)}.json`;
       a.click();
       shouldRender = false;
       break;
   }
 
-  // 自動備份機制
   if (shouldRender) {
-    try {
-      localStorage.setItem('paladin_state', JSON.stringify(state));
-      localStorage.setItem('paladin_backup_latest', JSON.stringify(state)); // 雙重保險
-    } catch(e) { console.error("備份失敗", e); }
-    render();
+    saveAndRender();
   }
 }
 
 // ==========================================
-// 遊戲邏輯與渲染
+// 核心邏輯處理
 // ==========================================
+function executePush(goal, amount) {
+  goal.current += amount;
+  if(goal.current > goal.total) goal.current = goal.total;
+  
+  // 目標升級判定 (每 200 進度升 1 級)
+  const newLevel = Math.floor(goal.current / 200) + 1;
+  if(newLevel > goal.level) {
+    goal.level = newLevel;
+    recalculateBuffs();
+    showToast(`🌟 境界突破！【${goal.name}】升級至 Lv.${goal.level}`);
+  }
 
-function checkLevelUp() {
-  const reqExp = state.meta.level * 100;
-  if (state.meta.exp >= reqExp) {
-    state.meta.level++;
-    state.meta.exp -= reqExp;
-    
-    // 神龜進化邏輯
-    if(state.meta.level >= 5 && state.meta.petLevel === 1) state.meta.petLevel = 2;
-    if(state.meta.level >= 15 && state.meta.petLevel === 2) state.meta.petLevel = 3;
-    
-    showToast(`🎉 升級啦！目前 Lv.${state.meta.level}`);
-    vibrate([100, 50, 100]);
+  // 角色 EXP 增加 (套用全局 EXP 加成)
+  const expGain = Math.floor(amount * (1 + state.globalBuff.expBonus));
+  state.meta.charExp += expGain;
+  checkCharLevelUp();
+
+  showToast(`🔥 進度 +${amount}！距離目標還差 ${goal.total - goal.current}`);
+}
+
+function checkCharLevelUp() {
+  const reqExp = state.meta.charLevel * 1000;
+  if (state.meta.charExp >= reqExp) {
+    state.meta.charLevel++;
+    state.meta.charExp -= reqExp;
+    showToast(`👑 角色升級！目前等級 Lv.${state.meta.charLevel}`);
   }
 }
 
-function triggerDailyEvent() {
-  const evt = dailyEvents[Math.floor(Math.random() * dailyEvents.length)];
-  document.getElementById('event-desc').innerText = evt.text;
+// 重新計算 Global Buff (目標間互相影響)
+function recalculateBuffs() {
+  const lawGoal = state.goals.find(g => g.id === 'law');
+  const crimeGoal = state.goals.find(g => g.id === 'crime');
+  const adminGoal = state.goals.find(g => g.id === 'admin');
+
+  // 行政法學提升 EXP 獲取 (+2% per level)
+  state.globalBuff.expBonus = (lawGoal.level - 1) * 0.02;
+  // 刑事法學提升進度獲取 (+2% per level)
+  state.globalBuff.progressBonus = (crimeGoal.level - 1) * 0.02;
+  // 共同法提升雜訊抗性
+  state.globalBuff.resistLevel = adminGoal.level - 1;
+}
+
+// RNG 事件觸發
+function triggerRng(goal, baseAmount) {
+  const events = [
+    { type: 'good', text: '💡 靈感爆發！法條邏輯瞬間貫通，本次進度 x2！', mult: 2, icon: 'zap', color: 'text-yellow-400', bg: 'bg-yellow-900/30 border-yellow-500' },
+    { type: 'good', text: '📦 翻閱筆記時找到盲點解答，額外獲得 10 點推進。', add: 10, mult: 1, icon: 'package', color: 'text-green-400', bg: 'bg-green-900/30 border-green-500' },
+    { type: 'bad', text: '💤 精神稍有渙散，但你靠意志力拉了回來。效率略減。', mult: 0.8, icon: 'cloud-fog', color: 'text-stone-400', bg: 'bg-stone-800 border-stone-500' }
+  ];
+  
+  const ev = events[Math.floor(Math.random() * events.length)];
+  let finalAmount = Math.floor(baseAmount * ev.mult) + (ev.add || 0);
+  if(finalAmount < 1) finalAmount = 1;
+
+  pendingRngEvent = { goal, finalAmount };
+
+  document.getElementById('event-icon').setAttribute('data-lucide', ev.icon);
+  document.getElementById('event-icon').className = `w-8 h-8 ${ev.color}`;
+  document.getElementById('event-icon-bg').className = `w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${ev.bg}`;
+  document.getElementById('event-desc').innerText = ev.text;
+  
+  lucide.createIcons();
   document.getElementById('event-modal').classList.remove('hidden');
-  evt.effect();
 }
 
-function closeEventModal() {
+function resolveRngEvent() {
+  dispatch('RNG_RESOLVE');
+}
+function closeRngEvent() {
   document.getElementById('event-modal').classList.add('hidden');
 }
 
-function openSettings() {
-  document.getElementById('in-btc').value = state.stats.btc;
-  document.getElementById('in-loanC').value = state.stats.loanCurrent;
-  document.getElementById('in-loanM').value = state.stats.loanMax;
-  document.getElementById('in-hpC').value = state.stats.hpCurrent;
-  document.getElementById('in-hpM').value = state.stats.hpMax;
-  document.getElementById('in-gold').value = state.stats.gold;
-  document.getElementById('settings-modal').classList.remove('hidden');
-}
+// ==========================================
+// 匯入與儲存渲染
+// ==========================================
+document.getElementById('import-file').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      state = JSON.parse(evt.target.result);
+      saveAndRender();
+      closeSettings();
+      alert("✅ 紀錄還原成功，進度宇宙已重啟！");
+    } catch(err) { alert('檔案格式錯誤。'); }
+  };
+  reader.readAsText(file);
+});
 
-function closeSettings() {
-  document.getElementById('settings-modal').classList.add('hidden');
+function saveAndRender() {
+  localStorage.setItem('paladin_rpg_state', JSON.stringify(state));
+  recalculateBuffs(); // Ensure buffs are synced
+  render();
 }
 
 function render() {
-  // 頂部與數值
-  document.getElementById('header-level').innerText = `Lv.${state.meta.level}`;
-  document.getElementById('btc-current-text').innerText = state.stats.btc.toFixed(3);
-  document.getElementById('btc-progress-bar').style.width = `${Math.min(100, (state.stats.btc/TARGET_BTC)*100)}%`;
+  // 全局數值
+  document.getElementById('char-level').innerText = `Lv.${state.meta.charLevel}`;
+  document.getElementById('char-exp-bar').style.width = `${(state.meta.charExp / (state.meta.charLevel * 1000)) * 100}%`;
+  document.getElementById('char-exp-text').innerText = `EXP: ${state.meta.charExp} / ${state.meta.charLevel * 1000}`;
   
-  const expReq = state.meta.level * 100;
-  document.getElementById('exp-bar').style.width = `${(state.meta.exp / expReq) * 100}%`;
-  document.getElementById('exp-text').innerText = `EXP ${state.meta.exp} / ${expReq}`;
+  document.getElementById('btc-text').innerText = state.stats.btc.toFixed(3);
+  document.getElementById('btc-bar').style.width = `${Math.min(100, (state.stats.btc/TARGET_BTC)*100)}%`;
+  document.getElementById('loan-text').innerText = `${state.stats.loanCurrent}w`;
+  document.getElementById('gold-text').innerText = `${state.stats.gold}w`;
 
-  document.getElementById('hp-text').innerText = `${state.stats.hpCurrent}/${state.stats.hpMax}`;
-  document.getElementById('hp-progress-bar').style.width = `${Math.min(100, (state.stats.hpCurrent/state.stats.hpMax)*100)}%`;
-  
-  document.getElementById('loan-text').innerText = `${state.stats.loanCurrent} / ${state.stats.loanMax} w`;
-  document.getElementById('loan-progress-bar').style.width = `${Math.min(100, (state.stats.loanCurrent/state.stats.loanMax)*100)}%`;
-  
-  document.getElementById('gold-text').innerText = `${state.stats.gold} w`;
+  // Buffs
+  document.getElementById('buff-exp').innerText = `+${(state.globalBuff.expBonus * 100).toFixed(0)}%`;
+  document.getElementById('buff-prog').innerText = `+${(state.globalBuff.progressBonus * 100).toFixed(0)}%`;
+  document.getElementById('buff-res').innerText = `Lv.${state.globalBuff.resistLevel}`;
 
-  // 寵物與掉落物
-  const petNames = ["幼龜", "裝甲陸龜", "聖鎧龍龜"];
-  document.getElementById('pet-name').innerText = `${petNames[state.meta.petLevel-1]} (Lv.${state.meta.petLevel})`;
-  document.getElementById('frag-text').innerText = `${state.meta.fragments} / 10`;
-  document.getElementById('streak-text').innerText = `${state.meta.streak} 天`;
-
-  // 渲染任務
-  const act = acts[state.meta.act - 1] || acts[0];
-  document.getElementById('act-badge').innerText = `ACT ${act.id} / ${act.years}`;
-  document.getElementById('act-title').innerText = act.title;
-
-  const renderList = (type, containerId) => {
-    const html = act.quests.filter(q => q.type === type).map(q => {
-      const qd = state.quests[q.id] || { completed: false, subs: [] };
-      
-      const subHtml = qd.subs.map(sq => `
-        <div class="flex items-center gap-2 mt-2 group">
-          <input type="checkbox" onchange="dispatch('TOGGLE_SUBQUEST', {qId:'${q.id}', sqId:${sq.id}})" ${sq.completed ? 'checked' : ''} class="accent-stone-500">
-          <span class="text-xs ${sq.completed ? 'line-through text-stone-600' : 'text-stone-400'} flex-1">${sq.text}</span>
-          <button onclick="dispatch('DELETE_SUBQUEST', {qId:'${q.id}', sqId:${sq.id}})" class="text-[10px] text-red-900 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" style="width:12px; height:12px;"></i></button>
-        </div>
-      `).join('');
-
-      return `
-      <div class="bg-stone-950/50 p-3 rounded border border-stone-800 transition-all ${qd.completed ? 'opacity-50' : ''}">
-        <div class="flex gap-2 cursor-pointer" onclick="dispatch('TOGGLE_QUEST', '${q.id}')">
-          <i data-lucide="${qd.completed ? 'check-circle' : 'circle'}" class="w-4 h-4 mt-0.5 ${qd.completed ? 'text-stone-600' : 'text-amber-500'} shrink-0"></i>
-          <div>
-            <div class="text-sm font-bold ${qd.completed ? 'line-through text-stone-500' : 'text-stone-300'}">${q.title}</div>
-            <div class="text-xs text-stone-500 mt-0.5">${q.desc}</div>
-          </div>
-        </div>
-        <div class="pl-6 mt-2">
-          ${subHtml}
-          <div class="flex gap-1 mt-2">
-            <input type="text" id="in-sq-${q.id}" onkeypress="if(event.key==='Enter'){ dispatch('ADD_SUBQUEST', {qId:'${q.id}', text:this.value}); this.value=''; }" class="w-full bg-stone-900 border border-stone-800 text-xs px-2 py-1 rounded text-stone-300 placeholder-stone-700" placeholder="拆分目標...">
-            <button onclick="const el=document.getElementById('in-sq-${q.id}'); dispatch('ADD_SUBQUEST', {qId:'${q.id}', text:el.value}); el.value='';" class="bg-stone-800 text-stone-400 px-2 rounded hover:text-stone-200"><i data-lucide="plus" style="width:14px;"></i></button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-    document.getElementById(containerId).innerHTML = html;
+  // 目標宇宙渲染
+  const colors = {
+    blue: { bg: 'bg-blue-900/20', border: 'border-blue-900/50', bar: 'bg-blue-500', text: 'text-blue-400' },
+    red: { bg: 'bg-red-900/20', border: 'border-red-900/50', bar: 'bg-red-500', text: 'text-red-400' },
+    green: { bg: 'bg-green-900/20', border: 'border-green-900/50', bar: 'bg-green-500', text: 'text-green-400' }
   };
 
-  renderList('life', 'quests-life');
-  renderList('invest', 'quests-invest');
-  renderList('finance', 'quests-finance');
+  const html = state.goals.map(g => {
+    const c = colors[g.color] || colors.blue;
+    const pct = (g.current / g.total) * 100;
+    const stage = getStageName(g.current, g.total);
+    const isMax = g.current >= g.total;
+    
+    // 生成進度條視覺化 (████░░░)
+    const blocksTotal = 20;
+    const blocksFilled = Math.floor((pct / 100) * blocksTotal);
+    const barVis = '█'.repeat(blocksFilled) + '░'.repeat(blocksTotal - blocksFilled);
 
+    return `
+    <div class="bg-stone-900/80 backdrop-blur-sm border ${c.border} p-5 rounded-xl shadow-lg flex flex-col relative overflow-hidden group hover:border-stone-600 transition-colors">
+      <div class="absolute -right-6 -top-6 opacity-5 group-hover:opacity-10 transition-opacity"><i data-lucide="${g.icon}" class="w-32 h-32 ${c.text}"></i></div>
+      
+      <div class="flex justify-between items-start mb-2 relative z-10">
+        <div>
+          <h2 class="text-xl font-bold text-stone-200 flex items-center gap-2"><i data-lucide="${g.icon}" class="${c.text} w-5 h-5"></i> ${g.name}</h2>
+          <p class="text-[10px] text-stone-500 mt-1">${g.desc}</p>
+        </div>
+        <div class="bg-stone-950 px-2 py-1 rounded border border-stone-800 text-xs font-bold ${c.text}">Lv.${g.level}</div>
+      </div>
+
+      <div class="my-4 relative z-10">
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-stone-400 font-bold">${stage}</span>
+          <span class="font-mono ${c.text} font-bold">${pct.toFixed(1)}%</span>
+        </div>
+        <div class="text-[10px] text-stone-600 font-mono tracking-widest mb-2">${barVis}</div>
+        <div class="w-full bg-stone-950 h-3 rounded-full overflow-hidden border border-stone-800 shadow-inner">
+          <div class="h-full ${c.bar} transition-all duration-1000 ease-out progress-stripe" style="width: ${pct}%"></div>
+        </div>
+        <div class="text-[10px] text-stone-500 text-right mt-1 font-mono">距離完成還差 <span class="text-stone-300 font-bold">${g.total - g.current}</span></div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-stone-800/50 flex gap-2 relative z-10">
+        <button onclick="dispatch('PUSH', {id: '${g.id}', amount: 10})" ${isMax ? 'disabled' : ''} class="flex-1 py-2 bg-stone-950 hover:bg-stone-800 border border-stone-700 rounded text-stone-300 text-xs font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+          +10 微推進
+        </button>
+        <button onclick="dispatch('PUSH', {id: '${g.id}', amount: 30})" ${isMax ? 'disabled' : ''} class="flex-1 py-2 ${c.bg} hover:brightness-125 border ${c.border} rounded ${c.text} text-xs font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+          <i data-lucide="flame" class="w-3 h-3"></i> +30 深度研讀
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+  
+  document.getElementById('goals-container').innerHTML = html;
   lucide.createIcons();
 }
 
-// ==========================================
-// 初始化
-// ==========================================
-function init() {
-  // 綁定宣誓邏輯
-  const cbs = document.querySelectorAll('.oath-checkbox');
-  const btnTakeOath = document.getElementById('btn-take-oath');
-  cbs.forEach(cb => {
-    cb.addEventListener('change', () => {
-      const allChecked = Array.from(cbs).every(c => c.checked);
-      btnTakeOath.disabled = !allChecked;
-      if(allChecked) {
-        btnTakeOath.innerText = '完成拷問，進入防禦狀態';
-        btnTakeOath.className = 'w-full mt-8 py-3.5 font-bold tracking-widest uppercase transition-all duration-500 rounded-lg shadow-lg bg-gradient-to-r from-amber-800 to-amber-600 text-amber-50 hover:from-amber-700 cursor-pointer animate-pop';
-      } else {
-        btnTakeOath.innerText = '需完成靈魂拷問';
-        btnTakeOath.className = 'w-full mt-8 py-3.5 font-bold tracking-widest uppercase transition-all duration-500 rounded-lg bg-stone-800/50 text-stone-600 border border-stone-800 cursor-not-allowed';
-      }
-    });
-  });
+// Settings UI
+function openSettings() {
+  document.getElementById('in-btc').value = state.stats.btc;
+  document.getElementById('in-loan').value = state.stats.loanCurrent;
+  document.getElementById('in-gold').value = state.stats.gold;
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
 
-  btnTakeOath.addEventListener('click', () => dispatch('TAKE_OATH'));
-
-  // 登入檢查與渲染
-  dispatch('LOGIN_CHECK');
-  if (!state.meta.oathTaken) {
-    document.getElementById('oath-view').classList.remove('hidden');
-  } else {
-    document.getElementById('dashboard-view').classList.remove('hidden');
-  }
+// Toast
+function showToast(msg) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast'; el.innerText = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
 }
 
-init();
+// Init
+document.getElementById('oath-view').classList.remove('hidden');
+saveAndRender();
 </script>
 </body>
 </html>
