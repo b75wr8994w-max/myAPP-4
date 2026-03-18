@@ -3,164 +3,211 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>防禦聖騎士：終極中樞 (2030目標)</title>
+<title>防禦聖騎士：戰略中樞 (2030目標)</title>
+
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@0.292.0"></script>
+
 <style>
-  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: #1c1917; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: #78350f; border-radius: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #92400e; }
+  
   .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-  .progress-stripe { background-image: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%, transparent); background-size: 1rem 1rem; animation: progress-move 2s linear infinite; }
+  .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+  .flash-gold { animation: flashGold 0.8s ease-out; }
   
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes progress-move { 0% { background-position: 1rem 0; } 100% { background-position: 0 0; } }
+  @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes flashGold { 0% { background-color: rgba(245, 158, 11, 0.3); box-shadow: 0 0 20px #f59e0b; } 100% { background-color: transparent; box-shadow: none; } }
+
+  .quest-completed p, .quest-completed .quest-title { text-decoration: line-through; opacity: 0.5; }
 
   #toast-container { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
   .toast { background: rgba(28, 25, 23, 0.95); border: 1px solid rgba(217, 119, 6, 0.5); color: #fdba74; padding: 10px 20px; border-radius: 9999px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.5); animation: fadeIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards; }
   @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
-  
-  .quest-completed p, .quest-completed .quest-title { text-decoration: line-through; opacity: 0.5; }
 </style>
 </head>
-<body class="bg-black text-stone-300 font-serif antialiased bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-stone-900 via-stone-950 to-black min-h-screen pb-24">
+<body class="bg-black text-stone-300 font-serif antialiased bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-stone-900 via-stone-950 to-black min-h-screen pb-20">
 
-<div id="oath-view" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-stone-950/95 backdrop-blur-md hidden">
-  <div class="max-w-md w-full bg-stone-900 border border-amber-900/50 shadow-2xl p-6 md:p-8 rounded-xl animate-fade-in relative overflow-hidden">
+<div id="event-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-fade-in">
+  <div class="max-w-sm w-full bg-stone-900 border border-amber-500/40 shadow-[0_0_40px_rgba(245,158,11,0.2)] p-6 rounded-xl relative text-center">
+    <div class="w-16 h-16 mx-auto bg-amber-900/30 rounded-full flex items-center justify-center mb-4 border border-amber-500/50">
+      <i id="event-icon" data-lucide="sparkles" class="text-amber-400 w-8 h-8"></i>
+    </div>
+    <h2 class="text-xl font-bold text-amber-500 mb-2 tracking-wider">防禦日誌</h2>
+    <p id="event-desc" class="text-stone-300 text-sm mb-6 leading-relaxed"></p>
+    <button onclick="closeEventModal()" class="w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg border border-stone-600 transition-colors font-bold tracking-widest">
+      確認並啟動防禦
+    </button>
+  </div>
+</div>
+
+<div id="oath-view" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/95 backdrop-blur-md hidden">
+  <div class="max-w-md w-full bg-stone-900/90 border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-8 relative overflow-hidden rounded-xl animate-fade-in">
     <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-900 via-amber-500 to-amber-900"></div>
-    <div class="flex justify-center mb-4"><i data-lucide="shield-alert" class="text-amber-500 w-12 h-12 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]"></i></div>
-    <h1 class="text-xl text-center text-amber-500 font-bold mb-1 tracking-widest">操作前三問</h1>
-    <p class="text-center text-stone-400 text-xs mb-6 italic">「淨空雜訊。將最鋒利的刃，用在最關鍵的刀口上。」</p>
-
-    <div class="space-y-4 mb-6">
-      <label class="flex items-start gap-3 cursor-pointer group p-2 rounded hover:bg-stone-800/40 transition-colors">
-        <input type="checkbox" class="oath-checkbox mt-0.5 accent-amber-600 w-4 h-4" />
+    <i data-lucide="shield-alert" class="text-amber-500 mx-auto mb-4 w-16 h-16 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]"></i>
+    <h1 class="text-2xl text-center text-amber-500 font-bold mb-2 tracking-widest">操作前三問</h1>
+    <p class="text-center text-stone-400 text-sm mb-8 italic">「將最鋒利的刃，用在最關鍵的刀口上。」</p>
+    
+    <div class="space-y-4 mb-8">
+      <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-stone-800/40 transition-colors border border-transparent hover:border-stone-800">
+        <input type="checkbox" class="oath-checkbox mt-1 w-5 h-5 accent-amber-600" />
         <div>
-          <span class="block font-bold text-stone-300 text-sm">違反【生存優先】了嗎？</span>
-          <span class="text-[10px] text-stone-500 block">絕對禁止挪用防禦資金進行槓桿或借貸買股。</span>
+          <span class="block font-bold text-stone-300">違反【生存優先】了嗎？</span>
+          <span class="text-xs text-stone-500 block mt-1">絕不挪用防禦資金進行槓桿或借貸買股。</span>
         </div>
       </label>
-      <label class="flex items-start gap-3 cursor-pointer group p-2 rounded hover:bg-stone-800/40 transition-colors">
-        <input type="checkbox" class="oath-checkbox mt-0.5 accent-amber-600 w-4 h-4" />
+      <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-stone-800/40 transition-colors border border-transparent hover:border-stone-800">
+        <input type="checkbox" class="oath-checkbox mt-1 w-5 h-5 accent-amber-600" />
         <div>
-          <span class="block font-bold text-stone-300 text-sm">偏離【唯一主目標】了嗎？</span>
-          <span class="text-[10px] text-stone-500 block">所有行動與資源配置，皆須指向 2030 年達成 3.0 BTC。</span>
+          <span class="block font-bold text-stone-300">偏離【唯一主目標】了嗎？</span>
+          <span class="text-xs text-stone-500 block mt-1">所有資源皆須指向 2030 年達成 3.0 BTC。</span>
         </div>
       </label>
-      <label class="flex items-start gap-3 cursor-pointer group p-2 rounded hover:bg-stone-800/40 transition-colors">
-        <input type="checkbox" class="oath-checkbox mt-0.5 accent-amber-600 w-4 h-4" />
+      <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-stone-800/40 transition-colors border border-transparent hover:border-stone-800">
+        <input type="checkbox" class="oath-checkbox mt-1 w-5 h-5 accent-amber-600" />
         <div>
-          <span class="block font-bold text-stone-300 text-sm">此刻是基於【規則】還是【情緒】？</span>
-          <span class="text-[10px] text-stone-500 block">無腦買入，關閉交易所，去讀書或運動。</span>
+          <span class="block font-bold text-stone-300">此刻基於【規則】還是【情緒】？</span>
+          <span class="text-xs text-stone-500 block mt-1">淨空雜訊。無腦買入，關閉交易所，去讀書或運動。</span>
         </div>
       </label>
     </div>
-    <button id="btn-take-oath" disabled class="w-full py-3 font-bold tracking-widest uppercase transition-all rounded bg-stone-800/50 text-stone-600 border border-stone-800 cursor-not-allowed">
+    <button id="btn-take-oath" disabled class="w-full py-4 font-bold tracking-widest uppercase transition-all duration-300 rounded-lg bg-stone-800/50 text-stone-600 border border-stone-800 cursor-not-allowed">
       需完成靈魂拷問
     </button>
   </div>
 </div>
 
-<div id="event-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-fade-in">
-  <div class="max-w-sm w-full bg-stone-900 border border-blue-500/50 shadow-[0_0_40px_rgba(37,99,235,0.3)] p-6 rounded-xl text-center relative">
-    <div id="event-icon-bg" class="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 border">
-      <i id="event-icon" data-lucide="sparkles" class="w-8 h-8"></i>
-    </div>
-    <h2 class="text-xl font-bold mb-2 tracking-wider text-stone-200">遭遇事件</h2>
-    <p id="event-desc" class="text-stone-300 text-sm mb-6"></p>
-    <button onclick="resolveRngEvent()" class="w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg border border-stone-600 transition-colors font-bold tracking-widest">
-      收下結果並推進
-    </button>
-  </div>
-</div>
-
-<div class="p-3 md:p-6 max-w-5xl mx-auto flex flex-col gap-5">
+<div id="dashboard-view" class="p-3 md:p-6 lg:p-8 flex flex-col items-center hidden animate-fade-in max-w-7xl mx-auto">
   
-  <header class="bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-[0_4px_20px_rgba(120,53,15,0.2)] p-4 md:p-6 rounded-xl relative overflow-hidden">
-    <div class="flex flex-col md:flex-row justify-between gap-5">
-      <div class="flex items-center gap-4 w-full md:w-1/3">
-        <div class="w-14 h-14 rounded-full bg-stone-950 border-2 border-amber-600 flex items-center justify-center relative shrink-0">
-          <i data-lucide="swords" class="text-amber-500 w-6 h-6"></i>
-          <div id="char-level" class="absolute -bottom-1 -right-1 bg-stone-900 border border-amber-500 text-[9px] font-bold px-1.5 rounded-full text-amber-400">Lv.1</div>
-        </div>
-        <div class="flex-1">
-          <h1 class="text-lg font-bold text-amber-500 tracking-wider">防禦聖騎士</h1>
-          <div class="w-full bg-stone-950 h-1.5 rounded-full mt-1 border border-stone-800">
-            <div id="char-exp-bar" class="h-full bg-amber-500 transition-all duration-500 progress-stripe" style="width: 0%"></div>
-          </div>
-          <p id="char-exp-text" class="text-[10px] text-stone-500 mt-1 font-mono">EXP: 0 / 1000</p>
-        </div>
+  <header id="header-card" class="w-full bg-stone-900/90 backdrop-blur-md border border-amber-900/50 shadow-lg p-5 rounded-xl flex flex-col md:flex-row justify-between items-center gap-6 mb-6 relative overflow-hidden transition-colors">
+    <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-amber-500 to-amber-800"></div>
+    
+    <div class="flex items-center gap-5 w-full md:w-auto pl-2">
+      <div class="w-16 h-16 shrink-0 rounded-full bg-stone-950 border-2 border-amber-600 flex items-center justify-center relative shadow-[0_0_15px_rgba(217,119,6,0.2)]">
+        <i data-lucide="shield" class="text-amber-500 w-8 h-8"></i>
+        <div id="header-level" class="absolute -bottom-2 -right-2 bg-stone-900 border border-amber-500 text-[10px] font-bold px-2 py-0.5 rounded-full text-amber-400">Lv.1</div>
       </div>
-
-      <div class="w-full md:w-1/3 bg-stone-950/50 p-3 rounded-lg border border-stone-800">
-        <div class="flex justify-between items-end mb-1">
-          <span class="text-amber-500 text-xs font-bold tracking-wide"><i data-lucide="target" class="inline w-3 h-3 mr-1"></i>2030 終極目標</span>
-          <div><span id="btc-text" class="text-lg font-mono font-bold text-amber-400 drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]">0.850</span><span class="text-stone-500 text-[10px] ml-1">/ 3.0 ₿</span></div>
+      <div class="flex-1">
+        <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600 tracking-wider">防禦聖騎士</h1>
+        <div class="w-full bg-stone-950 h-2 rounded-full mt-2 border border-stone-800 overflow-hidden">
+          <div id="exp-bar" class="h-full bg-amber-500 transition-all duration-500" style="width: 0%"></div>
         </div>
-        <div class="w-full h-1.5 bg-stone-900 rounded-full overflow-hidden">
-          <div id="btc-bar" class="h-full bg-amber-500 transition-all" style="width: 28%"></div>
-        </div>
+        <p id="exp-text" class="text-[10px] text-stone-500 mt-1 tracking-widest">EXP 0 / 100</p>
       </div>
+    </div>
 
-      <div class="w-full md:w-1/3 grid grid-cols-2 gap-2">
-        <div class="bg-stone-950/50 p-2 rounded border border-green-900/30">
-          <div class="text-[9px] text-stone-500 font-bold mb-1"><i data-lucide="shield" class="inline text-green-500 w-3 h-3 mr-1"></i>家庭預備金(HP)</div>
-          <div class="text-green-400 font-mono text-sm font-bold" id="hp-text">55 / 100w</div>
-          <div class="w-full bg-stone-900 h-1 mt-1 rounded-full"><div id="hp-bar" class="h-full bg-green-600 transition-all" style="width: 55%"></div></div>
-        </div>
-        <div class="bg-stone-950/50 p-2 rounded border border-red-900/30">
-          <div class="text-[9px] text-stone-500 font-bold mb-1"><i data-lucide="alert-triangle" class="inline text-red-500 w-3 h-3 mr-1"></i>信貸負重(4%)</div>
-          <div class="text-red-400 font-mono text-sm font-bold" id="loan-text">236w</div>
-        </div>
-        <div class="bg-stone-950/50 p-2 rounded border border-yellow-900/30 col-span-2 flex justify-between items-center">
-          <span class="text-[10px] text-stone-500 font-bold"><i data-lucide="gem" class="inline text-yellow-500 w-3 h-3 mr-1"></i>實體黃金</span>
-          <span class="text-yellow-400 font-mono text-sm font-bold" id="gold-text">60w</span>
-        </div>
+    <div class="w-full md:w-64 bg-stone-950/50 p-4 rounded-lg border border-stone-800">
+      <div class="flex justify-between items-end mb-2">
+        <span class="text-amber-500 text-sm font-bold tracking-wide"><i data-lucide="target" class="inline w-4 h-4 mr-1"></i>2030 終極目標</span>
+        <div><span id="btc-text" class="text-xl font-mono font-bold text-amber-400 shadow-amber-500/50 drop-shadow-md">0.850</span><span class="text-stone-500 text-xs ml-1">/ 3.0 ₿</span></div>
+      </div>
+      <div class="w-full h-2 bg-stone-900 rounded-full overflow-hidden shadow-inner">
+        <div id="btc-bar" class="h-full bg-gradient-to-r from-amber-700 to-amber-400 transition-all" style="width: 28%"></div>
       </div>
     </div>
   </header>
 
-  <div class="flex gap-2 bg-stone-900/60 p-1 rounded-lg border border-stone-800">
-    <button onclick="switchTab('rpg')" id="tab-btn-rpg" class="flex-1 py-2 text-sm font-bold tracking-widest rounded transition-all bg-amber-900/40 text-amber-400 border border-amber-700/50">
-      <i data-lucide="book-open" class="inline w-4 h-4 mr-1"></i>法幣挖礦
-    </button>
-    <button onclick="switchTab('roadmap')" id="tab-btn-roadmap" class="flex-1 py-2 text-sm font-bold tracking-widest rounded transition-all text-stone-500 hover:text-stone-300">
-      <i data-lucide="map" class="inline w-4 h-4 mr-1"></i>戰略藍圖
-    </button>
-  </div>
-
-  <div id="view-rpg" class="animate-fade-in block">
-    <div class="flex gap-4 overflow-x-auto custom-scrollbar pb-2 mb-4">
-      <div class="flex items-center gap-1.5 text-[10px] text-stone-400 whitespace-nowrap"><i data-lucide="zap" class="text-blue-400 w-3 h-3"></i> 吸收率 <span id="buff-exp" class="text-blue-300 font-bold font-mono">+0%</span></div>
-      <div class="flex items-center gap-1.5 text-[10px] text-stone-400 whitespace-nowrap"><i data-lucide="network" class="text-green-400 w-3 h-3"></i> 定著率 <span id="buff-prog" class="text-green-300 font-bold font-mono">+0%</span></div>
-      <div class="flex items-center gap-1.5 text-[10px] text-stone-400 whitespace-nowrap"><i data-lucide="shield" class="text-stone-300 w-3 h-3"></i> 雜訊抗性 <span id="buff-res" class="text-stone-200 font-bold font-mono">Lv.0</span></div>
+  <div class="w-full grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-stone-900/80 border border-emerald-900/50 p-3 rounded-lg flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-emerald-900/30 flex justify-center items-center border border-emerald-700/50"><i data-lucide="bug" class="text-emerald-500"></i></div>
+      <div>
+        <div class="text-[10px] text-stone-500 font-bold">鎮座神龜狀態</div>
+        <div id="pet-name" class="text-sm text-emerald-400 font-bold tracking-wide">幼龜 (Lv.1)</div>
+      </div>
     </div>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5" id="goals-container"></div>
-  </div>
-
-  <div id="view-roadmap" class="animate-fade-in hidden">
-    <div class="bg-stone-900/90 border border-stone-800 shadow-lg p-5 rounded-xl">
-      <div class="flex justify-between items-center mb-4 pb-4 border-b border-stone-800">
+    <div class="bg-stone-900/80 border border-amber-900/50 p-3 rounded-lg flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-amber-900/30 flex justify-center items-center border border-amber-700/50"><i data-lucide="puzzle" class="text-amber-500"></i></div>
+      <div>
+        <div class="text-[10px] text-stone-500 font-bold">BTC 碎片 (滿10融煉)</div>
+        <div id="frag-text" class="text-sm text-amber-400 font-bold tracking-wide font-mono">0 / 10</div>
+      </div>
+    </div>
+    <div class="col-span-2 bg-stone-900/80 border border-blue-900/50 p-3 rounded-lg flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-blue-900/30 flex justify-center items-center border border-blue-700/50"><i data-lucide="calendar-days" class="text-blue-500"></i></div>
         <div>
-          <h2 id="act-title" class="text-xl font-bold text-amber-500 tracking-wider"></h2>
-          <p id="act-desc" class="text-[11px] text-stone-400 mt-1"></p>
-        </div>
-        <div class="flex gap-2">
-          <button onclick="changeAct(-1)" class="p-1.5 bg-stone-800 text-stone-400 rounded hover:text-amber-500"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-          <button onclick="changeAct(1)" class="p-1.5 bg-stone-800 text-stone-400 rounded hover:text-amber-500"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+          <div class="text-[10px] text-stone-500 font-bold">防禦登入連續紀錄</div>
+          <div id="streak-text" class="text-sm text-blue-400 font-bold font-mono">0 天</div>
         </div>
       </div>
-      <div id="quests-container" class="space-y-3"></div>
+      <i data-lucide="flame" class="text-orange-500 animate-pulse w-6 h-6"></i>
+    </div>
+  </div>
+
+  <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+    
+    <div class="lg:col-span-4 xl:col-span-3 flex flex-col gap-6">
+      <div class="bg-stone-900/90 border border-amber-900/50 shadow-lg p-5 rounded-xl">
+        <h2 class="text-base text-amber-500 font-bold border-b border-amber-900/50 pb-2 mb-4 flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4"></i> 實體防禦屬性</h2>
+        
+        <div class="space-y-5">
+          <div>
+            <div class="flex justify-between text-xs text-stone-400 mb-1.5 font-bold">
+              <span>家庭預備金 (HP)</span><span id="hp-text" class="font-mono text-green-400">100/100</span>
+            </div>
+            <div class="w-full h-2 bg-stone-950 rounded-full overflow-hidden"><div id="hp-bar" class="h-full bg-green-600 transition-all" style="width: 100%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-stone-400 mb-1.5 font-bold">
+              <span>信貸負重 (4%)</span><span id="loan-text" class="text-red-400 font-mono">236 / 236w</span>
+            </div>
+            <div class="w-full h-2 bg-stone-950 rounded-full overflow-hidden"><div id="loan-bar" class="h-full bg-red-700 transition-all" style="width: 100%"></div></div>
+            <button onclick="dispatch('PAY_LOAN')" class="mt-2 text-xs bg-stone-950 hover:bg-stone-800 py-1.5 rounded border border-stone-700 transition-all w-full flex justify-center items-center gap-1 text-stone-300 font-bold">
+              <i data-lucide="coins" class="w-3 h-3"></i> 穩定還本 (-1w)
+            </button>
+          </div>
+          <div class="pt-3 border-t border-stone-800 flex justify-between items-center">
+            <span class="text-sm text-stone-400 flex items-center gap-2"><i data-lucide="gem" class="text-yellow-600 w-4 h-4"></i> 實體黃金</span>
+            <span id="gold-text" class="text-stone-300 font-mono font-bold">60w</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-stone-900/90 border border-stone-800 p-4 rounded-xl hidden lg:block sticky top-6">
+        <h2 class="text-xs text-stone-500 font-bold border-b border-stone-800 pb-2 mb-3 uppercase tracking-widest">階段切換</h2>
+        <div id="desktop-nav" class="space-y-1.5"></div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-8 xl:col-span-9 flex flex-col">
+      <div class="bg-stone-900/90 border border-stone-800 shadow-lg p-5 md:p-8 rounded-xl flex-1 flex flex-col">
+        
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-stone-800">
+          <button onclick="dispatch('CHANGE_ACT', -1)" class="p-2 text-stone-500 hover:text-amber-500 bg-stone-950 rounded border border-stone-800 transition-colors"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+          <div class="text-center">
+            <div id="act-badge" class="inline-block px-3 py-1 bg-amber-900/20 border border-amber-900/50 rounded-full text-[10px] font-mono text-amber-500 mb-2 tracking-widest">ACT 1 / 2026-2027</div>
+            <h2 id="act-title" class="text-xl md:text-2xl font-bold text-stone-200 tracking-wider">極簡防禦與法幣挖礦</h2>
+            <p id="act-desc" class="text-xs text-stone-500 mt-1"></p>
+          </div>
+          <button onclick="dispatch('CHANGE_ACT', 1)" class="p-2 text-stone-500 hover:text-amber-500 bg-stone-950 rounded border border-stone-800 transition-colors"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1">
+          <div class="space-y-3">
+            <h3 class="text-sm text-blue-400 font-bold flex items-center gap-2 border-b border-blue-900/30 pb-2"><i data-lucide="castle" class="w-4 h-4"></i> 生活與本業</h3>
+            <div id="quests-life" class="space-y-3"></div>
+          </div>
+          <div class="space-y-3">
+            <h3 class="text-sm text-amber-500 font-bold flex items-center gap-2 border-b border-amber-900/30 pb-2"><i data-lucide="swords" class="w-4 h-4"></i> 投資核心</h3>
+            <div id="quests-invest" class="space-y-3"></div>
+          </div>
+          <div class="space-y-3">
+            <h3 class="text-sm text-green-500 font-bold flex items-center gap-2 border-b border-green-900/30 pb-2"><i data-lucide="coins" class="w-4 h-4"></i> 資金流道</h3>
+            <div id="quests-finance" class="space-y-3"></div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 </div>
 
 <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
-  <button onclick="dispatch('ADD_BTC')" class="p-3 bg-stone-900 text-amber-400 rounded-full border border-amber-900/50 shadow-lg hover:bg-stone-800 transition-transform active:scale-90" title="滿 0.05 提領">
-    <i data-lucide="bitcoin" class="w-5 h-5"></i>
-  </button>
-  <button onclick="dispatch('PAY_LOAN')" class="p-3 bg-stone-900 text-red-400 rounded-full border border-red-900/50 shadow-lg hover:bg-stone-800 transition-transform active:scale-90" title="信貸還本 1 萬">
-    <i data-lucide="coins" class="w-5 h-5"></i>
+  <button onclick="dispatch('ADD_BTC')" class="p-3 bg-stone-900 text-amber-400 rounded-full border border-amber-900/50 shadow-lg hover:bg-stone-800 transition-transform active:scale-90" title="滿 0.05 入庫">
+    <i data-lucide="plus" class="w-5 h-5"></i>
   </button>
   <button onclick="openSettings()" class="p-3 bg-stone-900 text-stone-400 rounded-full border border-stone-700 shadow-lg hover:text-amber-500 hover:border-amber-500 transition-transform active:scale-90">
     <i data-lucide="settings" class="w-5 h-5"></i>
@@ -168,26 +215,27 @@
 </div>
 
 <div id="settings-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
-  <div class="max-w-sm w-full bg-stone-900 border border-stone-700 shadow-2xl p-6 rounded-xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+  <div class="max-w-md w-full bg-stone-900 border border-stone-700 shadow-2xl p-6 rounded-xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
     <button onclick="closeSettings()" class="absolute top-4 right-4 text-stone-500 hover:text-white"><i data-lucide="x"></i></button>
-    <h2 class="text-lg font-bold text-amber-500 mb-4 border-b border-stone-800 pb-2">系統設定與防禦庫存</h2>
-    <div class="space-y-4">
-      <div class="grid grid-cols-2 gap-3">
-        <div><label class="text-[10px] text-stone-500 block mb-1">BTC 庫存</label><input type="number" step="0.001" id="in-btc" class="w-full bg-stone-950 border border-amber-900/50 text-amber-100 p-2 rounded text-sm font-mono"></div>
-        <div><label class="text-[10px] text-stone-500 block mb-1">實體黃金(萬)</label><input type="number" id="in-gold" class="w-full bg-stone-950 border border-yellow-900/50 text-yellow-100 p-2 rounded text-sm font-mono"></div>
-        <div><label class="text-[10px] text-stone-500 block mb-1">信貸餘額(萬)</label><input type="number" id="in-loan" class="w-full bg-stone-950 border border-red-900/50 text-red-100 p-2 rounded text-sm font-mono"></div>
-        <div><label class="text-[10px] text-stone-500 block mb-1">預備金現況(萬)</label><input type="number" id="in-hp-cur" class="w-full bg-stone-950 border border-green-900/50 text-green-100 p-2 rounded text-sm font-mono"></div>
-        <div class="col-span-2"><label class="text-[10px] text-stone-500 block mb-1">預備金目標(萬)</label><input type="number" id="in-hp-max" class="w-full bg-stone-950 border border-green-900/50 text-green-100 p-2 rounded text-sm font-mono"></div>
+    <h2 class="text-lg font-bold text-amber-500 mb-4 border-b border-stone-800 pb-2">防禦數值校準</h2>
+    <div class="space-y-3">
+      <div><label class="text-xs text-stone-400 block mb-1">BTC 庫存</label><input type="number" step="0.001" id="in-btc" class="w-full bg-stone-950 border border-amber-900/50 text-amber-100 p-2 rounded text-sm font-mono"></div>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="text-xs text-stone-400 block mb-1">信貸餘額(萬)</label><input type="number" id="in-loanC" class="w-full bg-stone-950 border border-red-900/30 text-red-100 p-2 rounded text-sm font-mono"></div>
+        <div><label class="text-xs text-stone-400 block mb-1">信貸總額(萬)</label><input type="number" id="in-loanM" class="w-full bg-stone-950 border border-red-900/30 text-red-100 p-2 rounded text-sm font-mono"></div>
       </div>
-      <div class="pt-4 border-t border-stone-800 space-y-2">
-        <button onclick="dispatch('SAVE_SETTINGS')" class="w-full py-2 bg-amber-900/30 hover:bg-amber-800/50 text-amber-500 rounded font-bold text-sm transition-colors border border-amber-700/50">儲存數值</button>
-        <div class="flex gap-2">
-          <button onclick="dispatch('EXPORT_DATA')" class="flex-1 py-2 bg-stone-950 text-stone-400 rounded text-xs border border-stone-800 hover:text-white">匯出備份</button>
-          <label class="flex-1 py-2 bg-stone-950 text-stone-400 rounded text-xs border border-stone-800 hover:text-white text-center cursor-pointer">
-            匯入還原<input type="file" id="import-file" accept=".json" class="hidden">
-          </label>
-        </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="text-xs text-stone-400 block mb-1">預備金(萬)</label><input type="number" id="in-hpC" class="w-full bg-stone-950 border border-green-900/30 text-green-100 p-2 rounded text-sm font-mono"></div>
+        <div><label class="text-xs text-stone-400 block mb-1">預備金目標(萬)</label><input type="number" id="in-hpM" class="w-full bg-stone-950 border border-green-900/30 text-green-100 p-2 rounded text-sm font-mono"></div>
       </div>
+      <div><label class="text-xs text-stone-400 block mb-1">實體黃金(萬)</label><input type="number" id="in-gold" class="w-full bg-stone-950 border border-yellow-900/30 text-yellow-100 p-2 rounded text-sm font-mono"></div>
+      <div class="flex gap-2 pt-4 border-t border-stone-800">
+        <button onclick="dispatch('EXPORT_DATA')" class="flex-1 bg-stone-950 py-2 border border-stone-700 rounded text-xs text-stone-400 hover:text-white transition-colors">匯出備份</button>
+        <label class="flex-1 bg-stone-950 py-2 border border-stone-700 rounded text-xs text-stone-400 hover:text-white transition-colors text-center cursor-pointer">
+          匯入還原<input type="file" id="import-file" accept=".json" class="hidden">
+        </label>
+      </div>
+      <button onclick="dispatch('SAVE_SETTINGS')" class="w-full mt-2 py-3 bg-amber-900/30 hover:bg-amber-800/50 border border-amber-700/50 text-amber-500 rounded-lg font-bold text-sm transition-colors">儲存並校準</button>
     </div>
   </div>
 </div>
@@ -195,270 +243,336 @@
 <div id="toast-container"></div>
 
 <script>
+// ==========================================
+// 架構與狀態管理 (State Management)
+// ==========================================
 const TARGET_BTC = 3.0;
-const todayStr = new Date().toDateString();
+const petNames = ["幼龜", "裝甲陸龜", "聖鎧龍龜"];
 
-// --- 靜態戰略資料 (Acts) ---
+// 長期目標藍圖 (四階段)
 const acts = [
   {
-    id: 1, title: "階段一：極簡防禦與法幣挖礦 (2026-2027)", desc: "淨空雜訊，拿下學歷，打造最強礦機體質。",
+    id: 1, title: "極簡防禦與法幣挖礦", years: "2026 - 2027", desc: "淨空雜訊，打造最強礦機體質。",
     quests: [
-      { id: "q1_1", icon: "map-pin", color: "text-blue-400", title: "十月南遷會合", desc: "調回高雄與妻女團聚，精算租屋預算。" },
-      { id: "q1_2", icon: "code", color: "text-stone-500", title: "App 全面暫停", desc: "腦力 100% 讓渡給警佐考試與家人。" },
-      { id: "q1_3", icon: "anchor", color: "text-amber-400", title: "舊幣不動如山", desc: "ETH/ADA 質押，未達賣出價當沒這筆錢。" },
-      { id: "q1_4", icon: "bitcoin", color: "text-amber-400", title: "無腦買入", desc: "每月依恐貪指數定投 BTC，滿 0.05 提冷錢包。" },
-      { id: "q1_5", icon: "shield-check", color: "text-green-400", title: "聯合防禦", desc: "黃金絕對不動。維持6-12個月預備金。" }
+      { id: "q1_1", type: "life", title: "十月南遷會合", desc: "調回高雄與妻女團聚，精算租屋預算。" },
+      { id: "q1_2", type: "life", title: "學歷戰隘口", desc: "全力衝刺空大取得專科文憑。" },
+      { id: "q1_3", type: "life", title: "體能維持", desc: "建立適合輪班的運動紀律。" },
+      { id: "q1_4", type: "invest", title: "App 全面暫停", desc: "腦力與時間 100% 讓渡給警佐考試。" },
+      { id: "q1_5", type: "invest", title: "舊幣不動如山", desc: "ETH/ADA 質押放著，當沒這筆錢。" },
+      { id: "q1_6", type: "finance", title: "無腦買入", desc: "每月依恐貪指數定投，滿 0.05 提冷錢包。" },
+      { id: "q1_7", type: "finance", title: "聯合防禦", desc: "黃金不動，維持 6-12 個月預備金。" }
     ]
   },
   {
-    id: 2, title: "階段二：火力全開與主目標達陣 (2028-2030)", desc: "收割考試成果，副業重啟，鎖死比特幣。",
+    id: 2, title: "火力全開與主目標達陣", years: "2028 - 2030", desc: "收割考試成果，副業重啟，鎖死比特幣。",
     quests: [
-      { id: "q2_1", icon: "medal", color: "text-blue-400", title: "收割期", desc: "通過警察升官等考試，迎來實質加薪。" },
-      { id: "q2_2", icon: "smartphone", color: "text-purple-400", title: "副業重啟", desc: "考完試後，重啟讀書與法律 App 開發。" },
-      { id: "q2_3", icon: "target", color: "text-amber-400", title: "終極目標", desc: "達成 3.0 BTC 並鎖入冷錢包。" }
+      { id: "q2_1", type: "life", title: "收割期", desc: "通過 2028 警察考試，實質加薪。" },
+      { id: "q2_2", type: "life", title: "副業重啟", desc: "考完試後，重啟讀書與法律 App 開發。" },
+      { id: "q2_3", type: "invest", title: "黑天鵝加碼", desc: "遇極恐懼或跌破 30% 啟動緊急加碼。" },
+      { id: "q2_4", type: "invest", title: "時限熔斷", desc: "2030 年底未達標則強制熔斷轉 VOO。" },
+      { id: "q2_5", type: "finance", title: "終極目標", desc: "達成 3.0 BTC 並鎖入冷錢包。" }
+    ]
+  },
+  {
+    id: 3, title: "系統轉型與雙軌護城河", years: "2031 - 2033", desc: "構築大盤與實體雙重堡壘。",
+    quests: [
+      { id: "q3_1", type: "life", title: "穩固堡壘", desc: "享受高職等現金流，女兒準備上小學。" },
+      { id: "q3_2", type: "invest", title: "主角切換", desc: "大舉建倉 VOO 大盤。BTC 退居守備。" },
+      { id: "q3_3", type: "finance", title: "保單接軌", desc: "2031/8 保單到期，每月全買 VOO。" },
+      { id: "q3_4", type: "finance", title: "大戶打擊", desc: "抵押 BTC 借低息台幣清償信貸尾款。" }
+    ]
+  },
+  {
+    id: 4, title: "跨世代收成", years: "2034 - 2040+", desc: "財富系統自動運轉，奪回選擇權。",
+    quests: [
+      { id: "q4_1", type: "life", title: "絕對選擇權", desc: "隨時遞辭呈的底氣，迎向提早退休。" },
+      { id: "q4_2", type: "invest", title: "家庭責任", desc: "絕不賣 BTC / VOO 本金支付生活費。" },
+      { id: "q4_3", type: "finance", title: "完美覆蓋", desc: "開銷由薪資、退休金及 VOO 孳息覆蓋。" }
     ]
   }
 ];
 
-// --- 核心狀態 (State) ---
+// 每日隨機事件
+const dailyEvents = [
+  { text: "平穩防禦日：心無雜念，今日推進效率提升。", icon: "shield", getReward: () => dispatch('GAIN_EXP', 15) },
+  { text: "市場雜訊測試：你選擇關閉交易所，成功守住防禦線。", icon: "ear-off", getReward: () => {} },
+  { text: "意外之財：在舊錢包找到粉塵！", icon: "sparkles", getReward: () => dispatch('ADD_FRAGMENTS', 2) },
+  { text: "神龜的注視：你的寵物似乎在為你加油。", icon: "bug", getReward: () => dispatch('GAIN_EXP', 20) }
+];
+
 const initialState = {
-  stats: { btc: 0.85, loanCurrent: 236, gold: 60, hpCurrent: 55, hpMax: 100 },
-  meta: { charLevel: 1, charExp: 0 },
-  globalBuff: { expBonus: 0, progressBonus: 0, resistLevel: 0 },
-  goals: [
-    { id: 'law', name: '行政法學', current: 0, total: 2000, level: 1, color: 'blue', desc: '全局 EXP 加成。', icon: 'book' },
-    { id: 'crime', name: '刑事法學', current: 0, total: 2000, level: 1, color: 'red', desc: '推進暴擊加成。', icon: 'gavel' },
-    { id: 'admin', name: '共同法學', current: 0, total: 2000, level: 1, color: 'green', desc: '干擾事件抗性。', icon: 'network' }
-  ],
-  questsData: {},
-  activeAct: 1,
-  lastOath: ''
+  meta: { lastLoginDate: '', streak: 0, exp: 0, level: 1, act: 1, fragments: 0, petLevel: 1, oathTaken: false },
+  stats: { btc: 0.85, loanCurrent: 236, loanMax: 236, hpCurrent: 55, hpMax: 100, gold: 60 },
+  questsData: {}
 };
 
 let state = null;
-let pendingRngEvent = null;
-
 try {
-  const saved = localStorage.getItem('paladin_ultimate_state');
+  const saved = localStorage.getItem('paladin_hub_state');
   state = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(initialState));
 } catch(e) { state = JSON.parse(JSON.stringify(initialState)); }
 
-// --- 介面控制 ---
-function switchTab(tab) {
-  const btnRpg = document.getElementById('tab-btn-rpg');
-  const btnRoadmap = document.getElementById('tab-btn-roadmap');
-  const viewRpg = document.getElementById('view-rpg');
-  const viewRoadmap = document.getElementById('view-roadmap');
+const vibrate = (ms) => { if(navigator.vibrate) navigator.vibrate(ms); };
+const showToast = (msg) => {
+  const c = document.getElementById('toast-container'); const el = document.createElement('div');
+  el.className = 'toast'; el.innerText = msg; c.appendChild(el); setTimeout(() => el.remove(), 3000);
+};
 
-  if (tab === 'rpg') {
-    btnRpg.className = 'flex-1 py-2 text-sm font-bold tracking-widest rounded transition-all bg-amber-900/40 text-amber-400 border border-amber-700/50';
-    btnRoadmap.className = 'flex-1 py-2 text-sm font-bold tracking-widest rounded transition-all text-stone-500 hover:text-stone-300';
-    viewRpg.classList.remove('hidden'); viewRoadmap.classList.add('hidden');
-  } else {
-    btnRoadmap.className = 'flex-1 py-2 text-sm font-bold tracking-widest rounded transition-all bg-amber-900/40 text-amber-400 border border-amber-700/50';
-    btnRpg.className = 'flex-1 py-2 text-sm font-bold tracking-widest rounded transition-all text-stone-500 hover:text-stone-300';
-    viewRoadmap.classList.remove('hidden'); viewRpg.classList.add('hidden');
-  }
-}
-
-// --- 遊戲引擎 ---
+// ==========================================
+// 引擎核心 (Dispatcher)
+// ==========================================
 function dispatch(action, payload) {
   let shouldRender = true;
+
   switch(action) {
-    case 'PUSH':
-      const goal = state.goals.find(g => g.id === payload.id);
-      if(!goal || goal.current >= goal.total) return;
-      let finalAmount = Math.floor(payload.amount * (1 + state.globalBuff.progressBonus));
-      const rngChance = Math.max(0.05, 0.2 - (state.globalBuff.resistLevel * 0.02));
-      
-      if(Math.random() < rngChance && !payload.skipRng) {
-        triggerRng(goal, finalAmount); return;
+    case 'LOGIN_CHECK':
+      const today = new Date().toDateString();
+      if(state.meta.lastLoginDate !== today) {
+        state.meta.streak += 1;
+        state.meta.lastLoginDate = today;
+        state.meta.oathTaken = false;
+        triggerDailyEvent();
       }
-      executePush(goal, finalAmount);
       break;
-    case 'RNG_RESOLVE':
-      executePush(pendingRngEvent.goal, pendingRngEvent.finalAmount);
-      closeRngEvent();
+
+    case 'TAKE_OATH':
+      state.meta.oathTaken = true;
+      document.getElementById('oath-view').classList.add('hidden');
+      document.getElementById('dashboard-view').classList.remove('hidden');
       break;
+
     case 'ADD_BTC':
       state.stats.btc = parseFloat((state.stats.btc + 0.05).toFixed(3));
-      showToast('⚔️ 防禦力提升！入庫 +0.05 BTC');
+      vibrate([50, 50]);
+      document.getElementById('header-card').classList.add('flash-gold');
+      setTimeout(() => document.getElementById('header-card').classList.remove('flash-gold'), 800);
+      showToast('⚔️ 實體防禦力提升！入庫 +0.05 BTC');
       break;
+
     case 'PAY_LOAN':
       if (state.stats.loanCurrent > 0) {
-        state.stats.loanCurrent -= 1;
-        showToast('🛡️ 負重減輕！信貸 -1萬');
+        state.stats.loanCurrent -= 1; vibrate(30); showToast('🛡️ 負重減輕！信貸 -1萬');
       }
       break;
+
     case 'TOGGLE_QUEST':
-      if(!state.questsData[payload.id]) state.questsData[payload.id] = { completed: false };
-      state.questsData[payload.id].completed = !state.questsData[payload.id].completed;
+      if(!state.questsData[payload]) state.questsData[payload] = { completed: false, subs: [] };
+      state.questsData[payload].completed = !state.questsData[payload].completed;
+      if(state.questsData[payload].completed) {
+        vibrate(50); dispatch('GAIN_EXP', 50);
+        if(Math.random() < 0.4) dispatch('ADD_FRAGMENTS', 1); // 40% 掉落碎片
+      }
       break;
+
+    case 'ADD_SUBQUEST':
+      if(!state.questsData[payload.qId]) state.questsData[payload.qId] = { completed: false, subs: [] };
+      state.questsData[payload.qId].subs.push({ id: Date.now(), text: payload.text, completed: false });
+      break;
+
+    case 'TOGGLE_SUBQUEST':
+      const sq = state.questsData[payload.qId].subs.find(s => s.id === payload.sqId);
+      if(sq) {
+        sq.completed = !sq.completed;
+        if(sq.completed) {
+          vibrate(20); dispatch('GAIN_EXP', 15);
+          if(Math.random() < 0.3) dispatch('ADD_FRAGMENTS', 1);
+        }
+      }
+      break;
+
+    case 'DELETE_SUBQUEST':
+      if(state.questsData[payload.qId]) {
+        state.questsData[payload.qId].subs = state.questsData[payload.qId].subs.filter(s => s.id !== payload.sqId);
+      }
+      break;
+
+    case 'GAIN_EXP':
+      state.meta.exp += payload; showToast(`🌟 獲得 ${payload} EXP`);
+      const reqExp = state.meta.level * 100;
+      if(state.meta.exp >= reqExp) {
+        state.meta.level++; state.meta.exp -= reqExp;
+        if(state.meta.level === 5) state.meta.petLevel = 2;
+        if(state.meta.level === 15) state.meta.petLevel = 3;
+        vibrate([100, 50, 100]); showToast(`🎉 升級啦！目前 Lv.${state.meta.level}`);
+      }
+      break;
+
+    case 'ADD_FRAGMENTS':
+      state.meta.fragments += payload; showToast(`🧩 掉落！BTC 碎片 x${payload}`);
+      if(state.meta.fragments >= 10) {
+        state.meta.fragments -= 10; state.stats.btc = parseFloat((state.stats.btc + 0.01).toFixed(3));
+        showToast(`🔥 碎片融煉成功！BTC +0.01`);
+        document.getElementById('header-card').classList.add('flash-gold');
+      }
+      break;
+
+    case 'CHANGE_ACT':
+      const newAct = state.meta.act + payload;
+      if(newAct >= 1 && newAct <= acts.length) state.meta.act = newAct;
+      break;
+    
+    case 'JUMP_ACT':
+      state.meta.act = payload;
+      break;
+
     case 'SAVE_SETTINGS':
       state.stats.btc = parseFloat(document.getElementById('in-btc').value) || 0;
+      state.stats.loanCurrent = parseInt(document.getElementById('in-loanC').value) || 0;
+      state.stats.loanMax = parseInt(document.getElementById('in-loanM').value) || 1;
+      state.stats.hpCurrent = parseInt(document.getElementById('in-hpC').value) || 0;
+      state.stats.hpMax = parseInt(document.getElementById('in-hpM').value) || 1;
       state.stats.gold = parseInt(document.getElementById('in-gold').value) || 0;
-      state.stats.loanCurrent = parseInt(document.getElementById('in-loan').value) || 0;
-      state.stats.hpCurrent = parseInt(document.getElementById('in-hp-cur').value) || 0;
-      state.stats.hpMax = parseInt(document.getElementById('in-hp-max').value) || 100;
-      closeSettings(); showToast('💾 數值已覆寫並備份');
+      closeSettings(); showToast('💾 防禦數值已校準並備份');
       break;
+
     case 'EXPORT_DATA':
       const blob = new Blob([JSON.stringify(state)], {type: 'application/json'});
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-      a.download = `Paladin_Ult_Backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+      a.download = `Paladin_Hub_Backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
       shouldRender = false;
       break;
   }
-  if(shouldRender) saveAndRender();
+
+  if(shouldRender) {
+    localStorage.setItem('paladin_hub_state', JSON.stringify(state));
+    render();
+  }
 }
 
-function executePush(goal, amount) {
-  goal.current = Math.min(goal.total, goal.current + amount);
-  const newLevel = Math.floor(goal.current / 200) + 1;
-  if(newLevel > goal.level) { goal.level = newLevel; recalculateBuffs(); showToast(`🌟 境界突破！【${goal.name}】Lv.${goal.level}`); }
-  const expGain = Math.floor(amount * (1 + state.globalBuff.expBonus));
-  state.meta.charExp += expGain;
-  const reqExp = state.meta.charLevel * 1000;
-  if (state.meta.charExp >= reqExp) { state.meta.charLevel++; state.meta.charExp -= reqExp; showToast(`👑 角色升級！Lv.${state.meta.charLevel}`); }
-  showToast(`🔥 進度 +${amount}！距離目標差 ${goal.total - goal.current}`);
-}
+// ==========================================
+// 渲染與互動邏輯
+// ==========================================
+let pendingEventReward = null;
 
-function recalculateBuffs() {
-  state.globalBuff.expBonus = (state.goals[0].level - 1) * 0.02;
-  state.globalBuff.progressBonus = (state.goals[1].level - 1) * 0.02;
-  state.globalBuff.resistLevel = state.goals[2].level - 1;
-}
-
-function triggerRng(goal, baseAmount) {
-  const events = [
-    { text: '💡 靈感爆發！法條邏輯貫通，進度 x2！', mult: 2, icon: 'zap', color: 'text-yellow-400', bg: 'bg-yellow-900/30 border-yellow-500' },
-    { text: '📦 翻閱筆記找到盲點解答，額外獲 10 點。', add: 10, mult: 1, icon: 'package', color: 'text-green-400', bg: 'bg-green-900/30 border-green-500' },
-    { text: '💤 精神渙散，靠意志力拉回。效率減半。', mult: 0.5, icon: 'cloud-fog', color: 'text-stone-400', bg: 'bg-stone-800 border-stone-500' }
-  ];
-  const ev = events[Math.floor(Math.random() * events.length)];
-  let finalAmt = Math.max(1, Math.floor(baseAmount * ev.mult) + (ev.add || 0));
-  pendingRngEvent = { goal, finalAmount: finalAmt };
-  document.getElementById('event-icon').setAttribute('data-lucide', ev.icon);
-  document.getElementById('event-icon').className = `w-8 h-8 ${ev.color}`;
-  document.getElementById('event-icon-bg').className = `w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${ev.bg}`;
-  document.getElementById('event-desc').innerText = ev.text;
+function triggerDailyEvent() {
+  const evt = dailyEvents[Math.floor(Math.random() * dailyEvents.length)];
+  document.getElementById('event-icon').setAttribute('data-lucide', evt.icon);
+  document.getElementById('event-desc').innerText = evt.text;
+  pendingEventReward = evt.getReward;
   lucide.createIcons();
   document.getElementById('event-modal').classList.remove('hidden');
 }
 
-function resolveRngEvent() { dispatch('RNG_RESOLVE'); }
-function closeRngEvent() { document.getElementById('event-modal').classList.add('hidden'); }
-function changeAct(dir) { state.activeAct = Math.max(1, Math.min(acts.length, state.activeAct + dir)); saveAndRender(); }
+function closeEventModal() {
+  document.getElementById('event-modal').classList.add('hidden');
+  if(pendingEventReward) { pendingEventReward(); pendingEventReward = null; }
+}
 
-// --- 渲染邏輯 ---
-function saveAndRender() {
-  localStorage.setItem('paladin_ultimate_state', JSON.stringify(state));
-  recalculateBuffs();
-  
-  // Header
-  document.getElementById('char-level').innerText = `Lv.${state.meta.charLevel}`;
-  document.getElementById('char-exp-bar').style.width = `${(state.meta.charExp / (state.meta.charLevel * 1000)) * 100}%`;
-  document.getElementById('char-exp-text').innerText = `EXP: ${state.meta.charExp} / ${state.meta.charLevel * 1000}`;
+function openSettings() {
+  document.getElementById('in-btc').value = state.stats.btc;
+  document.getElementById('in-loanC').value = state.stats.loanCurrent;
+  document.getElementById('in-loanM').value = state.stats.loanMax;
+  document.getElementById('in-hpC').value = state.stats.hpCurrent;
+  document.getElementById('in-hpM').value = state.stats.hpMax;
+  document.getElementById('in-gold').value = state.stats.gold;
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+function render() {
+  // Header Info
+  document.getElementById('header-level').innerText = `Lv.${state.meta.level}`;
   document.getElementById('btc-text').innerText = state.stats.btc.toFixed(3);
   document.getElementById('btc-bar').style.width = `${Math.min(100, (state.stats.btc/TARGET_BTC)*100)}%`;
-  document.getElementById('loan-text').innerText = `${state.stats.loanCurrent}w`;
-  document.getElementById('gold-text').innerText = `${state.stats.gold}w`;
-  document.getElementById('hp-text').innerText = `${state.stats.hpCurrent} / ${state.stats.hpMax}w`;
+  
+  const expReq = state.meta.level * 100;
+  document.getElementById('exp-bar').style.width = `${(state.meta.exp / expReq) * 100}%`;
+  document.getElementById('exp-text').innerText = `EXP ${state.meta.exp} / ${expReq}`;
+
+  // Stats
+  document.getElementById('hp-text').innerText = `${state.stats.hpCurrent}/${state.stats.hpMax}`;
   document.getElementById('hp-bar').style.width = `${Math.min(100, (state.stats.hpCurrent/state.stats.hpMax)*100)}%`;
-  
-  // Buffs
-  document.getElementById('buff-exp').innerText = `+${(state.globalBuff.expBonus * 100).toFixed(0)}%`;
-  document.getElementById('buff-prog').innerText = `+${(state.globalBuff.progressBonus * 100).toFixed(0)}%`;
-  document.getElementById('buff-res').innerText = `Lv.${state.globalBuff.resistLevel}`;
+  document.getElementById('loan-text').innerText = `${state.stats.loanCurrent} / ${state.stats.loanMax}w`;
+  document.getElementById('loan-bar').style.width = `${Math.min(100, (state.stats.loanCurrent/state.stats.loanMax)*100)}%`;
+  document.getElementById('gold-text').innerText = `${state.stats.gold}w`;
 
-  // RPG Goals
-  const colors = {
-    blue: { border: 'border-blue-900/50', bar: 'bg-blue-500', text: 'text-blue-400', bg: 'bg-blue-900/20' },
-    red: { border: 'border-red-900/50', bar: 'bg-red-500', text: 'text-red-400', bg: 'bg-red-900/20' },
-    green: { border: 'border-green-900/50', bar: 'bg-green-500', text: 'text-green-400', bg: 'bg-green-900/20' }
-  };
-  
-  document.getElementById('goals-container').innerHTML = state.goals.map(g => {
-    const c = colors[g.color]; const pct = (g.current / g.total) * 100;
-    return `
-    <div class="bg-stone-900/60 border ${c.border} p-4 rounded-xl relative overflow-hidden flex flex-col">
-      <div class="flex justify-between items-start mb-2">
-        <div><h2 class="text-base font-bold text-stone-200 flex items-center gap-1.5"><i data-lucide="${g.icon}" class="${c.text} w-4 h-4"></i> ${g.name}</h2></div>
-        <div class="bg-stone-950 px-1.5 py-0.5 rounded border border-stone-800 text-[10px] font-bold ${c.text}">Lv.${g.level}</div>
-      </div>
-      <div class="mb-3">
-        <div class="flex justify-between text-[10px] mb-1"><span class="text-stone-400">進度</span><span class="font-mono ${c.text}">${pct.toFixed(1)}%</span></div>
-        <div class="w-full bg-stone-950 h-2 rounded-full overflow-hidden border border-stone-800"><div class="h-full ${c.bar} progress-stripe" style="width: ${pct}%"></div></div>
-      </div>
-      <div class="mt-auto flex gap-2">
-        <button onclick="dispatch('PUSH', {id: '${g.id}', amount: 10})" ${g.current>=g.total?'disabled':''} class="flex-1 py-1.5 bg-stone-950 hover:bg-stone-800 border border-stone-700 rounded text-stone-300 text-xs font-bold transition-all">+10</button>
-        <button onclick="dispatch('PUSH', {id: '${g.id}', amount: 30})" ${g.current>=g.total?'disabled':''} class="${c.bg} flex-1 py-1.5 border ${c.border} rounded ${c.text} text-xs font-bold transition-all">+30 猛攻</button>
-      </div>
-    </div>`;
-  }).join('');
+  // Gamification
+  document.getElementById('pet-name').innerText = `${petNames[state.meta.petLevel-1]} (Lv.${state.meta.petLevel})`;
+  document.getElementById('frag-text').innerText = `${state.meta.fragments} / 10`;
+  document.getElementById('streak-text').innerText = `${state.meta.streak} 天`;
 
-  // Roadmap Acts
-  const act = acts.find(a => a.id === state.activeAct) || acts[0];
+  // Navigation (Desktop)
+  document.getElementById('desktop-nav').innerHTML = acts.map(a => `
+    <button onclick="dispatch('JUMP_ACT', ${a.id})" class="w-full text-left px-3 py-2 rounded text-sm transition-all border flex items-center justify-between ${state.meta.act === a.id ? 'bg-amber-900/30 text-amber-300 border-amber-600/50' : 'text-stone-500 border-transparent hover:text-stone-300 hover:bg-stone-800/50'}">
+      <div><div class="font-bold">${a.title.split('：')[0]}</div></div>
+    </button>
+  `).join('');
+
+  // Current Act
+  const act = acts[state.meta.act - 1] || acts[0];
+  document.getElementById('act-badge').innerText = `ACT ${act.id} / ${act.years}`;
   document.getElementById('act-title').innerText = act.title;
   document.getElementById('act-desc').innerText = act.desc;
-  document.getElementById('quests-container').innerHTML = act.quests.map(q => {
-    const comp = state.questsData[q.id]?.completed;
-    return `
-    <div onclick="dispatch('TOGGLE_QUEST', {id: '${q.id}'})" class="bg-stone-950/50 border border-stone-800/80 p-3 rounded-lg cursor-pointer hover:border-stone-600 transition-colors ${comp ? 'quest-completed' : ''} flex items-start gap-3">
-      <i data-lucide="${comp ? 'check-circle' : 'circle'}" class="mt-0.5 shrink-0 ${comp ? 'text-stone-500' : q.color} w-5 h-5"></i>
-      <div>
-        <div class="font-bold text-sm tracking-wide quest-title ${comp ? 'text-stone-500' : 'text-stone-200'}">${q.title}</div>
-        <p class="text-[11px] text-stone-400 mt-0.5">${q.desc}</p>
-      </div>
-    </div>`;
-  }).join('');
+
+  const renderList = (type, containerId) => {
+    const html = act.quests.filter(q => q.type === type).map(q => {
+      const qd = state.questsData[q.id] || { completed: false, subs: [] };
+      const subHtml = qd.subs.map(sq => `
+        <div class="flex items-start gap-2 mt-2 group">
+          <input type="checkbox" onchange="dispatch('TOGGLE_SUBQUEST', {qId:'${q.id}', sqId:${sq.id}})" ${sq.completed ? 'checked' : ''} class="accent-amber-600 mt-0.5">
+          <span class="text-xs ${sq.completed ? 'line-through text-stone-600' : 'text-stone-400'} flex-1 leading-relaxed">${sq.text}</span>
+          <button onclick="dispatch('DELETE_SUBQUEST', {qId:'${q.id}', sqId:${sq.id}})" class="text-[10px] text-red-900 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+        </div>
+      `).join('');
+
+      return `
+      <div class="bg-stone-950/60 p-3.5 rounded-lg border border-stone-800 transition-all ${qd.completed ? 'opacity-50' : ''}">
+        <div class="flex gap-3 cursor-pointer group" onclick="dispatch('TOGGLE_QUEST', '${q.id}')">
+          <i data-lucide="${qd.completed ? 'check-circle' : 'circle'}" class="w-4 h-4 mt-0.5 ${qd.completed ? 'text-stone-600' : 'text-amber-500'} shrink-0 group-hover:scale-110 transition-transform"></i>
+          <div>
+            <div class="text-sm font-bold tracking-wide ${qd.completed ? 'line-through text-stone-500' : 'text-stone-300'}">${q.title}</div>
+            <div class="text-xs text-stone-500 mt-1">${q.desc}</div>
+          </div>
+        </div>
+        <div class="pl-7 mt-3">
+          ${subHtml}
+          <div class="flex gap-2 mt-3">
+            <input type="text" id="in-sq-${q.id}" onkeypress="if(event.key==='Enter'){ dispatch('ADD_SUBQUEST', {qId:'${q.id}', text:this.value}); this.value=''; }" class="w-full bg-stone-900 border border-stone-800 text-xs px-2.5 py-1.5 rounded text-stone-300 placeholder-stone-700 focus:outline-none focus:border-amber-700/50 transition-colors" placeholder="建立子防禦目標...">
+            <button onclick="const el=document.getElementById('in-sq-${q.id}'); if(el.value){dispatch('ADD_SUBQUEST', {qId:'${q.id}', text:el.value}); el.value='';}" class="bg-stone-800 text-stone-400 px-2.5 rounded hover:text-amber-400 hover:bg-stone-700 transition-colors"><i data-lucide="plus" class="w-4 h-4"></i></button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById(containerId).innerHTML = html;
+  };
+
+  renderList('life', 'quests-life');
+  renderList('invest', 'quests-invest');
+  renderList('finance', 'quests-finance');
 
   lucide.createIcons();
 }
 
-// Settings & Utilities
-function openSettings() {
-  document.getElementById('in-btc').value = state.stats.btc;
-  document.getElementById('in-gold').value = state.stats.gold;
-  document.getElementById('in-loan').value = state.stats.loanCurrent;
-  document.getElementById('in-hp-cur').value = state.stats.hpCurrent;
-  document.getElementById('in-hp-max').value = state.stats.hpMax;
-  document.getElementById('settings-modal').classList.remove('hidden');
-}
-function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
-function showToast(msg) {
-  const c = document.getElementById('toast-container'); const el = document.createElement('div');
-  el.className = 'toast'; el.innerText = msg; c.appendChild(el); setTimeout(() => el.remove(), 3000);
-}
-
+// 匯入邏輯
 document.getElementById('import-file').addEventListener('change', function(e) {
   const file = e.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = function(evt) {
-    try { state = JSON.parse(evt.target.result); saveAndRender(); closeSettings(); alert("✅ 紀錄還原成功！"); } 
+    try { state = JSON.parse(evt.target.result); dispatch('EXPORT_DATA'); alert("✅ 紀錄還原成功！"); closeSettings(); render(); } 
     catch(err) { alert('檔案格式錯誤。'); }
   };
   reader.readAsText(file);
 });
 
-// 啟動與 Oath 檢查
+// 啟動
 const oathChecks = document.querySelectorAll('.oath-checkbox');
-const btnOath = document.getElementById('btn-take-oath');
-oathChecks.forEach(cb => cb.addEventListener('change', () => {
-  const all = Array.from(oathChecks).every(c => c.checked);
-  btnOath.disabled = !all;
-  btnOath.className = all 
-    ? 'w-full py-3 font-bold tracking-widest uppercase transition-all rounded bg-amber-600 text-white cursor-pointer'
-    : 'w-full py-3 font-bold tracking-widest uppercase transition-all rounded bg-stone-800/50 text-stone-600 border border-stone-800 cursor-not-allowed';
-}));
-
-btnOath.addEventListener('click', () => {
-  state.lastOath = todayStr; saveAndRender();
-  document.getElementById('oath-view').classList.add('hidden');
+const btnTakeOath = document.getElementById('btn-take-oath');
+oathChecks.forEach(cb => {
+  cb.addEventListener('change', () => {
+    const all = Array.from(oathChecks).every(c => c.checked);
+    btnTakeOath.disabled = !all;
+    btnTakeOath.className = all 
+      ? 'w-full py-4 font-bold tracking-widest uppercase transition-all duration-300 rounded-lg shadow-lg bg-gradient-to-r from-amber-800 to-amber-600 text-amber-50 hover:from-amber-700 cursor-pointer animate-pop'
+      : 'w-full py-4 font-bold tracking-widest uppercase transition-all duration-300 rounded-lg bg-stone-800/50 text-stone-600 border border-stone-800 cursor-not-allowed';
+  });
 });
+btnTakeOath.addEventListener('click', () => dispatch('TAKE_OATH'));
 
-if (state.lastOath !== todayStr) { document.getElementById('oath-view').classList.remove('hidden'); }
-saveAndRender();
+dispatch('LOGIN_CHECK');
+if (!state.meta.oathTaken) document.getElementById('oath-view').classList.remove('hidden');
+else document.getElementById('dashboard-view').classList.remove('hidden');
+
 </script>
 </body>
 </html>
