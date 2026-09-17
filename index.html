@@ -1,514 +1,945 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+  <meta charset="UTF-8">
+  <!-- 確保在手機上比例正確 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>財富霸業 - 個人指揮所</title>
+
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 載入 React -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- 載入 Babel (讓瀏覽器能看得懂 JSX 語法) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- 載入 Firebase (相容舊版語法以確保單檔執行不出錯) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* 隱藏滾動條但保留滾動功能 */
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // 從 React 提取需要的鉤子
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // ==========================================
+    // ⚠️ 你的機密保險箱：請填入 Firebase 金鑰 ⚠️
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "請填入你的apiKey",
+      authDomain: "請填入你的authDomain",
+      projectId: "請填入你的projectId",
+      storageBucket: "請填入你的storageBucket",
+      messagingSenderId: "請填入你的messagingSenderId",
+      appId: "請填入你的appId"
+    };
+    // ==========================================
+
+    const gameAppId = 'wealth-command-v10';
+    let auth, db;
+
+    // 初始化 Firebase
+    if (firebaseConfig.apiKey !== "請填入你的apiKey") {
+      try {
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+      } catch (err) {
+        console.error("Firebase 初始化失敗:", err);
+      }
+    }
+
+    // 遊戲預設資料
+    const DEFAULT_GAME_STATE = {
+      assets: { twd: 100000, emergency: 200000, entertainment: 50000, btc: 1.5432, eth: 8.5, ada: 75000, qqq: 15000, voo: 0, debt: 500000 },
+      merit: 300, 
+      ownedOfficers: [],
+      investCount: 0,
+      lastInvestMonth: "",
+      lastRoutineMonth: "", 
+      logs: []
+    };
+
+    const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 14500, voo: 15500 };
+
+    // 事件
+    const RANDOM_EVENTS = [
+      { title: '天降祥瑞', msg: '境內出現白鹿祥瑞，軍心大振！', merit: 1, type: 'good' },
+      { title: '風調雨順', msg: '今年氣候宜人，屯田豐收，後勤無虞。', merit: 1, type: 'good' },
+      { title: '名士來投', msg: '有狂士路過大營，獻上奇策。', merit: 1, type: 'good' },
+      { title: '異族朝貢', msg: '邊疆異族感念將軍威名，進獻駿馬。', merit: 1, type: 'good' },
+      { title: '士兵操練', msg: '將士日夜操練，戰鬥力微幅提升。', merit: 1, type: 'good' },
+      { title: '清剿山賊', msg: '地方太守成功剿滅一窩山賊，百姓愛戴。', merit: 1, type: 'good' },
+      { title: '路不拾遺', msg: '領地治安良好，百姓安居樂業。', merit: 1, type: 'good' },
+      { title: '平穩度日', msg: '本月天下太平，無事發生，穩步發展。', merit: 0, type: 'neutral' },
+      { title: '流言蜚語', msg: '城中散佈著對將軍不利的流言，花費心力安撫。', merit: -1, type: 'bad' },
+      { title: '糧草受潮', msg: '連日大雨導致部分備用糧草發霉，軍心微挫。', merit: -1, type: 'bad' },
+      { title: '軍中風寒', msg: '換季時節，營中多有染上風寒者，影響操練。', merit: -1, type: 'bad' },
+      { title: '貪官汙吏', msg: '查獲地方小吏中飽私囊，雖已嚴懲但民怨微升。', merit: -1, type: 'bad' },
+      { title: '馬匹受驚', msg: '夜半營中馬匹受驚狂奔，踩傷數名士兵。', merit: -1, type: 'bad' },
+      { title: '盜賊橫行', msg: '邊境出現小股盜賊劫掠，調兵遣將平息。', merit: -1, type: 'bad' }
+    ];
+
+    const PROVINCES = [
+      { id: 'wancheng', name: '宛城', title: '築牆積糧', targetLabel: '雙防禦滿血', req: { emergency: 200000, entertainment: 50000 }, x: 50, y: 55 },
+      { id: 'xuchang', name: '許昌', title: '百廢待興', targetLabel: '債務清零', req: { debt: 0 }, x: 58, y: 48 },
+      { id: 'xiangyang', name: '襄陽', title: '主力成型', targetLabel: 'BTC 3 顆', req: { btc: 3 }, x: 52, y: 65 },
+      { id: 'chengdu', name: '成都', title: '西蜀天險', targetLabel: 'QQQ 200 萬', req: { qqq: 2000000 }, x: 22, y: 68 },
+      { id: 'changan', name: '長安', title: '關中霸主', targetLabel: 'VOO 200 萬', req: { voo: 2000000 }, x: 40, y: 45 },
+      { id: 'jiangling', name: '江陵', title: '草創之初', targetLabel: '兵力 100 萬', req: { netWorth: 1000000 }, x: 50, y: 72 },
+      { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '兵力 300 萬', req: { netWorth: 3000000 }, x: 60, y: 70 },
+      { id: 'hanzhong', name: '漢中', title: '中原逐鹿', targetLabel: '兵力 1000 萬', req: { netWorth: 10000000 }, x: 30, y: 50 },
+      { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '兵力 3000 萬', req: { netWorth: 30000000 }, x: 78, y: 62 },
+      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 5000 萬', req: { netWorth: 50000000 }, x: 70, y: 55 },
+      { id: 'ye', name: '鄴城', title: '河北霸主', targetLabel: '兵力 8000 萬', req: { netWorth: 80000000 }, x: 60, y: 32 },
+      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '兵力 1 億', req: { netWorth: 100000000 }, x: 48, y: 42 },
+      { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '定投 1 次', req: { investCount: 1 }, x: 63, y: 45 },
+      { id: 'xiapi', name: '下邳', title: '堅持一載', targetLabel: '定投 12 次', req: { investCount: 12 }, x: 75, y: 42 },
+      { id: 'xuzhou', name: '徐州', title: '持之以恆', targetLabel: '定投 24 次', req: { investCount: 24 }, x: 80, y: 45 },
+      { id: 'puyang', name: '濮陽', title: '三年有成', targetLabel: '定投 36 次', req: { investCount: 36 }, x: 68, y: 38 },
+      { id: 'beihai', name: '北海', title: '聲名遠播', targetLabel: '定投 48 次', req: { investCount: 48 }, x: 82, y: 35 },
+      { id: 'pingyuan', name: '平原', title: '半璧江山', targetLabel: '定投 60 次', req: { investCount: 60 }, x: 70, y: 28 },
+      { id: 'jinyang', name: '晉陽', title: '威鎮北疆', targetLabel: '定投 72 次', req: { investCount: 72 }, x: 50, y: 22 },
+      { id: 'jicheng', name: '薊城', title: '七年之癢', targetLabel: '定投 84 次', req: { investCount: 84 }, x: 65, y: 18 },
+      { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '定投 96 次', req: { investCount: 96 }, x: 75, y: 15 },
+      { id: 'xiangping', name: '襄平', title: '十年磨劍', targetLabel: '定投 120 次', req: { investCount: 120 }, x: 88, y: 10 },
+      { id: 'tianshui', name: '天水', title: '西涼鐵騎', targetLabel: '定投 144 次', req: { investCount: 144 }, x: 28, y: 38 },
+      { id: 'wuwei', name: '武威', title: '絲路霸主', targetLabel: '定投 160 次', req: { investCount: 160 }, x: 18, y: 28 },
+      { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '定投 180 次', req: { investCount: 180 }, x: 18, y: 85 },
+      { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '定投 200 次', req: { investCount: 200 }, x: 88, y: 72 },
+      { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '定投 240 次', req: { investCount: 240 }, x: 32, y: 92 }
+    ];
+
+    const RAW_OFFICERS = [
+      { id: 1, name: '曹操', stat: 98, type: '統帥' }, { id: 2, name: '司馬懿', stat: 99, type: '智力' }, { id: 3, name: '郭嘉', stat: 98, type: '智力' },
+      { id: 4, name: '荀彧', stat: 95, type: '政治' }, { id: 5, name: '張遼', stat: 92, type: '統帥' }, { id: 6, name: '夏侯惇', stat: 90, type: '武力' },
+      { id: 7, name: '夏侯淵', stat: 91, type: '武力' }, { id: 8, name: '許褚', stat: 96, type: '武力' }, { id: 9, name: '典韋', stat: 95, type: '武力' },
+      { id: 10, name: '徐晃', stat: 91, type: '武力' }, { id: 11, name: '張郃', stat: 90, type: '武力' }, { id: 12, name: '賈詡', stat: 97, type: '智力' },
+      { id: 13, name: '曹仁', stat: 89, type: '統帥' }, { id: 14, name: '曹洪', stat: 81, type: '武力' }, { id: 15, name: '于禁', stat: 84, type: '統帥' },
+      { id: 16, name: '樂進', stat: 85, type: '武力' }, { id: 17, name: '荀攸', stat: 94, type: '智力' }, { id: 18, name: '程昱', stat: 90, type: '智力' },
+      { id: 19, name: '滿寵', stat: 84, type: '統帥' }, { id: 20, name: '龐德', stat: 94, type: '武力' }, { id: 21, name: '郝昭', stat: 89, type: '統帥' },
+      { id: 22, name: '曹丕', stat: 83, type: '政治' }, { id: 23, name: '司馬師', stat: 88, type: '統帥' }, { id: 24, name: '司馬昭', stat: 87, type: '政治' }, { id: 25, name: '鄧艾', stat: 94, type: '統帥' },
+      { id: 26, name: '劉備', stat: 80, type: '仁德' }, { id: 27, name: '諸葛亮', stat: 100, type: '智力' }, { id: 28, name: '關羽', stat: 97, type: '武力' },
+      { id: 29, name: '張飛', stat: 98, type: '武力' }, { id: 30, name: '趙雲', stat: 96, type: '武力' }, { id: 31, name: '馬超', stat: 97, type: '武力' },
+      { id: 32, name: '黃忠', stat: 93, type: '武力' }, { id: 33, name: '龐統', stat: 97, type: '智力' }, { id: 34, name: '姜維', stat: 90, type: '智力' },
+      { id: 35, name: '魏延', stat: 92, type: '武力' }, { id: 36, name: '法正', stat: 94, type: '智力' }, { id: 37, name: '馬良', stat: 85, type: '政治' },
+      { id: 38, name: '關平', stat: 82, type: '武力' }, { id: 39, name: '周倉', stat: 84, type: '武力' }, { id: 40, name: '徐庶', stat: 93, type: '智力' },
+      { id: 41, name: '劉禪', stat: 30, type: '魅力' }, { id: 42, name: '星彩', stat: 81, type: '武力' }, { id: 43, name: '嚴顏', stat: 83, type: '武力' },
+      { id: 44, name: '王平', stat: 83, type: '統帥' }, { id: 45, name: '廖化', stat: 78, type: '武力' }, { id: 46, name: '蔣琬', stat: 88, type: '政治' },
+      { id: 47, name: '費禕', stat: 85, type: '政治' }, { id: 48, name: '孟獲', stat: 87, type: '武力' }, { id: 49, name: '祝融', stat: 85, type: '武力' }, { id: 50, name: '馬岱', stat: 85, type: '武力' },
+      { id: 51, name: '孫權', stat: 85, type: '統帥' }, { id: 52, name: '周瑜', stat: 96, type: '智力' }, { id: 53, name: '陸遜', stat: 95, type: '智力' },
+      { id: 54, name: '甘寧', stat: 94, type: '武力' }, { id: 55, name: '太史慈', stat: 93, type: '武力' }, { id: 56, name: '呂蒙', stat: 89, type: '統帥' },
+      { id: 57, name: '魯肅', stat: 92, type: '政治' }, { id: 58, name: '黃蓋', stat: 83, type: '武力' }, { id: 59, name: '孫堅', stat: 93, type: '統帥' },
+      { id: 60, name: '孫策', stat: 96, type: '武力' }, { id: 61, name: '程普', stat: 84, type: '統帥' }, { id: 62, name: '韓當', stat: 82, type: '武力' },
+      { id: 63, name: '周泰', stat: 91, type: '武力' }, { id: 64, name: '蔣欽', stat: 81, type: '武力' }, { id: 65, name: '凌統', stat: 89, type: '武力' },
+      { id: 66, name: '丁奉', stat: 80, type: '武力' }, { id: 67, name: '徐盛', stat: 82, type: '統帥' }, { id: 68, name: '潘璋', stat: 80, type: '武力' },
+      { id: 69, name: '張昭', stat: 94, type: '政治' }, { id: 70, name: '張紘', stat: 93, type: '政治' }, { id: 71, name: '大喬', stat: 86, type: '魅力' },
+      { id: 72, name: '小喬', stat: 88, type: '魅力' }, { id: 73, name: '孫尚香', stat: 85, type: '武力' }, { id: 74, name: '諸葛瑾', stat: 85, type: '政治' }, { id: 75, name: '陸抗', stat: 92, type: '統帥' },
+      { id: 76, name: '呂布', stat: 100, type: '武力' }, { id: 77, name: '貂蟬', stat: 95, type: '魅力' }, { id: 78, name: '董卓', stat: 87, type: '武力' },
+      { id: 79, name: '袁紹', stat: 81, type: '統帥' }, { id: 80, name: '顏良', stat: 93, type: '武力' }, { id: 81, name: '文醜', stat: 94, type: '武力' },
+      { id: 82, name: '袁術', stat: 65, type: '政治' }, { id: 83, name: '劉表', stat: 75, type: '政治' }, { id: 84, name: '馬騰', stat: 85, type: '統帥' },
+      { id: 85, name: '公孫瓚', stat: 84, type: '統帥' }, { id: 86, name: '華佗', stat: 99, type: '政治' }, { id: 87, name: '左慈', stat: 100, type: '智力' },
+      { id: 88, name: '于吉', stat: 96, type: '智力' }, { id: 89, name: '高順', stat: 89, type: '武力' }, { id: 90, name: '陳宮', stat: 89, type: '智力' },
+      { id: 91, name: '田豐', stat: 93, type: '智力' }, { id: 92, name: '沮授', stat: 90, type: '智力' }, { id: 93, name: '張角', stat: 96, type: '智力' },
+      { id: 94, name: '紀靈', stat: 83, type: '武力' }, { id: 95, name: '張魯', stat: 75, type: '政治' }, { id: 96, name: '韓遂', stat: 78, type: '統帥' },
+      { id: 97, name: '蔡文姬', stat: 85, type: '魅力' }, { id: 98, name: '李儒', stat: 93, type: '智力' }, { id: 99, name: '張任', stat: 85, type: '武力' }, { id: 100, name: '皇甫嵩', stat: 88, type: '統帥' }
+    ];
+
+    const OFFICERS = RAW_OFFICERS.map(o => {
+      let faction = '群'; let color = 'text-gray-300'; let bg = 'bg-gray-900'; let border = 'border-gray-600';
+      if (o.id <= 25) { faction = '魏'; color = 'text-blue-300'; bg = 'bg-blue-950/60'; border = 'border-blue-700'; }
+      else if (o.id <= 50) { faction = '蜀'; color = 'text-green-300'; bg = 'bg-green-950/60'; border = 'border-green-700'; }
+      else if (o.id <= 75) { faction = '吳'; color = 'text-red-300'; bg = 'bg-red-950/60'; border = 'border-red-700'; }
+      return { ...o, faction, color, bg, border };
+    });
+
+    const BONDS = [
+      { id: 'taoyuan', name: '桃園結義', req: [26, 28, 29], desc: '劉關張齊聚。每次徵兵額外 +3 軍功。', bonusPayday: 3, bonusRoutine: 0 },
+      { id: 'wuhu', name: '五虎上將', req: [28, 29, 30, 31, 32], desc: '蜀國最強戰力。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
+      { id: 'wuzi', name: '五子良將', req: [5, 16, 15, 11, 10], desc: '魏國前線棟樑。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
+      { id: 'erqiao', name: '江東二喬', req: [71, 72], desc: '絕世美人。每月巡視額外 +2 軍功。', bonusPayday: 0, bonusRoutine: 2 },
+      { id: 'wolongfengchu', name: '臥龍鳳雛', req: [27, 33], desc: '得一可安天下。每次徵兵額外 +4 軍功。', bonusPayday: 4, bonusRoutine: 0 },
+      { id: 'lubudiaochan', name: '英雄美人', req: [76, 77], desc: '呂布與貂蟬。每月巡視額外 +3 軍功。', bonusPayday: 0, bonusRoutine: 3 },
+      { id: 'sunjianzi', name: '江東猛虎', req: [59, 60, 51], desc: '孫家父子。每次徵兵額外 +3 軍功。', bonusPayday: 3, bonusRoutine: 0 },
+    ];
+
+    const TITLES = [
+      { rank: '平民', min: 0 }, { rank: '縣令', min: 1000000 }, { rank: '太守', min: 3000000 },
+      { rank: '刺史', min: 10000000 }, { rank: '州牧', min: 30000000 }, { rank: '大將軍', min: 50000000 },
+      { rank: '魏王', min: 80000000 }, { rank: '皇帝', min: 100000000 }
+    ];
+
+    const ICONS = {
+      Castle: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M4 21h16v-6h-2v4H6v-4H4v6zm14-10V5l-6 3-6-3v6l6 3 6-3z"/></svg>,
+      Tent: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M12 3l9 18M12 3L3 21"/><path d="M12 3v18M8 13h8"/></svg>,
+      Users: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      Map: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6z"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>,
+      Scroll: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="10" x2="16" y1="6" y2="6"/><line x1="10" x2="16" y1="10" y2="10"/></svg>,
+      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+    };
+
+    function App() {
+      const [user, setUser] = useState(null);
+      const [gameState, setGameState] = useState(DEFAULT_GAME_STATE);
+      const [prices, setPrices] = useState(FALLBACK_PRICES);
+      
+      const [investPlan, setInvestPlan] = useState({ amount: 10000, target: 'btc' });
+      const [activeTab, setActiveTab] = useState('map');
+      const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
+      const [syncStatus, setSyncStatus] = useState('未連線');
+      
+      const [gachaResult, setGachaResult] = useState(null);
+      const [activeEvent, setActiveEvent] = useState(null);
+      const [toastMessage, setToastMessage] = useState(null);
+      const [localAssets, setLocalAssets] = useState(null);
+
+      const realDate = new Date();
+      const currentRealYear = realDate.getFullYear();
+      const currentRealMonth = realDate.getMonth() + 1;
+      const currentMonthString = `${currentRealYear}-${String(currentRealMonth).padStart(2, '0')}`;
+      const jianAnYear = Math.max(0, currentRealYear - 2026);
+
+      useEffect(() => {
+        if (!auth || !db) return;
+        
+        auth.signInAnonymously().catch(err => console.error("Auth Error", err));
+
+        const unsubscribe = auth.onAuthStateChanged(currentUser => {
+          setUser(currentUser);
+          if (currentUser) {
+            setSyncStatus('連線中...');
+            // 使用 Firebase V8 (Compat) 的呼叫方式
+            const docRef = db.collection('artifacts').doc(gameAppId).collection('users').doc(currentUser.uid).collection('wealthGame').doc('mainData');
+            
+            const unsubDoc = docRef.onSnapshot(docSnap => {
+              if (docSnap.exists) {
+                setGameState(prev => ({ ...prev, ...docSnap.data() }));
+                setSyncStatus('已同步');
+              } else {
+                docRef.set(DEFAULT_GAME_STATE).catch(console.error);
+              }
+            }, () => { setSyncStatus('連線失敗'); });
+            
+            return () => unsubDoc();
+          }
+        });
+        return () => unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        const fetchPrices = async () => {
+          try {
+            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,cardano&vs_currencies=twd');
+            if (res.ok) {
+              const data = await res.json();
+              setPrices(prev => ({
+                ...prev, 
+                btc: data.bitcoin?.twd || prev.btc, 
+                eth: data.ethereum?.twd || prev.eth, 
+                ada: data.cardano?.twd || prev.ada,
+              }));
+            }
+          } catch (error) {}
+        };
+        fetchPrices();
+        const interval = setInterval(fetchPrices, 180000);
+        return () => clearInterval(interval);
+      }, []);
+
+      const { assets, merit, ownedOfficers, investCount, lastInvestMonth, lastRoutineMonth, logs } = gameState;
+      const displayAssets = localAssets || assets;
+
+      const stats = useMemo(() => {
+        const crypto = (displayAssets.btc * prices.btc) + (displayAssets.eth * prices.eth) + (displayAssets.ada * prices.ada);
+        const trad = displayAssets.qqq + displayAssets.voo;
+        const cash = displayAssets.twd + displayAssets.emergency + displayAssets.entertainment;
+        const netWorth = crypto + trad + cash - displayAssets.debt;
+        return { crypto, trad, cash, netWorth };
+      }, [displayAssets, prices]);
+
+      const playerTitle = useMemo(() => {
+        let currentTitle = TITLES[0].rank;
+        for (let t of TITLES) {
+          if (stats.netWorth >= t.min) currentTitle = t.rank;
+        }
+        return currentTitle;
+      }, [stats.netWorth]);
+
+      const officerBuff = useMemo(() => {
+        let totalBuff = 0;
+        ownedOfficers.forEach(id => {
+          const off = OFFICERS.find(o => o.id === id);
+          if (off) totalBuff += (off.stat / 100); 
+        });
+        return totalBuff;
+      }, [ownedOfficers]);
+
+      const activeBonds = useMemo(() => {
+        return BONDS.filter(bond => bond.req.every(reqId => ownedOfficers.includes(reqId)));
+      }, [ownedOfficers]);
+
+      const bondPaydayBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusPayday, 0), [activeBonds]);
+      const bondRoutineBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusRoutine, 0), [activeBonds]);
+
+      const provincesState = useMemo(() => {
+        return PROVINCES.map(prov => {
+          let isMet = true;
+          for (const [key, reqVal] of Object.entries(prov.req)) {
+            let current = 0;
+            if (key === 'netWorth') current = stats.netWorth;
+            else if (key === 'investCount') current = investCount;
+            else if (key === 'debt') current = displayAssets.debt;
+            else current = displayAssets[key] || 0;
+
+            if (key === 'debt') { if (current > reqVal) isMet = false; }
+            else { if (current < reqVal) isMet = false; }
+          }
+          return { ...prov, isOccupied: isMet };
+        });
+      }, [displayAssets, stats, investCount]);
+
+      const showToast = (msg, type = 'info') => {
+        setToastMessage({ msg, type });
+        setTimeout(() => setToastMessage(null), 3500);
+      };
+
+      const saveGameState = async (newState) => {
+        setGameState(newState);
+        if (user && db) {
+          setSyncStatus('儲存中...');
+          try {
+            const docRef = db.collection('artifacts').doc(gameAppId).collection('users').doc(user.uid).collection('wealthGame').doc('mainData');
+            await docRef.set(newState, { merge: true });
+            setSyncStatus('已同步');
+          } catch (e) { setSyncStatus('儲存失敗'); }
+        }
+      };
+
+      const addLog = (newState, type, msg) => {
+        const dateStr = `建安${jianAnYear}年${currentRealMonth}月`;
+        newState.logs = [{ date: dateStr, type, msg }, ...(newState.logs || [])].slice(0, 50);
+      };
+
+      const handlePayday = () => {
+        if (lastInvestMonth === currentMonthString) {
+          showToast("本月軍令已下達！將軍，請靜候下月。", 'warn');
+          return;
+        }
+        if (investPlan.amount <= 0) {
+          showToast("請輸入欲調度的糧草數量！", 'warn');
+          return;
+        }
+        if (!['btc', 'qqq', 'voo'].includes(investPlan.target)) {
+          showToast("軍令錯誤：只能定投 BTC, QQQ, VOO。", 'error');
+          return;
+        }
+
+        let newState = JSON.parse(JSON.stringify(gameState));
+        const amount = investPlan.amount;
+        const target = investPlan.target;
+        
+        let addedAmount = amount;
+        if (target === 'btc') addedAmount = amount / prices.btc;
+        
+        newState.assets[target] = (newState.assets[target] || 0) + addedAmount;
+        newState.investCount += 1;
+        newState.lastInvestMonth = currentMonthString;
+        
+        const ev = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+        let gainedMerit = 50 + officerBuff + bondPaydayBuff + ev.merit; 
+        newState.merit += gainedMerit;
+        
+        const displayAdded = target === 'btc' ? addedAmount.toFixed(6) : addedAmount.toLocaleString();
+        addLog(newState, '軍令', `徵兵令下：壯大 ${target.toUpperCase()} 營 ${displayAdded} 兵力。軍功 +${gainedMerit.toFixed(1)}。`);
+        
+        saveGameState(newState);
+        setActiveEvent(ev); 
+      };
+
+      const executeRoutineTask = () => {
+        if (lastRoutineMonth === currentMonthString) {
+          showToast("本月已巡視過營地。", 'warn');
+          return;
+        }
+        let newState = JSON.parse(JSON.stringify(gameState));
+        if (newState.assets.emergency >= 200000 && newState.assets.entertainment >= 50000) {
+          let totalGained = 30 + bondRoutineBuff; 
+          newState.merit += totalGained;
+          newState.lastRoutineMonth = currentMonthString;
+          addLog(newState, '內政', `糧草滿編，防禦陣地穩固，獲賞軍功 +${totalGained}。`);
+          saveGameState(newState);
+          showToast(`巡視完成，軍功 +${totalGained}`, 'success');
+        } else {
+          showToast("將軍，您的雙防禦尚未滿編！", 'error');
+        }
+      };
+
+      const drawOfficer = () => {
+        if (merit < 300) {
+          showToast("軍功不足 300，無法設宴招賢！", 'warn');
+          return;
+        }
+        let newState = JSON.parse(JSON.stringify(gameState));
+        
+        const unowned = OFFICERS.filter(o => !newState.ownedOfficers.includes(o.id));
+        if (unowned.length === 0) {
+          showToast("天下英傑已盡歸麾下！", 'info');
+          return;
+        }
+
+        newState.merit -= 300; 
+        const drawn = unowned[Math.floor(Math.random() * unowned.length)];
+        newState.ownedOfficers.push(drawn.id);
+        addLog(newState, '招賢', `耗費 300 軍功，登庸名將【${drawn.name}】！`);
+        saveGameState(newState);
+        setGachaResult(drawn);
+      };
+
+      const handleAssetChange = (key, val) => {
+        if (!localAssets) setLocalAssets({ ...assets, [key]: val });
+        else setLocalAssets({ ...localAssets, [key]: val });
+      };
+
+      const handleAssetBlur = () => {
+        if (localAssets) {
+          let newState = JSON.parse(JSON.stringify(gameState));
+          newState.assets = localAssets;
+          saveGameState(newState);
+          setLocalAssets(null);
+          showToast("糧草帳冊已更新上傳", 'success');
+        }
+      };
+
+      const selectedProvince = provincesState.find(p => p.id === selectedProvinceId);
+      const canInvestThisMonth = lastInvestMonth !== currentMonthString;
+      const canDoRoutineThisMonth = lastRoutineMonth !== currentMonthString;
+      const occupiedCount = provincesState.filter(p => p.isOccupied).length;
+
+      return (
+        <div className="h-screen w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
+          <style dangerouslySetInnerHTML={{__html: `
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap');
+            body { font-family: 'Noto Serif TC', serif; background-color: #0c0906; margin: 0; padding: 0; }
+            .bg-wood { background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.05"/></svg>'); }
+            @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+            @keyframes stampIn { 0% { transform: scale(3) rotate(-15deg); opacity: 0; } 50% { transform: scale(0.8) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+          `}} />
+
+          {toastMessage && (
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
+              <div className={`px-6 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center gap-2
+                ${toastMessage.type === 'error' ? 'bg-[#3b0f0f]/90 text-red-300 border-red-800' : 
+                  toastMessage.type === 'success' ? 'bg-[#0f291e]/90 text-green-300 border-green-800' : 
+                  toastMessage.type === 'warn' ? 'bg-[#3b2d0f]/90 text-yellow-300 border-yellow-800' : 
+                  'bg-[#0f172a]/90 text-blue-300 border-blue-800'}`}
+              >
+                {toastMessage.msg}
+              </div>
+            </div>
+          )}
+
+          {gachaResult && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4" onClick={() => setGachaResult(null)}>
+              <div className={`border-2 ${gachaResult.border} ${gachaResult.bg} w-full max-w-xs relative shadow-2xl animate-[stampIn_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]`}>
+                <div className="absolute inset-0 bg-wood opacity-50 pointer-events-none mix-blend-multiply"></div>
+                <div className={`absolute inset-0 flex items-center justify-center text-9xl font-black opacity-10 select-none pointer-events-none ${gachaResult.color}`}>
+                  {gachaResult.faction}
+                </div>
+                <div className="relative z-10 flex flex-col items-center p-8">
+                  <div className={`text-xs tracking-widest mb-4 font-bold border ${gachaResult.border} px-3 py-1 bg-black/50 ${gachaResult.color}`}>
+                    【 {gachaResult.faction}軍將領 】
+                  </div>
+                  <h3 className={`text-4xl font-black mb-8 tracking-widest ${gachaResult.color} drop-shadow-lg`}>
+                    {gachaResult.name}
+                  </h3>
+                  <div className="w-full bg-[#0a0705]/80 border border-[#3e2723] p-4 mb-4 backdrop-blur-sm">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[#a3947c] text-sm">定位</span>
+                      <span className="text-[#e3dac9] font-bold">{gachaResult.type} <span className={gachaResult.color}>{gachaResult.stat}</span></span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-[#3e2723] pt-2">
+                      <span className="text-[#a3947c] text-sm">被動 (軍功/月)</span>
+                      <span className="text-green-400 font-mono font-bold text-sm">+{((gachaResult.stat)/100).toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <p className="text-[#8c7e6a] text-xs mt-2 animate-pulse">點擊任意處收入麾下</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeEvent && !gachaResult && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+              <div className="bg-[#1c1814] border-2 border-[#b8860b] w-full max-w-sm relative shadow-2xl animate-[slideUp_0.3s_ease-out]">
+                <div className="absolute inset-0 bg-wood opacity-30 pointer-events-none"></div>
+                <div className="p-4 border-b border-[#4a3525] flex justify-between items-center bg-[#0a0705]">
+                  <h3 className="text-lg font-black tracking-widest text-[#d4af37]">邊關急報</h3>
+                  <div className="w-5 h-5 text-[#d4af37]"><ICONS.Scroll className="w-full h-full"/></div>
+                </div>
+                <div className="p-6 relative z-10">
+                  <h4 className="text-xl font-bold text-[#e3dac9] mb-3 text-center">{activeEvent.title}</h4>
+                  <p className="text-[#a3947c] text-sm mb-6 text-center leading-relaxed bg-[#0a0705] p-3 border border-[#3e2723]">{activeEvent.msg}</p>
+                  <div className="flex justify-center mb-6">
+                    <div className={`px-6 py-2 text-base font-bold border rounded-sm shadow-inner
+                      ${activeEvent.merit > 0 ? 'bg-[#0f291e] text-green-400 border-green-700' : 
+                        activeEvent.merit < 0 ? 'bg-[#3b0f0f] text-red-400 border-red-700' : 'bg-[#1a1a1a] text-gray-400 border-gray-600'}`}>
+                      軍功波動 {activeEvent.merit > 0 ? '+' : ''}{activeEvent.merit}
+                    </div>
+                  </div>
+                  <button onClick={() => setActiveEvent(null)} className="w-full bg-[#2a2218] text-[#d4af37] border border-[#b8860b] font-bold py-3 text-sm hover:bg-[#3a2f22] active:scale-95 transition-all tracking-widest">
+                    確認
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl relative">
+            <div className="absolute inset-0 bg-wood opacity-30 pointer-events-none"></div>
+            <div className="flex justify-between items-center px-4 py-3 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
+                  <span className="text-lg font-black text-[#e3dac9] leading-none mb-1">魏</span>
+                  <span className="text-[9px] text-[#d4af37] bg-[#2a2218] px-1 border border-[#4a3525] rounded-sm whitespace-nowrap">{playerTitle}</span>
+                </div>
+                <div>
+                  <h1 className="font-bold text-xl tracking-widest text-[#d4af37] drop-shadow-md">財富霸業</h1>
+                  <div className="text-[10px] text-[#8c7e6a] flex items-center gap-1.5 mt-1 font-mono">
+                    <span>建安{jianAnYear}年{currentRealMonth}月</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${syncStatus === '已同步' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right flex flex-col items-end justify-center">
+                <div className="text-[10px] text-[#a3947c] tracking-widest mb-1">天下總兵力</div>
+                <div className="text-2xl font-bold text-white font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]">
+                  {(stats.netWorth / 10000).toFixed(0)} <span className="text-xs text-[#d4af37] font-serif">萬</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex px-4 py-2 gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide text-[11px] font-mono bg-[#0a0705] border-t border-[#2a1a15] relative z-10 shadow-inner">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
+                <span className="text-[#a3947c] font-serif">軍功</span> <span className="text-[#ffd700] font-bold">{merit.toFixed(1)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
+                <span className="text-[#a3947c] font-serif">糧草</span> <span className="text-[#4ade80]">{(stats.cash / 10000).toFixed(2)}w</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
+                <span className="text-[#a3947c] font-serif">騎兵</span> <span className="text-[#60a5fa]">{(stats.crypto / 10000).toFixed(2)}w</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
+                <span className="text-[#a3947c] font-serif">步兵</span> <span className="text-[#c0你可以直接將以下程式碼複製並存成 `index.html` 檔案，雙擊即可在任何瀏覽器中完整運行。
+
+這次採用純原生 HTML、CSS 與 JavaScript 開發，無需依賴任何外部框架或伺服器環境，徹底解決了先前切換路由或點擊地圖時產生的「白屏」問題。進度會自動儲存在你的瀏覽器中。
+
+```html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>刑法大師 - 國考記憶卡牌遊戲 (刑法法條完成版1150911)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>資產戰略地圖</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; }
-        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .card-enter-active, .card-leave-active { transition: all 0.5s ease; }
-        .card-enter-from { opacity: 0; transform: translateY(30px) rotateX(-20deg); }
-        .card-leave-to { opacity: 0; transform: translateY(-30px) scale(0.9); }
-       
-        .btn-option { transition: all 0.2s; }
-        .btn-option:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-        .btn-option.selected { background-color: #3b82f6; border-color: #60a5fa; }
-        .btn-option.correct-reveal { background-color: #10b981 !important; border-color: #34d399 !important; color: white !important;}
-        .btn-option.wrong-reveal { background-color: #ef4444 !important; border-color: #f87171 !important; color: white !important; opacity: 0.7;}
-        .btn-option.eliminated { opacity: 0.2; pointer-events: none; text-decoration: line-through; }
+        :root {
+            --bg: #0a0a0c;
+            --panel-bg: #111116;
+            --text-main: #e0e0e0;
+            --text-dim: #888;
+            --accent: #00ffcc;
+            --accent-hover: #00ccaa;
+            --danger: #ff4444;
+            --locked: #222;
+            --border: #333;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 { margin: 0; color: var(--accent); letter-spacing: 2px; }
+        .total-assets { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
+        
+        .map-container {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin: 60px 0;
+            padding: 0 20px;
+        }
+
+        /* 連接線 */
+        .map-container::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 40px;
+            right: 40px;
+            height: 4px;
+            background: var(--locked);
+            z-index: 1;
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 20px;
+            left: 40px;
+            height: 4px;
+            background: var(--accent);
+            z-index: 2;
+            transition: width 0.5s ease;
+        }
+
+        .node {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            width: 30%;
+        }
+
+        .node-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--panel-bg);
+            border: 3px solid var(--locked);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .node.active .node-circle {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent);
+            background: rgba(0, 255, 204, 0.1);
+        }
+
+        .node.completed .node-circle {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+        }
+
+        .node-title {
+            margin-top: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .node-target {
+            color: var(--text-dim);
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        /* 控制面板 */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .panel h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: var(--accent);
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 10px;
+        }
+
+        input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: inherit;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        button.btn-danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        button.btn-danger:hover {
+            background: var(--danger);
+            color: var(--bg);
+        }
+
+        #info-display p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        /* 終端機日誌 */
+        .terminal {
+            margin-top: 30px;
+            background: #000;
+            border: 1px solid #222;
+            padding: 15px;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            color: var(--text-dim);
+        }
+
+        .log-entry { margin-bottom: 5px; }
+        .log-time { color: var(--accent); margin-right: 10px; }
+
+        @media (max-width: 600px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .map-container { flex-direction: column; align-items: center; gap: 40px; }
+            .map-container::before, .progress-line { display: none; }
+            .node { width: 100%; }
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
-    <div id="app" class="flex-grow flex flex-col" v-cloak>
-        <!-- Header -->
-        <header class="glass-panel p-4 sticky top-0 z-50 flex justify-between items-center shadow-lg">
-            <div>
-                <h1 class="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                    <i class="fas fa-balance-scale mr-2 text-blue-400"></i>刑法大師卡牌戰
-                </h1>
-                <p class="text-xs text-slate-400 mt-1">Source: 刑法法條完成版(1150911).docx</p>
-            </div>
-           
-            <div class="flex gap-4 items-center" v-if="gameState === 'playing'">
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-emerald-400">{{ masteredCount }}</div>
-                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">已掌握</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-rose-400">{{ deck.length }}</div>
-                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">剩餘牌組</div>
-                </div>
-            </div>
-        </header>
+<body>
 
-        <!-- Main Content -->
-        <main class="flex-grow p-4 flex flex-col items-center justify-center relative overflow-hidden">
-           
-            <!-- Start Screen -->
-            <div v-if="gameState === 'start'" class="max-w-2xl w-full glass-panel rounded-2xl p-8 text-center space-y-6 animate-fade-in">
-                <i class="fas fa-gavel text-6xl text-blue-500 mb-4"></i>
-                <h2 class="text-3xl font-bold">完全掌握刑法內容</h2>
-                <div class="text-left bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
-                    <h3 class="text-xl font-bold text-emerald-400 border-b border-slate-700 pb-2">📜 遊戲規則 (機會卡機制)</h3>
-                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
-                        <li>每次抽出一張法條卡，必須回答<strong class="text-white">兩個隨機屬性問題</strong>。</li>
-                        <li><strong class="text-emerald-400">答對 (全對)：</strong>可任選一項獎勵：
-                            <br>🔄 迴轉出牌 (刪除牌組中1張懲罰卡)
-                            <br>🎯 指定他人 (獲得1個提示幣，可刪去一半錯誤選項)
-                            <br>🃏 另起新牌 (獲得1個跳過幣，可免答跳過當前卡)
-                        </li>
-                        <li><strong class="text-amber-400">半錯 (對1錯1)：</strong>抽一張牌 (該法條卡洗回牌組，並額外增加 1 張分身卡)。</li>
-                        <li><strong class="text-rose-400">全錯 (全錯)：</strong>抽三張牌 (該法條卡洗回牌組，並額外增加 3 張分身卡)。</li>
-                    </ul>
-                </div>
-                <button @click="startGame" class="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-full font-bold text-xl transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-                    開始挑戰全部 {{ rawData.length }} 條
-                </button>
-            </div>
+<div class="container">
+    <header>
+        <h1>SYSTEM_TERMINAL // 財富戰略地圖</h1>
+        <div class="total-assets" id="display-total">NT$ 0</div>
+        <div style="color: var(--text-dim);">進度推進狀態：<span id="overall-progress">0%</span></div>
+    </header>
 
-            <!-- Playing Screen -->
-            <transition name="card" mode="out-in">
-                <div v-if="gameState === 'playing' && currentCard" :key="currentCard.id + turnCounter" class="w-full max-w-3xl flex flex-col gap-6">
-                   
-                    <!-- Top Bar: Powerups -->
-                    <div class="flex justify-between items-center bg-slate-800 p-3 rounded-xl border border-slate-700">
-                        <div class="flex gap-3">
-                            <button @click="usePowerup('target')" :disabled="powerups.target <= 0 || evaluated" class="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-sm flex items-center transition-colors">
-                                <i class="fas fa-bullseye text-amber-400 mr-2"></i> 刪除選項 ({{ powerups.target }})
-                            </button>
-                            <button @click="usePowerup('newCard')" :disabled="powerups.newCard <= 0 || evaluated" class="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-sm flex items-center transition-colors">
-                                <i class="fas fa-forward text-emerald-400 mr-2"></i> 跳過本題 ({{ powerups.newCard }})
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- The Card -->
-                    <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl border-t border-t-blue-500/30">
-                        <div class="bg-gradient-to-r from-slate-800 to-slate-900 p-6 border-b border-slate-700 flex justify-between items-start">
-                            <div>
-                                <span class="px-3 py-1 bg-blue-900/50 text-blue-300 text-xs rounded-full border border-blue-700 mb-3 inline-block">
-                                    {{ currentCard.chapter }}
-                                </span>
-                                <h2 class="text-3xl font-bold text-white">{{ currentCard.name }}</h2>
-                                <p class="text-slate-400 mt-1 font-mono">{{ currentCard.article }}</p>
-                            </div>
-                            <div class="text-5xl opacity-20"><i class="fas fa-balance-scale"></i></div>
-                        </div>
-                       
-                        <div class="p-6 space-y-8">
-                            <!-- Questions -->
-                            <div v-for="(q, index) in currentQuestions" :key="index" class="space-y-3">
-                                <h3 class="text-lg font-medium text-slate-200">
-                                    <span class="text-blue-400 mr-2">Q{{ index + 1 }}.</span>
-                                    此罪的 <strong class="text-amber-300 border-b border-amber-300/50">{{ getPropLabel(q.prop) }}</strong> 為何？
-                                </h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <button v-for="(opt, oIdx) in q.options" :key="oIdx"
-                                        @click="selectOption(index, opt)"
-                                        :disabled="evaluated || q.eliminated.includes(opt)"
-                                        class="btn-option p-4 rounded-xl border border-slate-600 bg-slate-800 text-left relative overflow-hidden"
-                                        :class="{
-                                            'selected': userAnswers[index] === opt,
-                                            'correct-reveal': evaluated && opt === q.answer,
-                                            'wrong-reveal': evaluated && userAnswers[index] === opt && opt !== q.answer,
-                                            'eliminated': q.eliminated.includes(opt)
-                                        }">
-                                        <div class="flex items-center">
-                                            <div class="w-6 h-6 rounded-full border-2 border-slate-500 flex items-center justify-center mr-3 flex-shrink-0 bg-slate-900"
-                                                :class="{'border-white bg-blue-500': userAnswers[index] === opt, 'border-white bg-emerald-500': evaluated && opt === q.answer, 'border-white bg-red-500': evaluated && userAnswers[index] === opt && opt !== q.answer}">
-                                                <i class="fas fa-check text-xs text-white" v-if="userAnswers[index] === opt || (evaluated && opt === q.answer)"></i>
-                                                <i class="fas fa-times text-xs text-white" v-if="evaluated && userAnswers[index] === opt && opt !== q.answer"></i>
-                                            </div>
-                                            <span class="text-sm md:text-base leading-snug">{{ opt }}</span>
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                       
-                        <div class="p-6 bg-slate-800 border-t border-slate-700 flex justify-end">
-                            <button v-if="!evaluated" @click="evaluateAnswers" :disabled="userAnswers.includes(null)" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-bold transition-colors shadow-lg">
-                                確定答案
-                            </button>
-                            <button v-else @click="nextTurn" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold transition-colors shadow-lg flex items-center animate-pulse">
-                                下一步 <i class="fas fa-arrow-right ml-2"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </transition>
-
-            <!-- Game Over Screen -->
-            <div v-if="gameState === 'won'" class="max-w-2xl w-full glass-panel rounded-2xl p-10 text-center space-y-6 animate-fade-in border-2 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                <i class="fas fa-trophy text-8xl text-yellow-400 mb-4 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]"></i>
-                <h2 class="text-4xl font-bold text-white">刑法大師誕生！</h2>
-                <p class="text-xl text-slate-300">你已完全掌握所有法條，擊敗了所有懲罰卡！</p>
-                <div class="grid grid-cols-2 gap-4 my-8">
-                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                        <div class="text-4xl font-bold text-blue-400">{{ rawData.length }}</div>
-                        <div class="text-sm text-slate-400">總法條數</div>
-                    </div>
-                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                        <div class="text-4xl font-bold text-rose-400">{{ totalPenaltiesDrawn }}</div>
-                        <div class="text-sm text-slate-400">總懲罰抽卡數</div>
-                    </div>
-                </div>
-                <button @click="resetGame" class="px-8 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition-colors">
-                    重新挑戰
-                </button>
-            </div>
-           
-        </main>
-
-        <!-- Reward Modal (Opportunity Card) -->
-        <div v-if="showRewardModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <div class="bg-slate-800 rounded-2xl max-w-md w-full border border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)] overflow-hidden animate-fade-in">
-                <div class="bg-emerald-600 p-4 text-center">
-                    <h3 class="text-2xl font-bold"><i class="fas fa-star text-yellow-300 mr-2"></i>完全正確！機會卡觸發</h3>
-                    <p class="text-emerald-100 text-sm mt-1">請選擇一項獎勵</p>
-                </div>
-                <div class="p-6 space-y-4">
-                    <button @click="selectReward('reverse')" class="w-full text-left p-4 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 flex items-center transition-transform transform hover:scale-105">
-                        <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-xl mr-4 flex-shrink-0"><i class="fas fa-undo"></i></div>
-                        <div>
-                            <div class="font-bold text-lg">🔄 迴轉出牌</div>
-                            <div class="text-sm text-slate-400">立即從剩餘牌組中隨機刪除 1 張法條卡 (減少負擔)</div>
-                        </div>
-                    </button>
-                    <button @click="selectReward('target')" class="w-full text-left p-4 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 flex items-center transition-transform transform hover:scale-105">
-                        <div class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 text-xl mr-4 flex-shrink-0"><i class="fas fa-bullseye"></i></div>
-                        <div>
-                            <div class="font-bold text-lg">🎯 指定他人 (提示幣)</div>
-                            <div class="text-sm text-slate-400">獲得 1 個提示幣，可在未來題目中刪去一半錯誤選項</div>
-                        </div>
-                    </button>
-                    <button @click="selectReward('newCard')" class="w-full text-left p-4 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 flex items-center transition-transform transform hover:scale-105">
-                        <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl mr-4 flex-shrink-0"><i class="fas fa-forward"></i></div>
-                        <div>
-                            <div class="font-bold text-lg">🃏 另起新牌 (跳過幣)</div>
-                            <div class="text-sm text-slate-400">獲得 1 個跳過幣，遇到不會的卡可直接跳過免受懲罰</div>
-                        </div>
-                    </button>
-                </div>
-            </div>
+    <div class="map-container" id="map">
+        <div class="progress-line" id="progress-line" style="width: 0%;"></div>
+        
+        <div class="node" id="node-1" onclick="showNodeInfo(1)">
+            <div class="node-circle">1</div>
+            <div class="node-title">任務點 1：基礎防線</div>
+            <div class="node-target">NT$ 10,000,000</div>
         </div>
-
-        <!-- Notification Toast -->
-        <div v-if="toast.show" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold shadow-2xl z-50 flex items-center transition-all duration-300"
-            :class="{'bg-rose-500': toast.type === 'error', 'bg-amber-500': toast.type === 'warning', 'bg-emerald-500': toast.type === 'success', 'bg-blue-500': toast.type === 'info'}">
-            <i :class="toast.icon + ' mr-2'"></i> {{ toast.message }}
+        
+        <div class="node" id="node-2" onclick="showNodeInfo(2)">
+            <div class="node-circle">2</div>
+            <div class="node-title">任務點 2：資產擴張</div>
+            <div class="node-target">NT$ 30,000,000</div>
+        </div>
+        
+        <div class="node" id="node-3" onclick="showNodeInfo(3)">
+            <div class="node-circle">3</div>
+            <div class="node-title">任務點 3：終極座標</div>
+            <div class="node-target">NT$ 90,000,000</div>
         </div>
     </div>
 
-    <script>
-        // 100% Complete Data based on user document
-        const CRIME_DATA = [
-            { article: "刑法第271條", chapter: "殺人罪章", name: "普通殺人罪", subject: "一般人", object: "一般人", sentence: "10年至死刑/無期", tell: "X", attempt: "O/O", agg: "X" },
-            { article: "刑法第272條", chapter: "殺人罪章", name: "殺直系血親尊親屬罪", subject: "直系血親卑親屬", object: "直系血親尊親屬", sentence: "普通殺人加重刑期1/2", tell: "X", attempt: "O/O", agg: "X" },
-            { article: "刑法第272-1條", chapter: "殺人罪章", name: "殺害未滿7歲者罪", subject: "一般人", object: "未滿7歲幼童", sentence: "普通殺人加重刑期1/2至死刑", tell: "X", attempt: "O/O", agg: "X" },
-            { article: "刑法第273條", chapter: "殺人罪章", name: "義憤殺人罪", subject: "一般人", object: "一般人", sentence: "7年以下", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第274條", chapter: "殺人罪章", name: "生母殺嬰罪", subject: "生母", object: "剛出生之嬰兒", sentence: "6個月至5年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第275條第1項", chapter: "殺人罪章", name: "受他人囑託或得其承諾而加工自殺罪", subject: "一般人", object: "有能力決定者", sentence: "1年至7年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第275條第2項", chapter: "殺人罪章", name: "教唆或幫助他人自殺罪", subject: "一般人", object: "有能力決定者", sentence: "5年以下", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第276條", chapter: "殺人罪章", name: "過失致死罪", subject: "一般人", object: "一般人", sentence: "5年以下", tell: "X", attempt: "X/X", agg: "X" },
-           
-            { article: "刑法第277條", chapter: "傷害罪章", name: "普通傷害罪", subject: "一般人", object: "一般人", sentence: "5年以下", tell: "第一項", attempt: "X/X", agg: "致死重傷" },
-            { article: "刑法第278條", chapter: "傷害罪章", name: "重傷罪", subject: "一般人", object: "一般人", sentence: "5年至12年", tell: "X", attempt: "O/X", agg: "致死" },
-            { article: "刑法第279條", chapter: "傷害罪章", name: "義憤傷害罪", subject: "一般人", object: "一般人", sentence: "2年以下", tell: "X", attempt: "X/X", agg: "致死" },
-            { article: "刑法第280條", chapter: "傷害罪章", name: "傷害直系血親尊親屬罪", subject: "直系血親卑親屬", object: "直系血親尊親屬", sentence: "普傷或重傷加重刑期1/2", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第281條", chapter: "傷害罪章", name: "施強暴於直系血親尊親屬罪", subject: "直系血親卑親屬", object: "直系血親尊親屬", sentence: "1年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第282條第1項", chapter: "傷害罪章", name: "受囑託或得其承諾而傷害罪", subject: "一般人", object: "有決定能力人", sentence: "6個月至5年", tell: "X", attempt: "X/X", agg: "重傷" },
-            { article: "刑法第282條第2項", chapter: "傷害罪章", name: "教唆或幫助他人使之自傷罪", subject: "一般人", object: "有決定能力人", sentence: "5年以下", tell: "X", attempt: "X/X", agg: "致死重傷" },
-            { article: "刑法第283條", chapter: "傷害罪章", name: "聚眾鬥毆在場助勢罪", subject: "一般人", object: "一般人", sentence: "5年以下", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第284條", chapter: "傷害罪章", name: "過失傷害罪", subject: "一般人", object: "一般人", sentence: "1年以下", tell: "O", attempt: "X/X", agg: "重傷" },
-            { article: "刑法第286條第1項", chapter: "傷害罪章", name: "凌虐未滿18歲者之罪", subject: "一般人", object: "7歲以上未成年人", sentence: "6個月至5年", tell: "X", attempt: "X/X", agg: "致死重傷" },
-            { article: "刑法第286條第2項", chapter: "傷害罪章", name: "凌虐未滿18歲者且意圖營利罪", subject: "一般人", object: "7歲以上未成年人", sentence: "5年以上", tell: "X", attempt: "X/X", agg: "致死重傷" },
-            { article: "第286條第3項", chapter: "傷害罪章", name: "凌虐未滿7歲者之罪", subject: "一般人", object: "未滿7歲幼童", sentence: "凌虐未成年罪加重刑期1/2", tell: "X", attempt: "X/X", agg: "致死重傷" },
-            { article: "第286條第3項(營利)", chapter: "傷害罪章", name: "凌虐未滿7歲者且意圖營利之罪", subject: "一般人", object: "未滿7歲幼童", sentence: "凌虐未成年營利罪加重刑期1/2", tell: "X", attempt: "X/X", agg: "致死重傷" },
-           
-            { article: "第288條第1項", chapter: "墮胎罪章", name: "自行墮胎罪", subject: "懷胎婦女", object: "胎兒", sentence: "6個月以下", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "第288條第2項", chapter: "墮胎罪章", name: "聽從墮胎罪", subject: "懷胎婦女", object: "胎兒", sentence: "6個月以下", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第289條", chapter: "墮胎罪章", name: "受囑咐或得承諾墮胎罪", subject: "非懷胎婦女之一般人", object: "胎兒", sentence: "2年以下", tell: "X", attempt: "X/X", agg: "致死重傷" },
-            { article: "刑法第290條", chapter: "墮胎罪章", name: "意圖營利受懷胎婦女之囑咐或承諾而使之墮胎罪", subject: "一般人", object: "胎兒", sentence: "6個月至5年", tell: "X", attempt: "X/X", agg: "致死重傷" },
-            { article: "刑法第291條", chapter: "墮胎罪章", name: "未受囑咐或未得承諾墮胎罪", subject: "一般人", object: "孕婦、胎兒", sentence: "1年至7年", tell: "X", attempt: "O/X", agg: "致死重傷" },
-           
-            { article: "刑法第293條", chapter: "遺棄罪章", name: "普通遺棄罪", subject: "一般人", object: "無自救能力之人", sentence: "6個月以下", tell: "X", attempt: "X/X", agg: "致死重傷" },
-            { article: "刑法第294條", chapter: "遺棄罪章", name: "違反法令契約義務之遺棄罪", subject: "一般人", object: "無自救能力之人", sentence: "6個月至5年", tell: "X", attempt: "X/X", agg: "致死重傷" },
-            { article: "刑法第295條", chapter: "遺棄罪章", name: "遺棄直系血親尊親屬罪", subject: "直系血親卑親屬", object: "直系血親尊親屬", sentence: "違反法令契約義務之遺棄罪加重刑期1/2", tell: "X", attempt: "X/X", agg: "X" },
-           
-            { article: "刑法第296條", chapter: "妨害自由罪章", name: "使人為奴隸罪", subject: "一般人", object: "一般人", sentence: "1年至7年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第296-1條第1項", chapter: "妨害自由罪章", name: "買賣、質押人口罪", subject: "一般人", object: "一般人", sentence: "5年以上", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第296-1條第2項", chapter: "妨害自由罪章", name: "為使人性交或猥褻而買賣、質押人口罪", subject: "一般人", object: "一般人", sentence: "7年以上", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第296-1條第3項", chapter: "妨害自由罪章", name: "強暴買賣、質押人口罪", subject: "一般人", object: "一般人", sentence: "買賣質押/性交營利人口罪加重刑期1/2", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第296-1條第4項", chapter: "妨害自由罪章", name: "媒介、收受、藏匿、買賣、質押人口罪", subject: "一般人", object: "被買賣或質押者", sentence: "1年至7年", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第296-1條第5項", chapter: "妨害自由罪章", name: "公務員包庇買賣、質押人口罪", subject: "公務員", object: "被買賣或質押者", sentence: "各款犯罪加重1/2", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第297條", chapter: "妨害自由罪章", name: "圖利以詐術使人出國罪", subject: "一般人", object: "一般人", sentence: "3年至10年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第298條第1項", chapter: "妨害自由罪章", name: "略誘婦女結婚罪", subject: "一般人", object: "婦女", sentence: "5年以下", tell: "O", attempt: "O/X", agg: "X" },
-            { article: "刑法第298條第2項", chapter: "妨害自由罪章", name: "以略誘婦女為猥褻或性交營利罪", subject: "一般人", object: "婦女", sentence: "1年至7年", tell: "O", attempt: "O/X", agg: "X" },
-            { article: "刑法第299條", chapter: "妨害自由罪章", name: "移送被略誘婦女出國罪", subject: "一般人", object: "婦女", sentence: "5年以上", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第300條", chapter: "妨害自由罪章", name: "收藏隱蔽被略誘人罪", subject: "一般人", object: "被略誘人", sentence: "6個月至5年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第302條", chapter: "妨害自由罪章", name: "私行拘禁罪", subject: "一般人", object: "一般人", sentence: "5年以下", tell: "X", attempt: "O/X", agg: "致死重傷" },
-            { article: "刑法第302-1條", chapter: "妨害自由罪章", name: "加重私行拘禁罪", subject: "一般人", object: "一般人", sentence: "1年至7年", tell: "X", attempt: "O/X", agg: "致死重傷" },
-            { article: "刑法第303條", chapter: "妨害自由罪章", name: "剝奪直系血親尊親屬行動自由罪", subject: "直系血親卑親屬", object: "直系血親尊親屬", sentence: "私行拘禁/加重私行拘禁罪加重1/2", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第304條", chapter: "妨害自由罪章", name: "強制罪", subject: "一般人", object: "一般人", sentence: "3年以下", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第305條", chapter: "妨害自由罪章", name: "恐嚇危害安全罪", subject: "一般人", object: "一般人", sentence: "2年以下", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第306條", chapter: "妨害自由罪章", name: "無故侵入住宅罪", subject: "一般人", object: "他人住宅、建築、附連土地、船艦", sentence: "1年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第307條", chapter: "妨害自由罪章", name: "違法搜索罪", subject: "一般人", object: "他人身體、住宅、建築、附連土地、交通工具", sentence: "2年以下", tell: "X", attempt: "X/X", agg: "X" },
-           
-            { article: "刑法第309條第1項", chapter: "妨害名譽及信用罪章", name: "公然侮辱罪", subject: "一般人", object: "自然人、法人、非法人團體", sentence: "拘役或罰金", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第309條第2項", chapter: "妨害名譽及信用罪章", name: "強暴公然侮辱罪", subject: "一般人", object: "自然人、法人、非法人團體", sentence: "1年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第310條第1項", chapter: "妨害名譽及信用罪章", name: "誹謗罪", subject: "一般人", object: "自然人、法人、非法人團體", sentence: "1年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第310條第2項", chapter: "妨害名譽及信用罪章", name: "加重誹謗罪", subject: "一般人", object: "自然人、法人、非法人團體", sentence: "2年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第312條第1項", chapter: "妨害名譽及信用罪章", name: "公然侮辱死人罪", subject: "一般人", object: "已死之人之名譽", sentence: "拘役或罰金", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第312條第2項", chapter: "妨害名譽及信用罪章", name: "誹謗死人名譽罪", subject: "一般人", object: "已死之人之名譽", sentence: "1年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第313條第1項", chapter: "妨害名譽及信用罪章", name: "妨害信用罪", subject: "一般人", object: "自然人、法人、非法人團體", sentence: "2年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第313條第2項", chapter: "妨害名譽及信用罪章", name: "加重妨害信用罪", subject: "一般人", object: "自然人、法人、非法人團體", sentence: "妨害信用罪加重刑期1/2", tell: "O", attempt: "X/X", agg: "X" },
-           
-            { article: "刑法第315條", chapter: "妨害秘密罪章", name: "妨害書信秘密罪", subject: "一般人", object: "封緘信函、文書、圖畫", sentence: "拘役或罰金", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第315-1條", chapter: "妨害秘密罪章", name: "竊視、竊聽、竊錄罪", subject: "一般人", object: "非公開言論活動；他人隱私部位", sentence: "3年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第315-2條第1項", chapter: "妨害秘密罪章", name: "意圖營利而便利妨害隱私罪", subject: "供給場所、工具或設備者", object: "非公開言論活動；他人隱私部位", sentence: "5年以下", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第315-2條第2項", chapter: "妨害秘密罪章", name: "公開揭露他人隱私罪", subject: "一般人", object: "非公開言論活動；他人隱私部位", sentence: "5年以下", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第316條", chapter: "妨害秘密罪章", name: "洩漏業務秘密罪", subject: "身分犯", object: "自然人與法人", sentence: "1年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第317條", chapter: "妨害秘密罪章", name: "洩漏業務知悉持有工商秘密罪", subject: "身分犯", object: "工商秘密", sentence: "1年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第318條", chapter: "妨害秘密罪章", name: "公務員洩漏工商秘密罪", subject: "公務員", object: "工商秘密", sentence: "2年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第318-1條", chapter: "妨害秘密罪章", name: "洩漏利用電腦知悉持有秘密罪", subject: "身分犯", object: "利用電腦知悉持有之他人秘密", sentence: "2年以下", tell: "O", attempt: "X/X", agg: "X" },
-            { article: "刑法第318-2條", chapter: "妨害秘密罪章", name: "加重洩漏利用電腦知悉持有秘密罪", subject: "身分犯", object: "利用電腦知悉持有之他人秘密", sentence: "洩漏秘密各罪加重刑期1/2", tell: "O", attempt: "X/X", agg: "X" },
-           
-            { article: "刑法第319-1條第1項", chapter: "妨害性隱私及不實性影像罪章", name: "未經同意無故攝錄他人性影像罪", subject: "一般人", object: "他人性影像", sentence: "3年以下", tell: "O", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-1條第2項", chapter: "妨害性隱私及不實性影像罪章", name: "意圖營利便利攝錄罪", subject: "供給場所、工具或設備者", object: "他人性影像", sentence: "5年以下", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-1條第3項", chapter: "妨害性隱私及不實性影像罪章", name: "意圖營利而對外揭露公開他人性影像罪", subject: "一般人", object: "他人性影像", sentence: "5年以下", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-2條第1項", chapter: "妨害性隱私及不實性影像罪章", name: "以強制手段攝錄他人性影像罪", subject: "一般人", object: "他人性影像", sentence: "5年以下", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-2條第2項", chapter: "妨害性隱私及不實性影像罪章", name: "意圖營利便利他人以強制手段攝錄罪", subject: "供給場所、工具或設備者", object: "他人性影像", sentence: "6個月至5年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-2條第3項", chapter: "妨害性隱私及不實性影像罪章", name: "意圖營利而揭露被強制攝錄性影像罪", subject: "一般人", object: "他人性影像", sentence: "6個月至5年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-3條第1項", chapter: "妨害性隱私及不實性影像罪章", name: "無故對外揭露公開他人性影像罪", subject: "一般人", object: "他人性影像", sentence: "5年以下", tell: "O", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-3條第2項", chapter: "妨害性隱私及不實性影像罪章", name: "無故攝錄後重製散布罪", subject: "一般人", object: "他人性影像", sentence: "6個月至5年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-3條第3項", chapter: "妨害性隱私及不實性影像罪章", name: "強制攝錄後重製散布罪", subject: "一般人", object: "他人性影像", sentence: "1年至7年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-3條第4項", chapter: "妨害性隱私及不實性影像罪章", name: "意圖營利而重製散布罪", subject: "一般人", object: "他人性影像", sentence: "各款重製散布罪加重刑期1/2", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第319-4條第1項", chapter: "妨害性隱私及不實性影像罪章", name: "深偽性影像罪", subject: "一般人", object: "不實性影像", sentence: "5年以下", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第319-4條第2項", chapter: "妨害性隱私及不實性影像罪章", name: "對外揭露公開深偽性影像罪", subject: "一般人", object: "不實性影像", sentence: "5年以下", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第319-4條第3項", chapter: "妨害性隱私及不實性影像罪章", name: "意圖營利而深偽性影像罪", subject: "一般人", object: "他人性影像", sentence: "1年至7年", tell: "X", attempt: "O/X", agg: "X" },
-           
-            { article: "刑法第221條", chapter: "妨害性自主罪章", name: "強制性交罪", subject: "一般人", object: "一般人", sentence: "3年至10年", tell: "配偶", attempt: "O/X", agg: "致死重傷自殺" },
-            { article: "刑法第222條", chapter: "妨害性自主罪章", name: "加重強制性交罪", subject: "一般人", object: "任何人", sentence: "7年以上", tell: "X", attempt: "O/X", agg: "致死重傷自殺" },
-            { article: "刑法第224條", chapter: "妨害性自主罪章", name: "強制猥褻罪", subject: "一般人", object: "一般人", sentence: "6個月至5年", tell: "配偶", attempt: "X/X", agg: "致死重傷自殺" },
-            { article: "刑法第224-1條", chapter: "妨害性自主罪章", name: "加重強制猥褻罪", subject: "一般人", object: "任何人", sentence: "3年至10年", tell: "X", attempt: "X/X", agg: "致死重傷自殺" },
-            { article: "刑法第225條第1項", chapter: "妨害性自主罪章", name: "乘機性交罪", subject: "一般人", object: "不知或不能反抗者", sentence: "3年至10年", tell: "X", attempt: "O/X", agg: "致死重傷自殺" },
-            { article: "刑法第225條第2項", chapter: "妨害性自主罪章", name: "乘機猥褻罪", subject: "一般人", object: "不知或不能反抗者", sentence: "6個月至5年", tell: "X", attempt: "X/X", agg: "致死重傷自殺" },
-            { article: "刑法第226-1條", chapter: "妨害性自主罪章", name: "強制性交殺人結合犯", subject: "一般人", object: "一般人", sentence: "無期至死刑", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第227條第1項(原義)", chapter: "妨害性自主罪章", name: "強制性交重傷結合犯", subject: "一般人", object: "一般人", sentence: "10年至無期", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第227條第2項(性交)", chapter: "妨害性自主罪章", name: "對未滿14歲者性交罪", subject: "任何人", object: "未滿14歲者", sentence: "3年至10年", tell: "行為人未成年", attempt: "O/X", agg: "X" },
-            { article: "刑法第227條第2項(猥褻)", chapter: "妨害性自主罪章", name: "對未滿14歲者猥褻罪", subject: "任何人", object: "未滿14歲者", sentence: "6個月至5年", tell: "行為人未成年", attempt: "X/X", agg: "X" },
-            { article: "刑法第227條第3項", chapter: "妨害性自主罪章", name: "對未滿16歲者性交罪", subject: "任何人", object: "未滿16歲者", sentence: "7年以下", tell: "行為人未成年", attempt: "O/X", agg: "X" },
-            { article: "刑法第227條第4項", chapter: "妨害性自主罪章", name: "對未滿16歲者猥褻罪", subject: "任何人", object: "未滿16歲者", sentence: "3年以下", tell: "行為人未成年", attempt: "X/X", agg: "X" },
-            { article: "刑法第228條第1項", chapter: "妨害性自主罪章", name: "利用權勢性交罪", subject: "身分犯", object: "一般人", sentence: "6個月至5年", tell: "X", attempt: "O/X", agg: "X" },
-            { article: "刑法第228條第2項", chapter: "妨害性自主罪章", name: "利用權勢猥褻罪", subject: "身分犯", object: "一般人", sentence: "3年以下", tell: "X", attempt: "X/X", agg: "X" },
-            { article: "刑法第229條", chapter: "妨害性自主罪章", name: "詐術性交罪", subject: "一般人", object: "一般人", sentence: "3年至10年", tell: "X", attempt: "O/X", agg: "X" }
-        ];
+    <div class="dashboard">
+        <div class="panel" id="action-panel">
+            <h2>資產變動指令</h2>
+            <input type="number" id="amount-input" placeholder="輸入台幣金額..." min="0">
+            <button onclick="updateAssets('add')">增加資金 (注入燃料)</button>
+            <button class="btn-danger" onclick="updateAssets('sub')">扣除資金 (重大消費)</button>
+        </div>
 
-        const PROPS = [
-            { key: 'subject', label: '行為主體' },
-            { key: 'object', label: '行為客體' },
-            { key: 'sentence', label: '刑期' },
-            { key: 'tell', label: '告訴乃論' },
-            { key: 'attempt', label: '未遂/預備 (O/X)' },
-            { key: 'agg', label: '加重結果' }
-        ];
+        <div class="panel">
+            <h2>戰略節點資訊</h2>
+            <div id="info-display">
+                <p style="color: var(--text-dim);">點擊上方地圖節點以讀取詳細戰略目標與執行協議。</p>
+            </div>
+        </div>
+    </div>
 
-        // Ensure unique options per property globally
-        const OPTIONS_POOL = {};
-        PROPS.forEach(p => {
-            OPTIONS_POOL[p.key] = [...new Set(CRIME_DATA.map(item => item[p.key]))];
+    <div class="terminal" id="terminal-log"></div>
+</div>
+
+<script>
+    // 系統常數與節點設定
+    const nodes = [
+        {
+            id: 1,
+            target: 10000000,
+            title: "基礎防線",
+            desc: "確保家庭開銷、育兒品質與情緒防線 100% 充裕。僅在毫無壓力的前提下，將『絕對閒置資金』轉換為 BTC 燃料。"
+        },
+        {
+            id: 2,
+            target: 30000000,
+            title: "資產擴張",
+            desc: "主要依賴現有金庫的自我解壓縮。若山寨幣未能提供轉換爆發力，隨時準備啟動熔斷協議，全數斬倉轉入 VOO 穩定桶獲取實體配息。"
+        },
+        {
+            id: 3,
+            target: 90000000,
+            title: "2047 終極座標",
+            desc: "達成財務自由標準。啟動雙金庫物理隔離防禦協議，死守最終傳承給咪波的 0.3 顆 BTC 星際權杖絕對底線。"
+        }
+    ];
+
+    let currentAssets = 0;
+
+    // 初始化載入
+    function init() {
+        const savedData = localStorage.getItem('wealth_map_save');
+        if (savedData) {
+            currentAssets = parseInt(savedData, 10);
+        }
+        updateUI();
+        logTerminal("系統初始化完成。戰略地圖已載入。");
+    }
+
+    // 格式化數字
+    function formatMoney(amount) {
+        return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(amount);
+    }
+
+    // 更新介面與地圖狀態
+    function updateUI() {
+        document.getElementById('display-total').textContent = formatMoney(currentAssets);
+        
+        let maxTarget = nodes[2].target;
+        let progressPercent = Math.min((currentAssets / maxTarget) * 100, 100);
+        document.getElementById('overall-progress').textContent = progressPercent.toFixed(2) + '%';
+        document.getElementById('progress-line').style.width = `calc(${progressPercent}% - 40px)`;
+
+        nodes.forEach((node, index) => {
+            const el = document.getElementById(`node-${node.id}`);
+            el.classList.remove('active', 'completed');
+            
+            if (currentAssets >= node.target) {
+                el.classList.add('completed');
+            } else if (index === 0 || currentAssets >= nodes[index-1].target) {
+                el.classList.add('active');
+            }
         });
 
-        const { createApp, ref, reactive, computed } = Vue;
+        localStorage.setItem('wealth_map_save', currentAssets);
+    }
 
-        createApp({
-            setup() {
-                const rawData = CRIME_DATA;
-                const gameState = ref('start'); // start, playing, won
-                const deck = ref([]);
-                const masteredCount = ref(0);
-                const currentCard = ref(null);
-                const currentQuestions = ref([]);
-                const userAnswers = ref([null, null]);
-                const evaluated = ref(false);
-                const showRewardModal = ref(false);
-                const turnCounter = ref(0);
-                const totalPenaltiesDrawn = ref(0);
-               
-                const powerups = reactive({
-                    reverse: 0,
-                    target: 0,
-                    newCard: 0
-                });
+    // 顯示節點詳細資訊 (解決點擊白屏問題，改為原地更新內容)
+    function showNodeInfo(nodeId) {
+        const node = nodes.find(n => n.id === nodeId);
+        const diff = node.target - currentAssets;
+        const statusHTML = diff > 0 
+            ? `<span style="color: var(--danger)">距離目標尚缺：${formatMoney(diff)}</span>`
+            : `<span style="color: var(--accent)">狀態：已達成 ✓</span>`;
 
-                const toast = reactive({ show: false, message: '', type: 'info', icon: '' });
+        document.getElementById('info-display').innerHTML = `
+            <h3 style="color: var(--text-main); margin-top: 0;">${node.title}</h3>
+            <p style="color: var(--accent); font-size: 1.1em;">目標金額：${formatMoney(node.target)}</p>
+            <p>${statusHTML}</p>
+            <p style="color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 10px;">
+                <strong>戰略協議：</strong><br>${node.desc}
+            </p>
+        `;
+        logTerminal(`存取節點 ${nodeId} (${node.title}) 資訊檔案。`);
+    }
 
-                const showToast = (msg, type = 'info') => {
-                    toast.message = msg; toast.type = type; toast.show = true;
-                    if(type==='error') toast.icon = 'fas fa-exclamation-triangle';
-                    else if(type==='success') toast.icon = 'fas fa-check-circle';
-                    else if(type==='warning') toast.icon = 'fas fa-exclamation-circle';
-                    else toast.icon = 'fas fa-info-circle';
-                    setTimeout(() => { toast.show = false; }, 3000);
-                };
+    // 處理資產增減
+    function updateAssets(action) {
+        const inputStr = document.getElementById('amount-input').value;
+        const amount = parseInt(inputStr, 10);
+        
+        if (isNaN(amount) || amount <= 0) {
+            alert("請輸入有效的金額");
+            return;
+        }
 
-                const shuffle = (array) => {
-                    let currentIndex = array.length, randomIndex;
-                    while (currentIndex != 0) {
-                        randomIndex = Math.floor(Math.random() * currentIndex);
-                        currentIndex--;
-                        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-                    }
-                    return array;
-                };
-
-                const startGame = () => {
-                    deck.value = shuffle([...CRIME_DATA]);
-                    masteredCount.value = 0;
-                    totalPenaltiesDrawn.value = 0;
-                    powerups.reverse = 0; powerups.target = 0; powerups.newCard = 0;
-                    gameState.value = 'playing';
-                    drawNext();
-                };
-
-                const resetGame = () => startGame();
-
-                const drawNext = () => {
-                    if (deck.value.length === 0) {
-                        gameState.value = 'won';
-                        return;
-                    }
-                    turnCounter.value++;
-                    currentCard.value = deck.value[0]; // peek top
-                    userAnswers.value = [null, null];
-                    evaluated.value = false;
-                    generateQuestions();
-                };
-
-                const generateQuestions = () => {
-                    // Pick 2 random properties to test
-                    const shuffledProps = shuffle([...PROPS]);
-                    const selectedProps = [shuffledProps[0], shuffledProps[1]];
-                   
-                    currentQuestions.value = selectedProps.map(propObj => {
-                        const answer = currentCard.value[propObj.key];
-                        // Get 3 wrong options
-                        const pool = OPTIONS_POOL[propObj.key].filter(x => x !== answer);
-                        const wrongOpts = shuffle(pool).slice(0, 3);
-                        // Combine and shuffle
-                        const opts = shuffle([answer, ...wrongOpts]);
-                       
-                        return {
-                            prop: propObj.key,
-                            answer: answer,
-                            options: opts,
-                            eliminated: [] // For 'target' powerup
-                        };
-                    });
-                };
-
-                const getPropLabel = (key) => PROPS.find(p => p.key === key)?.label || key;
-
-                const selectOption = (qIndex, option) => {
-                    if (evaluated.value) return;
-                    userAnswers.value[qIndex] = option;
-                };
-
-                const evaluateAnswers = () => {
-                    evaluated.value = true;
-                    const q1Correct = userAnswers.value[0] === currentQuestions.value[0].answer;
-                    const q2Correct = userAnswers.value[1] === currentQuestions.value[1].answer;
-
-                    if (q1Correct && q2Correct) {
-                        // 答對 (全對)
-                        showToast('完全正確！', 'success');
-                        setTimeout(() => { showRewardModal.value = true; }, 1000);
-                    } else if (q1Correct || q2Correct) {
-                        // 半錯
-                        showToast('半錯！懲罰：洗回牌組並增加 1 張分身卡', 'warning');
-                        handlePenalty(1);
-                    } else {
-                        // 全錯
-                        showToast('全錯！嚴重懲罰：洗回牌組並增加 3 張分身卡', 'error');
-                        handlePenalty(3);
-                    }
-                };
-
-                const handlePenalty = (extraCards) => {
-                    const card = deck.value.shift(); // remove from top
-                    // Add back original + extras
-                    for(let i=0; i < extraCards + 1; i++) {
-                        deck.value.push(card);
-                    }
-                    totalPenaltiesDrawn.value += extraCards;
-                    deck.value = shuffle(deck.value); // reshuffle deck
-                };
-
-                const handleMastery = () => {
-                    deck.value.shift(); // remove mastered card
-                    masteredCount.value++;
-                };
-
-                const selectReward = (type) => {
-                    showRewardModal.value = false;
-                    handleMastery(); // Card is mastered
-                   
-                    if (type === 'reverse') {
-                        if (deck.value.length > 0) {
-                            deck.value.pop(); // Remove 1 random card (since it's shuffled)
-                            showToast('已觸發：迴轉！成功消滅牌組中 1 張卡', 'info');
-                            masteredCount.value++; // Count as free mastery
-                        }
-                    } else {
-                        powerups[type]++;
-                        showToast(`已獲得：${type === 'target' ? '指定他人' : '另起新牌'} 卡`, 'success');
-                    }
-                    setTimeout(drawNext, 1000);
-                };
-
-                const usePowerup = (type) => {
-                    if (powerups[type] <= 0 || evaluated.value) return;
-                    powerups[type]--;
-                   
-                    if (type === 'newCard') {
-                        // Skip card without penalty
-                        const card = deck.value.shift();
-                        deck.value.push(card); // put at bottom
-                        showToast('使用跳過幣！此題延後出現', 'info');
-                        drawNext();
-                    } else if (type === 'target') {
-                        // Eliminate half wrong options for current questions
-                        currentQuestions.value.forEach(q => {
-                            const wrongOpts = q.options.filter(o => o !== q.answer && !q.eliminated.includes(o));
-                            const toEliminate = Math.ceil(wrongOpts.length / 2);
-                            const eliminatedThisRound = shuffle(wrongOpts).slice(0, toEliminate);
-                            q.eliminated.push(...eliminatedThisRound);
-                        });
-                        showToast('使用提示幣！已刪除部分錯誤選項', 'info');
-                    }
-                };
-
-                const nextTurn = () => {
-                    // Only used if they failed (since success triggers modal which calls drawNext)
-                    const q1Correct = userAnswers.value[0] === currentQuestions.value[0].answer;
-                    const q2Correct = userAnswers.value[1] === currentQuestions.value[1].answer;
-                    if (!(q1Correct && q2Correct)) {
-                        drawNext();
-                    }
-                };
-
-                return {
-                    rawData, gameState, deck, masteredCount, currentCard, currentQuestions, userAnswers,
-                    evaluated, showRewardModal, powerups, toast, turnCounter, totalPenaltiesDrawn,
-                    startGame, resetGame, getPropLabel, selectOption, evaluateAnswers, selectReward, usePowerup, nextTurn
-                };
+        if (action === 'add') {
+            currentAssets += amount;
+            logTerminal(`注入資金：+ ${formatMoney(amount)}`);
+        } else if (action === 'sub') {
+            // 防護機制：24 小時冷靜期提醒
+            if (confirm(`【系統警告】\n任何突發的重大消費或決策衝動，請確認已啟動「24 小時冷靜期」。\n\n確定要扣除 ${formatMoney(amount)} 嗎？`)) {
+                currentAssets = Math.max(0, currentAssets - amount);
+                logTerminal(`扣除資金 (重大消費)：- ${formatMoney(amount)}`);
+            } else {
+                logTerminal(`已攔截消費行為：啟動 24 小時冷靜期協議。`);
+                return;
             }
-        }).mount('#app');
-    </script>
+        }
+
+        document.getElementById('amount-input').value = '';
+        updateUI();
+    }
+
+    // 終端機日誌系統
+    function logTerminal(message) {
+        const terminal = document.getElementById('terminal-log');
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
+        
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="log-time">[${timeStr}]</span> ${message}`;
+        
+        terminal.appendChild(entry);
+        terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    // 啟動應用程式
+    window.onload = init;
+</script>
+
 </body>
 </html>
