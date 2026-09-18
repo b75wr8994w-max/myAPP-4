@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>財富霸業 - 實體隔離完整版</title>
+  <title>戰略圖</title>
 
   <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,7 +27,7 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     const DEFAULT_GAME_STATE = {
-      assets: { twd: 100000, emergency: 200000, entertainment: 50000, btc: 1.5432, eth: 8.5, ada: 75000, qqq: 15000, voo: 0, debt: 500000 },
+      assets: { twd: 0, emergency: 0, entertainment: 0, btc: 1.5432, eth: 32, ada: 75000, qqq: 0, voo: 0, debt: 2800000 },
       merit: 300, 
       ownedOfficers: [],
       investCount: 0,
@@ -36,8 +36,9 @@
       logs: []
     };
 
-    const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 14500, voo: 15500 };
+    const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
 
+    // === 沉浸式隨機事件 ===
     const RANDOM_EVENTS = [
       { title: '天降祥瑞', msg: '境內出現白鹿祥瑞，軍心大振！', merit: 1, type: 'good' },
       { title: '風調雨順', msg: '今年氣候宜人，屯田豐收，後勤無虞。', merit: 1, type: 'good' },
@@ -45,46 +46,59 @@
       { title: '異族朝貢', msg: '邊疆異族感念將軍威名，進獻駿馬。', merit: 1, type: 'good' },
       { title: '士兵操練', msg: '將士日夜操練，戰鬥力微幅提升。', merit: 1, type: 'good' },
       { title: '清剿山賊', msg: '地方太守成功剿滅一窩山賊，百姓愛戴。', merit: 1, type: 'good' },
+      { title: '事事順心', msg: '你發現所有事情都朝著好的方向發展！', merit: 1, type: 'good' },
       { title: '路不拾遺', msg: '領地治安良好，百姓安居樂業。', merit: 1, type: 'good' },
+      { title: '星夜巡防', msg: '主公連日夜巡營寨，身心勞頓。幸得回府休養，體力漸復！', merit: 1, type: 'good' },
+      { title: '急功近利', msg: '細作傳聞敵軍劫掠暴富，營中將士心生浮動。主公嚴明軍紀，不為所動！', merit: 1, type: 'good' },
+      { title: '識破偽書', msg: '敵軍傳來詐降偽書，意圖騙取輜重。主公慧眼識破，專注霸業！', merit: 1, type: 'good' },
+      { title: '膝下承歡', msg: '戰事暫歇，主公於府邸教導幼子，享天倫之樂，身心大悅！', merit: 10, type: 'good' },
+      { title: '豪強兼併', msg: '天下豪強瘋狂兼併土地，軍中議論紛紛。主公嚴守陣腳，穩固現金糧草！', merit: 1, type: 'good' },
+      { title: '挑燈夜讀', msg: '主公夫人徹夜研讀兵法，全軍受其毅力感召，操練更加勤奮！', merit: 1, type: 'good' },
+      { title: '糧價震盪', msg: '天下大旱導致糧價劇烈波動。主公無視商賈炒作，死守庫房底線！', merit: 1, type: 'good' },
       { title: '平穩度日', msg: '本月天下太平，無事發生，穩步發展。', merit: 0, type: 'neutral' },
       { title: '流言蜚語', msg: '城中散佈著對將軍不利的流言，花費心力安撫。', merit: -1, type: 'bad' },
       { title: '糧草受潮', msg: '連日大雨導致部分備用糧草發霉，軍心微挫。', merit: -1, type: 'bad' },
       { title: '軍中風寒', msg: '換季時節，營中多有染上風寒者，影響操練。', merit: -1, type: 'bad' },
       { title: '貪官汙吏', msg: '查獲地方小吏中飽私囊，雖已嚴懲但民怨微升。', merit: -1, type: 'bad' },
       { title: '馬匹受驚', msg: '夜半營中馬匹受驚狂奔，踩傷數名士兵。', merit: -1, type: 'bad' },
-      { title: '盜賊橫行', msg: '邊境出現小股盜賊劫掠，調兵遣將平息。', merit: -1, type: 'bad' },
+      { title: '盜賊橫行', msg: '邊境出現小股盜賊劫掠，調兵遣將平息。', merit: -1, type: 'bad' }
     ];
 
+    // === 沉浸式城池戰略目標 ===
     const PROVINCES = [
-      { id: 'wancheng', name: '宛城', title: '築牆積糧', targetLabel: '雙防禦滿血', req: { emergency: 200000, entertainment: 50000 }, x: 50, y: 55 },
-      { id: 'xuchang', name: '許昌', title: '百廢待興', targetLabel: '債務清零', req: { debt: 0 }, x: 58, y: 48 },
-      { id: 'xiangyang', name: '襄陽', title: '主力成型', targetLabel: 'BTC 3 顆', req: { btc: 3 }, x: 52, y: 65 },
-      { id: 'chengdu', name: '成都', title: '西蜀天險', targetLabel: 'QQQ 200 萬', req: { qqq: 2000000 }, x: 22, y: 68 },
-      { id: 'changan', name: '長安', title: '關中霸主', targetLabel: 'VOO 200 萬', req: { voo: 2000000 }, x: 40, y: 45 },
-      { id: 'jiangling', name: '江陵', title: '草創之初', targetLabel: '兵力 100 萬', req: { netWorth: 1000000 }, x: 50, y: 72 },
-      { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '兵力 300 萬', req: { netWorth: 3000000 }, x: 60, y: 70 },
-      { id: 'hanzhong', name: '漢中', title: '中原逐鹿', targetLabel: '兵力 1000 萬', req: { netWorth: 10000000 }, x: 30, y: 50 },
-      { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '兵力 3000 萬', req: { netWorth: 30000000 }, x: 78, y: 62 },
-      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 5000 萬', req: { netWorth: 50000000 }, x: 70, y: 55 },
-      { id: 'ye', name: '鄴城', title: '河北霸主', targetLabel: '兵力 8000 萬', req: { netWorth: 80000000 }, x: 60, y: 32 },
-      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '兵力 1 億', req: { netWorth: 100000000 }, x: 48, y: 42 },
-      { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '定投 1 次', req: { investCount: 1 }, x: 63, y: 45 },
-      { id: 'xiapi', name: '下邳', title: '堅持一載', targetLabel: '定投 12 次', req: { investCount: 12 }, x: 75, y: 42 },
-      { id: 'xuzhou', name: '徐州', title: '持之以恆', targetLabel: '定投 24 次', req: { investCount: 24 }, x: 80, y: 45 },
-      { id: 'puyang', name: '濮陽', title: '三年有成', targetLabel: '定投 36 次', req: { investCount: 36 }, x: 68, y: 38 },
-      { id: 'beihai', name: '北海', title: '聲名遠播', targetLabel: '定投 48 次', req: { investCount: 48 }, x: 82, y: 35 },
-      { id: 'pingyuan', name: '平原', title: '半璧江山', targetLabel: '定投 60 次', req: { investCount: 60 }, x: 70, y: 28 },
-      { id: 'jinyang', name: '晉陽', title: '威鎮北疆', targetLabel: '定投 72 次', req: { investCount: 72 }, x: 50, y: 22 },
-      { id: 'jicheng', name: '薊城', title: '七年之癢', targetLabel: '定投 84 次', req: { investCount: 84 }, x: 65, y: 18 },
-      { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '定投 96 次', req: { investCount: 96 }, x: 75, y: 15 },
-      { id: 'xiangping', name: '襄平', title: '十年磨劍', targetLabel: '定投 120 次', req: { investCount: 120 }, x: 88, y: 10 },
-      { id: 'tianshui', name: '天水', title: '西涼鐵騎', targetLabel: '定投 144 次', req: { investCount: 144 }, x: 28, y: 38 },
-      { id: 'wuwei', name: '武威', title: '絲路霸主', targetLabel: '定投 160 次', req: { investCount: 160 }, x: 18, y: 28 },
-      { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '定投 180 次', req: { investCount: 180 }, x: 18, y: 85 },
-      { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '定投 200 次', req: { investCount: 200 }, x: 88, y: 72 },
-      { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '定投 240 次', req: { investCount: 240 }, x: 32, y: 92 }
+      { id: 'wancheng', name: '宛城', title: '築牆積糧', targetLabel: '雙防禦滿編', req: { emergency: 200000, entertainment: 50000 }, x: 50, y: 55 },
+      { id: 'xinye', name: '新野', title: '火燒新野', targetLabel: '無債一身輕', req: { debt: 0 }, x: 52, y: 60 },
+      { id: 'baidi', name: '白帝城', title: '白帝託孤', targetLabel: '虎豹騎 0.3 萬', req: { btc: 0.3 }, x: 35, y: 60 },
+      { id: 'guandu', name: '官渡', title: '鼎足三分', targetLabel: '虎豹騎 3.0 萬', req: { btc: 3 }, x: 58, y: 38 },
+      { id: 'xiapi', name: '下邳', title: '陷陣破敵', targetLabel: '陷陣營 32 千', req: { eth: 32 }, x: 75, y: 42 },
+      { id: 'jicheng', name: '薊城', title: '白馬義從', targetLabel: '白馬騎 7.5 萬', req: { ada: 75000 }, x: 65, y: 18 },
+      { id: 'hanzhong', name: '漢中', title: '進位漢中王', targetLabel: '元戎弩 200 萬', req: { qqq: 2000000 }, x: 30, y: 50 },
+      { id: 'changan', name: '長安', title: '還於舊都', targetLabel: '重步兵 200 萬', req: { voo: 2000000 }, x: 40, y: 45 },
+      { id: 'jiangling', name: '江陵', title: '草創之初', targetLabel: '淨兵力 100 萬', req: { netWorth: 1000000 }, x: 50, y: 72 },
+      { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '淨兵力 300 萬', req: { netWorth: 3000000 }, x: 60, y: 70 },
+      { id: 'xiangyang', name: '襄陽', title: '中原逐鹿', targetLabel: '淨兵力 1000 萬', req: { netWorth: 10000000 }, x: 52, y: 65 },
+      { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '淨兵力 3000 萬', req: { netWorth: 30000000 }, x: 78, y: 62 },
+      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '淨兵力 5000 萬', req: { netWorth: 50000000 }, x: 70, y: 55 },
+      { id: 'ye', name: '鄴城', title: '席捲河北', targetLabel: '淨兵力 8000 萬', req: { netWorth: 80000000 }, x: 60, y: 32 },
+      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '淨兵力 1 億', req: { netWorth: 100000000 }, x: 48, y: 42 },
+      { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '募兵 1 次', req: { investCount: 1 }, x: 63, y: 45 },
+      { id: 'chaisang', name: '柴桑', title: '移鎮南疆', targetLabel: '募兵 12 次', req: { investCount: 12 }, x: 65, y: 75 },
+      { id: 'xuzhou', name: '徐州', title: '持之以恆', targetLabel: '募兵 24 次', req: { investCount: 24 }, x: 80, y: 45 },
+      { id: 'puyang', name: '濮陽', title: '三年有成', targetLabel: '募兵 36 次', req: { investCount: 36 }, x: 68, y: 38 },
+      { id: 'beihai', name: '北海', title: '聲名遠播', targetLabel: '募兵 48 次', req: { investCount: 48 }, x: 82, y: 35 },
+      { id: 'pingyuan', name: '平原', title: '半璧江山', targetLabel: '募兵 60 次', req: { investCount: 60 }, x: 70, y: 28 },
+      { id: 'jinyang', name: '晉陽', title: '威鎮北疆', targetLabel: '募兵 72 次', req: { investCount: 72 }, x: 50, y: 22 },
+      { id: 'jicheng', name: '薊城', title: '七年之癢', targetLabel: '募兵 84 次', req: { investCount: 84 }, x: 65, y: 18 },
+      { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '募兵 96 次', req: { investCount: 96 }, x: 75, y: 15 },
+      { id: 'xiangping', name: '襄平', title: '十年磨劍', targetLabel: '募兵 120 次', req: { investCount: 120 }, x: 88, y: 10 },
+      { id: 'tianshui', name: '天水', title: '西涼鐵騎', targetLabel: '募兵 144 次', req: { investCount: 144 }, x: 28, y: 38 },
+      { id: 'wuwei', name: '武威', title: '絲路霸主', targetLabel: '募兵 160 次', req: { investCount: 160 }, x: 18, y: 28 },
+      { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '募兵 180 次', req: { investCount: 180 }, x: 18, y: 85 },
+      { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '募兵 200 次', req: { investCount: 200 }, x: 88, y: 72 },
+      { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, x: 32, y: 92 }
     ];
 
+    // === 武將總表 (包含上古神將) ===
     const RAW_OFFICERS = [
       { id: 1, name: '曹操', stat: 98, type: '統帥' }, { id: 2, name: '司馬懿', stat: 99, type: '智力' }, { id: 3, name: '郭嘉', stat: 98, type: '智力' },
       { id: 4, name: '荀彧', stat: 95, type: '政治' }, { id: 5, name: '張遼', stat: 92, type: '統帥' }, { id: 6, name: '夏侯惇', stat: 90, type: '武力' },
@@ -117,31 +131,49 @@
       { id: 88, name: '于吉', stat: 96, type: '智力' }, { id: 89, name: '高順', stat: 89, type: '武力' }, { id: 90, name: '陳宮', stat: 89, type: '智力' },
       { id: 91, name: '田豐', stat: 93, type: '智力' }, { id: 92, name: '沮授', stat: 90, type: '智力' }, { id: 93, name: '張角', stat: 96, type: '智力' },
       { id: 94, name: '紀靈', stat: 83, type: '武力' }, { id: 95, name: '張魯', stat: 75, type: '政治' }, { id: 96, name: '韓遂', stat: 78, type: '統帥' },
-      { id: 97, name: '蔡文姬', stat: 85, type: '魅力' }, { id: 98, name: '李儒', stat: 93, type: '智力' }, { id: 99, name: '張任', stat: 85, type: '武力' }, { id: 100, name: '皇甫嵩', stat: 88, type: '統帥' }
+      { id: 97, name: '蔡文姬', stat: 85, type: '魅力' }, { id: 98, name: '李儒', stat: 93, type: '智力' }, { id: 99, name: '張任', stat: 85, type: '武力' }, { id: 100, name: '皇甫嵩', stat: 88, type: '統帥' },
+      { id: 101, name: '太座', stat: 85, type: '魅力' }, { id: 102, name: '肉球', stat: 3, type: '智力' }, { id: 103, name: '華雄', stat: 88, type: '武力' }, { id: 104, name: '相國蕭何', stat: 120, type: '政治' },
+      { id: 105, name: '西楚霸王', stat: 105, type: '武力' }, { id: 106, name: '兵仙韓信', stat: 100, type: '統帥' }, { id: 107, name: '謀聖張良', stat: 100, type: '智力' }, { id: 108, name: '絕代虞姬', stat: 100, type: '魅力'}
     ];
 
+    // === 將領陣營與神將特效邏輯 ===
     const OFFICERS = RAW_OFFICERS.map(o => {
       let faction = '群'; let color = 'text-gray-300'; let bg = 'bg-gray-900'; let border = 'border-gray-600';
       if (o.id <= 25) { faction = '魏'; color = 'text-blue-300'; bg = 'bg-blue-950/60'; border = 'border-blue-700'; }
       else if (o.id <= 50) { faction = '蜀'; color = 'text-green-300'; bg = 'bg-green-950/60'; border = 'border-green-700'; }
       else if (o.id <= 75) { faction = '吳'; color = 'text-red-300'; bg = 'bg-red-950/60'; border = 'border-red-700'; }
+      else if (o.id > 100 && o.id !== 103) { // 華雄(103)不算神將，其他人算
+        faction = '神'; 
+        color = 'text-yellow-300';     
+        bg = 'bg-yellow-900/60';       
+        border = 'border-yellow-400';  
+      }
       return { ...o, faction, color, bg, border };
     });
 
     const BONDS = [
-      { id: 'taoyuan', name: '桃園結義', req: [26, 28, 29], desc: '劉關張齊聚。每次徵兵額外 +3 軍功。', bonusPayday: 3, bonusRoutine: 0 },
-      { id: 'wuhu', name: '五虎上將', req: [28, 29, 30, 31, 32], desc: '蜀國最強戰力。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
-      { id: 'wuzi', name: '五子良將', req: [5, 16, 15, 11, 10], desc: '魏國前線棟樑。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
-      { id: 'erqiao', name: '江東二喬', req: [71, 72], desc: '絕世美人。每月巡視額外 +2 軍功。', bonusPayday: 0, bonusRoutine: 2 },
-      { id: 'wolongfengchu', name: '臥龍鳳雛', req: [27, 33], desc: '得一可安天下。每次徵兵額外 +4 軍功。', bonusPayday: 4, bonusRoutine: 0 },
-      { id: 'lubudiaochan', name: '英雄美人', req: [76, 77], desc: '呂布與貂蟬。每月巡視額外 +3 軍功。', bonusPayday: 0, bonusRoutine: 3 },
-      { id: 'sunjianzi', name: '江東猛虎', req: [59, 60, 51], desc: '孫家父子。每次徵兵額外 +3 軍功。', bonusPayday: 3, bonusRoutine: 0 },
+      { id: 'taoyuan', name: '桃園結義', req: [26, 28, 29], desc: '劉關張齊聚。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'wuhu', name: '五虎上將', req: [28, 29, 30, 31, 32], desc: '蜀國最強戰力。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'wuzi', name: '五子良將', req: [5, 16, 15, 11, 10], desc: '魏國前線棟樑。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'erqiao', name: '江東二喬', req: [71, 72], desc: '絕世美人。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
+      { id: 'wolongfengchu', name: '臥龍鳳雛', req: [27, 33], desc: '得一可安天下。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'lubudiaochan', name: '英雄美人', req: [76, 77], desc: '呂布與貂蟬。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
+      { id: 'sunjianzi', name: '江東猛虎', req: [59, 60, 51], desc: '孫家父子。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'han_trinity', name: '漢初三傑', req: [104, 106, 107], desc: '張良、蕭何、韓信齊聚。兵法內政登峰造極！每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'chu_han', name: '霸王別姬', req: [105, 108], desc: '項羽與絕世佳人。戰鬥力突破天際。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
     ];
 
     const TITLES = [
-      { rank: '平民', min: 0 }, { rank: '縣令', min: 1000000 }, { rank: '太守', min: 3000000 },
-      { rank: '刺史', min: 10000000 }, { rank: '州牧', min: 30000000 }, { rank: '大將軍', min: 50000000 },
-      { rank: '魏王', min: 80000000 }, { rank: '皇帝', min: 100000000 }
+      { rank: '平民', min: 0 }, 
+      { rank: '縣令', min: 1000000 }, 
+      { rank: '太守', min: 3000000 },
+      { rank: '刺史', min: 10000000 }, 
+      { rank: '州牧', min: 30000000 }, 
+      { rank: '大將軍', min: 50000000 },
+      { rank: '諸侯王', min: 80000000 }, 
+      { rank: '天子', min: 100000000 },
+      { rank: '千古一帝', min: 150000000 }, 
+      { rank: '泰山封禪', min: 200000000 }
     ];
 
     const ICONS = {
@@ -152,11 +184,13 @@
       Tent: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M12 3l9 18M12 3L3 21"/><path d="M12 3v18M8 13h8"/></svg>,
       Users: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
       Target: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>,
+      Download: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+      Upload: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
     };
 
     function App() {
-      // 核心修改：啟動本機 LocalStorage 存檔機制
+      // 啟動本機 LocalStorage 存檔機制
       const [gameState, setGameState] = useState(() => {
         const saved = localStorage.getItem('wealth_game_save');
         return saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
@@ -164,7 +198,8 @@
       
       const [prices, setPrices] = useState(FALLBACK_PRICES);
       
-      const [investPlan, setInvestPlan] = useState({ amount: 10000, target: 'btc' });
+      // 新增 repayAmount 以記錄每月償還信貸額度
+      const [investPlan, setInvestPlan] = useState({ amount: 10000, repayAmount: 0, target: 'btc' });
       const [activeTab, setActiveTab] = useState('map');
       const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
       const [syncStatus, setSyncStatus] = useState('實體隔離中');
@@ -173,6 +208,8 @@
       const [activeEvent, setActiveEvent] = useState(null);
       const [toastMessage, setToastMessage] = useState(null);
       const [localAssets, setLocalAssets] = useState(null);
+
+      const fileInputRef = useRef(null);
 
       const realDate = new Date();
       const currentRealYear = realDate.getFullYear();
@@ -183,6 +220,7 @@
       useEffect(() => {
         const fetchPrices = async () => {
           try {
+            // 僅抓取虛擬貨幣價格，美股為台幣價值
             const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,cardano&vs_currencies=twd');
             if (res.ok) {
               const data = await res.json();
@@ -201,12 +239,15 @@
       const { assets, merit, ownedOfficers, investCount, lastInvestMonth, lastRoutineMonth, logs } = gameState;
       const displayAssets = localAssets || assets;
 
+      // 核心計算修正：
+      // 1. 步兵 (QQQ/VOO) 直接視為等值台幣，不乘股價
+      // 2. 總兵力 (netWorth) 必須扣除信貸 (debt)
       const stats = useMemo(() => {
         const crypto = (displayAssets.btc * prices.btc) + (displayAssets.eth * prices.eth) + (displayAssets.ada * prices.ada);
-        const trad = displayAssets.qqq + displayAssets.voo;
+        const trad = displayAssets.qqq + displayAssets.voo; 
         const cash = displayAssets.twd + displayAssets.emergency + displayAssets.entertainment;
         const netWorth = crypto + trad + cash - displayAssets.debt;
-        return { crypto, trad, cash, netWorth };
+        return { crypto, trad, cash, netWorth, debt: displayAssets.debt };
       }, [displayAssets, prices]);
 
       const playerTitle = useMemo(() => {
@@ -255,7 +296,6 @@
         setTimeout(() => setToastMessage(null), 3500);
       };
 
-      // 核心修改：本機存檔寫入機制
       const saveGameState = (newState) => {
         setGameState(newState);
         localStorage.setItem('wealth_game_save', JSON.stringify(newState));
@@ -273,8 +313,8 @@
           showToast("本月軍令已下達！將軍，請靜候下月。", 'warn');
           return;
         }
-        if (investPlan.amount <= 0) {
-          showToast("請輸入欲調度的糧草數量！", 'warn');
+        if (investPlan.amount <= 0 && investPlan.repayAmount <= 0) {
+          showToast("請輸入欲調度的糧草或償還數量！", 'warn');
           return;
         }
         if (!['btc', 'qqq', 'voo'].includes(investPlan.target)) {
@@ -284,12 +324,21 @@
 
         let newState = JSON.parse(JSON.stringify(gameState));
         const amount = investPlan.amount;
+        const repayAmount = investPlan.repayAmount;
         const target = investPlan.target;
         
         let addedAmount = amount;
+        // 如果是 BTC，除以幣價算出顆數；若是 QQQ 或 VOO，則係台幣等值
         if (target === 'btc') addedAmount = amount / prices.btc;
         
-        newState.assets[target] = (newState.assets[target] || 0) + addedAmount;
+        if (amount > 0) {
+          newState.assets[target] = (newState.assets[target] || 0) + addedAmount;
+        }
+        
+        if (repayAmount > 0) {
+          newState.assets.debt = Math.max(0, (newState.assets.debt || 0) - repayAmount);
+        }
+
         newState.investCount += 1;
         newState.lastInvestMonth = currentMonthString;
         
@@ -298,7 +347,13 @@
         newState.merit += gainedMerit;
         
         const displayAdded = target === 'btc' ? addedAmount.toFixed(6) : addedAmount.toLocaleString();
-        addLog(newState, '軍令', `徵兵令下：壯大 ${target.toUpperCase()} 營 ${displayAdded} 兵力。軍功 +${gainedMerit.toFixed(1)}。`);
+        
+        let logMsg = `徵兵令下：`;
+        if (amount > 0) logMsg += `壯大 ${target.toUpperCase()} 營 ${displayAdded} 兵力。`;
+        if (repayAmount > 0) logMsg += `遣散傭兵(償還信貸) ${repayAmount.toLocaleString()}。`;
+        logMsg += `軍功 +${gainedMerit.toFixed(1)}。`;
+
+        addLog(newState, '軍令', logMsg);
         
         saveGameState(newState);
         setActiveEvent(ev); 
@@ -318,7 +373,7 @@
           saveGameState(newState);
           showToast(`巡視完成，軍功 +${totalGained}`, 'success');
         } else {
-          showToast("將軍，您的雙防禦（緊急預備金 20萬、娛樂金 5萬）尚未滿編！", 'error');
+          showToast("將軍，您的雙防禦（預備金 20萬、娛樂流動金 5萬）尚未滿編！", 'error');
         }
       };
 
@@ -356,6 +411,45 @@
           setLocalAssets(null);
           showToast("帳冊已更新至本機", 'success');
         }
+      };
+
+      // ================= 兵符管理 (匯出/匯入) =================
+      const handleExport = () => {
+        const dataStr = JSON.stringify(gameState);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `戰略圖兵符_建安${jianAnYear}年${currentRealMonth}月.json`;
+        document.body.appendChild(link);
+        link.click();
+        
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast("兵符已成功匯出備份！", "success");
+      };
+
+      const handleImport = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const importedState = JSON.parse(e.target.result);
+            if (importedState && importedState.assets && importedState.merit !== undefined) {
+              saveGameState(importedState);
+              showToast("兵符匯入成功，天下大勢已更新！", "success");
+            } else {
+              showToast("兵符格式錯誤，無法解讀！", "error");
+            }
+          } catch (error) {
+            showToast("兵符毀損，無法解讀！", "error");
+          }
+        };
+        reader.readAsText(file);
+        event.target.value = null; // 重置 input
       };
 
       const selectedProvince = provincesState.find(p => p.id === selectedProvinceId);
@@ -460,7 +554,7 @@
                   <span className="text-[9px] text-[#d4af37] bg-[#2a2218] px-1 border border-[#4a3525] rounded-sm whitespace-nowrap">{playerTitle}</span>
                 </div>
                 <div>
-                  <h1 className="font-bold text-xl tracking-widest text-[#d4af37] drop-shadow-md">財富霸業</h1>
+                  <h1 className="font-bold text-xl tracking-widest text-[#d4af37] drop-shadow-md">戰略圖</h1>
                   <div className="text-[10px] text-[#8c7e6a] flex items-center gap-1.5 mt-1 font-mono">
                     <span>建安{jianAnYear}年{currentRealMonth}月</span>
                     <span className={`text-[9px] ml-1 px-1.5 py-0.5 rounded-sm border ${syncStatus.includes('已儲存') ? 'border-green-500 text-green-400 bg-green-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>{syncStatus}</span>
@@ -468,8 +562,8 @@
                 </div>
               </div>
               <div className="text-right flex flex-col items-end justify-center">
-                <div className="text-[10px] text-[#a3947c] tracking-widest mb-1">天下總兵力</div>
-                <div className="text-2xl font-bold text-white font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]">
+                <div className="text-[10px] text-[#a3947c] tracking-widest mb-1">總兵力 (淨戰力)</div>
+                <div className={`text-2xl font-bold font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
                   {(stats.netWorth / 10000).toFixed(0)} <span className="text-xs text-[#d4af37] font-serif">萬</span>
                 </div>
               </div>
@@ -487,6 +581,9 @@
               </div>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
                 <span className="text-[#a3947c] font-serif">步兵</span> <span className="text-[#c084fc]">{(stats.trad / 10000).toFixed(2)}w</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#3b0f0f]/80 border border-red-900">
+                <span className="text-red-300 font-serif">傭兵(信貸)</span> <span className="text-red-400 font-bold">-{(stats.debt / 10000).toFixed(2)}w</span>
               </div>
             </div>
           </header>
@@ -552,7 +649,7 @@
                         <h2 className="text-[#d4af37] text-lg md:text-xl font-black tracking-widest flex items-center gap-2">
                           {selectedProvince.name}
                           <span className={`text-[9px] px-1.5 py-0.5 border rounded-sm font-bold ${selectedProvince.isOccupied ? 'text-blue-300 border-blue-500 bg-blue-900/50' : 'text-red-400 border-red-800 bg-red-950/50'}`}>
-                            {selectedProvince.isOccupied ? '已壓制' : '敵軍割據'}
+                            {selectedProvince.isOccupied ? '已佔領' : '敵軍割據'}
                           </span>
                         </h2>
                         <p className="text-[10px] md:text-xs text-[#a3947c] mt-1">{selectedProvince.title}</p>
@@ -609,13 +706,14 @@
                     
                     <div className="bg-[#0a0705] p-3 md:p-4 border border-[#3e2723] mb-5">
                       <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed">
-                        將軍，軍餉即為戰力。發布軍令僅為推進霸業進度與累積軍功，<span className="text-green-400 font-bold">絕不扣除您的法幣餘額</span>。<br/>
-                        為確保戰力穩固，軍令標的僅限精銳部隊 (BTC, QQQ, VOO)。
+                        將軍，軍餉即為戰力。發布軍令僅為推進霸業進度與累積軍功，<span className="text-green-400 font-bold">不扣除法幣餘額</span>。<br/>
+                        為確保戰力穩固，軍令僅限招募精銳部隊 (BTC, QQQ, VOO)。<br/>
+                        如欲同時<span className="text-red-400 font-bold">遣散傭兵(償還信貸)</span>，請於下方一併撥放糧草。
                       </p>
                       
                       <div className="flex flex-col gap-3">
                         <div>
-                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest">調度糧草 (TWD等值)</label>
+                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest">調度糧草 (投入額 TWD)</label>
                           <input type="number" 
                             value={investPlan.amount === 0 ? '' : investPlan.amount}
                             onChange={(e) => setInvestPlan({...investPlan, amount: parseFloat(e.target.value) || 0})}
@@ -634,6 +732,15 @@
                             <option value="voo">重步兵 (VOO) - 後期防禦</option>
                           </select>
                         </div>
+                        <div className="mt-2 border-t border-[#3e2723] pt-3">
+                          <label className="text-[10px] md:text-xs text-red-400/80 mb-1 block tracking-widest">遣散傭兵 (償還信貸額 TWD)</label>
+                          <input type="number" 
+                            value={investPlan.repayAmount === 0 ? '' : investPlan.repayAmount}
+                            onChange={(e) => setInvestPlan({...investPlan, repayAmount: parseFloat(e.target.value) || 0})}
+                            className="w-full bg-[#1c1814] border border-red-900/50 text-red-300 p-3 focus:outline-none focus:border-red-500 font-mono text-base text-right rounded-sm"
+                            placeholder="輸入本月額外還款額"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -644,11 +751,11 @@
                           ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000] active:scale-95 shadow-[0_0_10px_rgba(139,0,0,0.5)]' 
                           : 'bg-[#1c1814] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
                     >
-                      <span className="relative z-10">{canInvestThisMonth ? '確認出兵' : '本月軍令已畢'}</span>
+                      <span className="relative z-10">{canInvestThisMonth ? '確認出兵與軍務' : '本月軍令已畢'}</span>
                     </button>
                     
                     <div className="mt-3 flex justify-between items-center text-[10px] md:text-xs bg-[#0a0705] p-2 border border-[#2a1a15]">
-                      <span className="text-[#a3947c]">武將總被動: <span className="text-green-400">+{officerBuff.toFixed(2)}</span></span>
+                      <span className="text-[#a3947c]">武將被動: <span className="text-green-400">+{officerBuff.toFixed(2)}</span></span>
                       <span className="text-[#a3947c]">羈絆加成: <span className="text-yellow-400">+{bondPaydayBuff}</span></span>
                     </div>
                   </div>
@@ -656,7 +763,7 @@
                   <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex justify-between items-center">
                     <div>
                       <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1">日常巡視 (雙防禦)</h3>
-                      <p className="text-[10px] text-[#8c7e6a]">檢閱緊急預備金 20萬 & 娛樂金 5萬</p>
+                      <p className="text-[10px] text-[#8c7e6a]">檢閱預備金 20萬 & 娛樂流動金 5萬</p>
                     </div>
                     <button onClick={executeRoutineTask} disabled={!canDoRoutineThisMonth}
                       className={`px-4 py-2 text-xs md:text-sm font-bold border rounded-sm tracking-widest whitespace-nowrap
@@ -702,7 +809,7 @@
                         <ICONS.Users className="w-5 h-5"/> 招賢館
                       </h2>
                       <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
-                        設宴招攬天下群雄 (每次 <span className="text-yellow-400 font-bold">300 軍功</span>)。每一位將領都能提供微量軍功加成，湊齊特定組合更可解鎖強大「羈絆」。
+                        設宴招攬天下群雄 (每次 <span className="text-yellow-400 font-bold">300 軍功</span>)。每位將領都能提供微幅軍功加成，特定組合更可解鎖強大「羈絆」。
                       </p>
                     </div>
                     
@@ -786,19 +893,20 @@
                       <ICONS.Scroll className="w-5 h-5"/> 兵力編制 (手動校準)
                     </h2>
                     <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
-                      將軍，請在此如實登記各路兵馬的真實數量。<br/>
-                      <span className="text-red-400">注意：</span> 修改數值並點擊空白處即自動存入本機記憶體。系統將與當前虛擬貨幣價格連動，即時反映總戰力。
+                      將軍，請在此登記載路兵馬的數量。<br/>
+                      <span className="text-red-400">注意：</span> 步兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
                     </p>
                   </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {Object.keys(DEFAULT_GAME_STATE.assets).map(key => (
-                      <div key={key} className="bg-[#1a1410] border border-[#4a3525] p-3 focus-within:border-[#d4af37] transition-colors relative">
+                      <div key={key} className={`bg-[#1a1410] border p-3 transition-colors relative 
+                        ${key === 'debt' ? 'border-red-900 focus-within:border-red-500' : 'border-[#4a3525] focus-within:border-[#d4af37]'}`}>
                         <label className="text-[10px] md:text-xs font-bold tracking-widest text-[#a3947c] mb-2 flex justify-between border-b border-[#3e2723] pb-1 uppercase">
-                          <span>{
+                          <span className={key === 'debt' ? 'text-red-400' : ''}>{
                             key === 'twd' ? '活存現金' : key === 'emergency' ? '預備金' : key === 'entertainment' ? '娛樂金' :
-                            key === 'btc' ? 'BTC' : key === 'eth' ? 'ETH' : key === 'ada' ? 'ADA' :
-                            key === 'qqq' ? 'QQQ' : key === 'voo' ? 'VOO' : key === 'debt' ? '信貸' : key
+                            key === 'btc' ? 'BTC (顆數)' : key === 'eth' ? 'ETH (顆數)' : key === 'ada' ? 'ADA (顆數)' :
+                            key === 'qqq' ? 'QQQ (台幣現值)' : key === 'voo' ? 'VOO (台幣現值)' : key === 'debt' ? '信貸餘額 (扣除)' : key
                           }</span>
                         </label>
                         <input 
@@ -809,12 +917,35 @@
                             handleAssetChange(key, val);
                           }}
                           onBlur={handleAssetBlur}
-                          className={`w-full bg-[#0a0705] border border-[#3e2723] p-2 text-right text-sm md:text-base focus:outline-none focus:border-[#d4af37] font-mono shadow-inner
-                            ${key === 'debt' ? 'text-red-400' : 'text-[#e3dac9]'}`}
+                          className={`w-full bg-[#0a0705] border border-[#3e2723] p-2 text-right text-sm md:text-base focus:outline-none font-mono shadow-inner
+                            ${key === 'debt' ? 'text-red-400 focus:border-red-500' : 'text-[#e3dac9] focus:border-[#d4af37]'}`}
                         />
                       </div>
                     ))}
                   </div>
+
+                  {/* 兵符管理區塊 */}
+                  <div className="mt-8 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gray-500"></div>
+                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest">
+                      兵符閣 (存檔管理)
+                    </h3>
+                    <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
+                      為防天災人禍（如意外清除瀏覽器資料），請定期將兵符（本機存檔）匯出保管。<br/>
+                      若移防至新設備，可持舊兵符匯入，延續霸業。
+                    </p>
+                    <div className="flex gap-3">
+                      <button onClick={handleExport} className="flex-1 py-3 bg-[#2a2218] text-[#d4af37] border border-[#b8860b] rounded-sm font-bold tracking-widest hover:bg-[#3a2f22] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all">
+                        <ICONS.Download className="w-4 h-4" /> 匯出兵符
+                      </button>
+                      <button onClick={() => fileInputRef.current.click()} className="flex-1 py-3 bg-[#0a0705] text-[#a3947c] border border-[#4a3525] rounded-sm font-bold tracking-widest hover:bg-[#1a1410] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all">
+                        <ICONS.Upload className="w-4 h-4" /> 匯入兵符
+                      </button>
+                      {/* 隱藏的檔案上傳輸入框 */}
+                      <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} className="hidden" />
+                    </div>
+                  </div>
+
                 </div>
               )}
 
