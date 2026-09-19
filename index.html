@@ -67,7 +67,7 @@
 
     const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
 
-    // 隨機事件
+    // 隨機事件 (修改文字時請保留前後的單引號 '')
     const RANDOM_EVENTS = [
       { title: '天降祥瑞', msg: '境內出現白鹿祥瑞，軍心大振！', merit: 1, type: 'good' },
       { title: '風調雨順', msg: '今年氣候宜人，屯田豐收，後勤無虞。', merit: 1, type: 'good' },
@@ -105,10 +105,10 @@
     const PROVINCES = [
       { id: 'wancheng', name: '宛城', title: '築牆積糧', targetLabel: '雙防禦滿血', req: { emergency: 200000, entertainment: 50000 }, def: 30, x: 48, y: 55 },
       { id: 'xuchang', name: '許昌', title: '百廢待興', targetLabel: '債務清零', req: { debt: 0 }, def: 50, x: 55, y: 48 },
-      { id: 'xiangyang', name: '襄陽', title: '主力成型', targetLabel: '虎豹騎 0.3 顆', req: { btc: 0.3 }, def: 120, x: 52, y: 65 },
-      { id: 'xinye', name: '新野', title: '火燒新野', targetLabel: '虎豹騎 1 顆', req: { btc: 1 }, def: 350, x: 52, y: 58 },
-      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '虎豹騎 2 顆', req: { btc: 2 }, def: 800, x: 45, y: 45 },
-      { id: 'guandu', name: '官渡', title: '鼎足三分', targetLabel: '虎豹騎 3 顆', req: { btc: 3 }, def: 1500, x: 58, y: 38 },
+      { id: 'xiangyang', name: '襄陽', title: '主力成型', targetLabel: '虎豹騎 3 萬', req: { btc: 0.3 }, def: 120, x: 52, y: 65 },
+      { id: 'xinye', name: '新野', title: '火燒新野', targetLabel: '虎豹騎 10 萬', req: { btc: 1 }, def: 350, x: 52, y: 58 },
+      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '虎豹騎 20 萬', req: { btc: 2 }, def: 800, x: 45, y: 45 },
+      { id: 'guandu', name: '官渡', title: '鼎足三分', targetLabel: '虎豹騎 30 萬', req: { btc: 3 }, def: 1500, x: 58, y: 38 },
       { id: 'chengdu', name: '成都', title: '西蜀天險', targetLabel: '元戎弩 200 萬', req: { qqq: 2000000 }, def: 250, x: 22, y: 68 },
       { id: 'zhitong', name: '梓潼', title: '劍閣天險', targetLabel: '元戎弩 500 萬', req: { qqq: 5000000 }, def: 600, x: 25, y: 55 },
       { id: 'baidi', name: '白帝城', title: '白帝託孤', targetLabel: '元戎弩 1000 萬', req: { qqq: 10000000 }, def: 1500, x: 35, y: 60 },
@@ -187,16 +187,17 @@
       return { ...o, faction, color, bg, border };
     });
 
+    // 羈絆加成已更新為 +5 / +10
     const BONDS = [
-      { id: 'taoyuan', name: '桃園結義', req: [26, 28, 29], desc: '劉關張齊聚。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'wuhu', name: '五虎上將', req: [28, 29, 30, 31, 32], desc: '蜀國最強戰力。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'wuzi', name: '五子良將', req: [5, 16, 15, 11, 10], desc: '魏國前線棟樑。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'erqiao', name: '江東二喬', req: [71, 72], desc: '絕世美人。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
-      { id: 'wolongfengchu', name: '臥龍鳳雛', req: [27, 33], desc: '得一可安天下。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'lubudiaochan', name: '英雄美人', req: [76, 77], desc: '呂布與貂蟬。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
-      { id: 'sunjianzi', name: '江東猛虎', req: [59, 60, 51], desc: '孫家父子。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'han_trinity', name: '漢初三傑', req: [104, 106, 107], desc: '張良、蕭何、韓信齊聚。兵法內政登峰造極！每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'chu_han', name: '霸王別姬', req: [105, 108], desc: '項羽與絕世佳人。戰鬥力突破天際。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
+      { id: 'taoyuan', name: '桃園結義', req: [26, 28, 29], desc: '劉關張齊聚。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
+      { id: 'wuhu', name: '五虎上將', req: [28, 29, 30, 31, 32], desc: '蜀國最強戰力。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
+      { id: 'wuzi', name: '五子良將', req: [5, 16, 15, 11, 10], desc: '魏國前線棟樑。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
+      { id: 'erqiao', name: '江東二喬', req: [71, 72], desc: '絕世美人。每月巡視額外 +10 軍功。', bonusPayday: 0, bonusRoutine: 10 },
+      { id: 'wolongfengchu', name: '臥龍鳳雛', req: [27, 33], desc: '得一可安天下。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
+      { id: 'lubudiaochan', name: '英雄美人', req: [76, 77], desc: '呂布與貂蟬。每月巡視額外 +10 軍功。', bonusPayday: 0, bonusRoutine: 10 },
+      { id: 'sunjianzi', name: '江東猛虎', req: [59, 60, 51], desc: '孫家父子。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
+      { id: 'han_trinity', name: '漢初三傑', req: [104, 106, 107], desc: '張良、蕭何、韓信齊聚。兵法內政登峰造極！每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
+      { id: 'chu_han', name: '霸王別姬', req: [105, 108], desc: '項羽與絕世佳人。戰鬥力突破天際。每月巡視額外 +10 軍功。', bonusPayday: 0, bonusRoutine: 10 },
     ];
 
     const TITLES = [
@@ -232,7 +233,7 @@
       const [investPlan, setInvestPlan] = useState({ amount: 10000, repayAmount: 0, target: 'btc' });
       const [activeTab, setActiveTab] = useState('map');
       const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
-      const [syncStatus, setSyncStatus] = useState('實體隔離中');
+      const [syncStatus, setSyncStatus] = useState('推進中');
       
       // 攻城系統狀態
       const [siegeMode, setSiegeMode] = useState(false);
@@ -346,7 +347,7 @@
         setGameState(newState);
         localStorage.setItem('wealth_game_save_v3', JSON.stringify(newState));
         setSyncStatus('已儲存本機');
-        setTimeout(() => setSyncStatus('實體隔離中'), 2000);
+        setTimeout(() => setSyncStatus('推進中'), 2000);
       };
 
       // 城池動態失守系統
@@ -466,22 +467,36 @@
 
       const executeSiege = () => {
         const prov = provincesState.find(p => p.id === selectedProvinceId);
+        
+        // 防呆：如果已經佔領，則不允許重複攻打
+        if (prov && prov.isConquered) {
+            showToast("此城池已在我軍控制之下，無需重複攻打！", "warn");
+            setSiegeMode(false);
+            return;
+        }
+        
         if (!prov || siegeGenerals.length === 0) return showToast("請至少派遣一名將領出征！", 'warn');
 
+        // 1. 資產基礎戰力
         const basePower = Math.max(1, stats.netWorth / 10000); 
+
+        // 2. 定投資歷轉化為「全軍軍紀」：每累積定投 1 次，全軍基礎戰力提升 +0.5% (240次可提升 +120%)
+        const investDisciplineBuff = 1 + (investCount * 0.005);
         
+        // 3. 武將戰力乘區改為 (stat / 200)，三名頂級神將約可提供 +120%~+150% 戰力
         let generalMultiplier = 0;
         siegeGenerals.forEach(id => {
           const lvl = officerStats.roster[id];
           const off = OFFICERS.find(o => o.id === id);
-          generalMultiplier += (off.stat / 100) * (1 + (lvl - 1) * 0.5); 
+          generalMultiplier += (off.stat / 200) * (1 + (lvl - 1) * 0.25); 
         });
 
         let weatherMod = 1;
         if (weather.trend === 'bull') weatherMod = 1.2;
         if (weather.trend === 'bear') weatherMod = 0.9;
 
-        const totalAttack = Math.floor(basePower * (1 + generalMultiplier) * weatherMod);
+        // 總戰力 = (基礎資產戰力 * 軍紀加成) * (1 + 武將加成) * 天象
+        const totalAttack = Math.floor(basePower * investDisciplineBuff * (1 + generalMultiplier) * weatherMod);
         const defense = prov.def;
         
         let newState = JSON.parse(JSON.stringify(gameState));
@@ -490,7 +505,10 @@
 
         if (totalAttack >= defense) {
           success = true;
-          newState.occupiedProvinces.push(prov.id);
+          // 防呆：確保陣列中沒有重複的城池 ID
+          if (!newState.occupiedProvinces.includes(prov.id)) {
+             newState.occupiedProvinces.push(prov.id);
+          }
           const rewardMerit = 200 + Math.floor(defense * 0.3); 
           newState.merit += rewardMerit;
           logMsg = `【大捷】我軍以 ${totalAttack} 戰力擊破 ${prov.name} 守軍(${defense})，斬獲軍功 ${rewardMerit}！`;
@@ -632,7 +650,7 @@
                 <span className="text-[#a3947c] font-serif">騎兵</span> <span className="text-[#60a5fa]">{(stats.crypto / 10000).toFixed(2)}w</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
-                <span className="text-[#a3947c] font-serif">步兵</span> <span className="text-[#c084fc]">{(stats.trad / 10000).toFixed(2)}w</span>
+                <span className="text-[#a3947c] font-serif">步弩兵</span> <span className="text-[#c084fc]">{(stats.trad / 10000).toFixed(2)}w</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#3b0f0f]/80 border border-red-900 shrink-0 whitespace-nowrap">
                 <span className="text-red-300 font-serif">傭兵(信貸)</span> <span className="text-red-400 font-bold">-{(stats.debt / 10000).toFixed(2)}w</span>
@@ -793,7 +811,8 @@
                           {combatResult.success ? '大 獲 全 勝' : '折 戟 沉 沙'}
                         </h2>
                         <p className="text-xs md:text-sm text-[#e3dac9] mb-5 bg-[#0a0705] p-4 border border-[#3e2723] leading-relaxed w-full max-w-md">{combatResult.logMsg}</p>
-                        <button onClick={() => setCombatResult(null)} className="px-10 py-2.5 bg-[#1c1814] border border-[#d4af37] text-[#d4af37] font-bold rounded-sm tracking-widest hover:bg-[#2a2218] active:scale-95 whitespace-nowrap">確認戰果</button>
+                        {/* 修正：點擊確認戰果時，必須關閉 siegeMode (setSiegeMode(false))，防止無限攻城 */}
+                        <button onClick={() => { setCombatResult(null); setSiegeMode(false); }} className="px-10 py-2.5 bg-[#1c1814] border border-[#d4af37] text-[#d4af37] font-bold rounded-sm tracking-widest hover:bg-[#2a2218] active:scale-95 whitespace-nowrap">確認戰果</button>
                       </div>
                     ) : (
                       <div className="flex flex-col h-full animate-[slideUp_0.3s]">
@@ -1076,7 +1095,7 @@
                     </h2>
                     <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
                       將軍，請在此登記載路兵馬的數量。<br/>
-                      <span className="text-red-400">注意：</span> 步兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
+                      <span className="text-red-400">注意：</span> 步弩兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
                     </p>
                   </div>
                   
