@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="google" content="notranslate" />
-  <title>戰略圖 - 史詩地圖終極版 (V4)</title>
+  <title>戰略圖 - 史詩地圖終極版</title>
 
   <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -63,15 +63,14 @@
       investCount: 0,
       lastInvestMonth: "",
       lastRoutineMonth: "", 
-      dailyTaskDate: "",  // V4: 日常任務紀錄日期
-      dailyTaskCount: 0,  // V4: 日常任務次數
-      lastCrisisMonth: "",// V4: 熊市危機紀錄月份
+      dailyTaskDate: "", 
+      dailyTaskCount: 0,  
+      lastCrisisMonth: "",
       logs: []
     };
 
     const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
 
-    // 隨機事件
     const RANDOM_EVENTS = [
       { title: '天降祥瑞', msg: '境內出現白鹿祥瑞，軍心大振！', merit: 1, type: 'good' },
       { title: '風調雨順', msg: '今年氣候宜人，屯田豐收，後勤無虞。', merit: 1, type: 'good' },
@@ -223,9 +222,8 @@
     };
 
     function App() {
-      // 相容舊版存檔並注入 V4 新參數
       const [gameState, setGameState] = useState(() => {
-        const saved = localStorage.getItem('wealth_game_save_v4') || localStorage.getItem('wealth_game_save_v3');
+        const saved = localStorage.getItem('wealth_game_save_final') || localStorage.getItem('wealth_game_save_v5') || localStorage.getItem('wealth_game_save_v4') || localStorage.getItem('wealth_game_save_v3');
         let parsed = saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
         return { ...DEFAULT_GAME_STATE, ...parsed, occupiedProvinces: parsed.occupiedProvinces || [] };
       });
@@ -238,14 +236,13 @@
       const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
       const [syncStatus, setSyncStatus] = useState('推進中');
       
-      // 攻城系統狀態
       const [siegeMode, setSiegeMode] = useState(false);
       const [siegeGenerals, setSiegeGenerals] = useState([]);
       const [combatResult, setCombatResult] = useState(null);
 
       const [gachaResult, setGachaResult] = useState(null);
-      const [activeOfficerDialogue, setActiveOfficerDialogue] = useState(null); // V4 武將對話狀態
-      const [crisisEvent, setCrisisEvent] = useState(null); // V4 熊市危機狀態
+      const [activeOfficerDialogue, setActiveOfficerDialogue] = useState(null);
+      const [crisisEvent, setCrisisEvent] = useState(null);
 
       const [toastMessage, setToastMessage] = useState(null);
       const [localAssets, setLocalAssets] = useState(null);
@@ -278,11 +275,11 @@
               else if (btcChange <= -2) setWeather({ trend: 'bear', change: btcChange, desc: '天狗食月 (戰力-10%)' });
               else setWeather({ trend: 'neutral', change: btcChange, desc: '風平浪靜' });
 
-              // V4: 熊市危機觸發 (BTC 24小時跌幅超過 25%)，每月限觸發一次
+              // 熊市危機觸發條件：BTC 24小時內跌幅超過 25% (嚴格校準)
               if (btcChange <= -25 && gameState.lastCrisisMonth !== currentMonthString) {
                   setCrisisEvent({
-                      title: '🚨 異族入侵 / 熊市警報 🚨',
-                      desc: `天狗食月，大盤重挫 ${btcChange.toFixed(1)}%！北方匈奴見我方防線動盪，大舉南下！\n請主公立即親臨城頭，檢視【預備金】是否足以守城！`
+                      title: '🚨 異族入侵 / 史詩級熊市警報 🚨',
+                      desc: `天狗食月，市場陷入極度恐慌！大盤暴跌 ${Math.abs(btcChange).toFixed(1)}%！\n北方匈奴見我方防線動盪，大舉南下！主公請立即親臨城頭，檢視【預備金】是否足以守城！`
                   });
               }
             }
@@ -294,7 +291,6 @@
       const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, logs } = gameState;
       const displayAssets = localAssets || assets;
 
-      // 總資產計算 (扣除信貸)
       const stats = useMemo(() => {
         const crypto = (displayAssets.btc * prices.btc) + (displayAssets.eth * prices.eth) + (displayAssets.ada * prices.ada);
         const trad = displayAssets.qqq + displayAssets.voo; 
@@ -311,17 +307,14 @@
         return currentTitle;
       }, [stats.netWorth]);
 
-      // 武將星級與加成 (持有數量 = 星級)
       const officerStats = useMemo(() => {
         let totalPassiveBuff = 0;
         const roster = {}; 
         ownedOfficers.forEach(id => { roster[id] = (roster[id] || 0) + 1; });
-        
         Object.entries(roster).forEach(([idStr, level]) => {
           const off = OFFICERS.find(o => o.id === parseInt(idStr));
           if (off) totalPassiveBuff += (off.stat / 100) * (1 + (level - 1) * 0.2); 
         });
-        
         return { roster, passiveBuff: totalPassiveBuff };
       }, [ownedOfficers]);
 
@@ -333,7 +326,6 @@
       const bondPaydayBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusPayday, 0), [activeBonds]);
       const bondRoutineBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusRoutine, 0), [activeBonds]);
 
-      // 結算城池條件與佔領狀態
       const provincesState = useMemo(() => {
         return PROVINCES.map(prov => {
           let isReqMet = true;
@@ -359,12 +351,11 @@
 
       const saveGameState = (newState) => {
         setGameState(newState);
-        localStorage.setItem('wealth_game_save_v4', JSON.stringify(newState));
+        localStorage.setItem('wealth_game_save_final', JSON.stringify(newState));
         setSyncStatus('已儲存本機');
         setTimeout(() => setSyncStatus('推進中'), 2000);
       };
 
-      // 城池動態失守系統
       useEffect(() => {
         if (!provincesState || provincesState.length === 0) return;
         let lostNames = [];
@@ -386,8 +377,7 @@
               date: dateStr, type: '戰報', 
               msg: `【城池失守】大盤震盪/軍資萎縮，防線空虛，敵軍趁機奪回了 ${lostNames.join('、')}！` 
             }, ...(newState.logs || [])].slice(0, 50);
-            
-            localStorage.setItem('wealth_game_save_v4', JSON.stringify(newState));
+            localStorage.setItem('wealth_game_save_final', JSON.stringify(newState));
             return newState;
           });
           showToast(`警告！${lostNames.join('、')} 遭敵軍奪回！`, 'error');
@@ -399,25 +389,23 @@
         newState.logs = [{ date: dateStr, type, msg }, ...(newState.logs || [])].slice(0, 50);
       };
 
-      // V4: 熊市危機防禦結算
       const handleResolveCrisis = () => {
           let newState = JSON.parse(JSON.stringify(gameState));
           newState.lastCrisisMonth = currentMonthString; 
 
           if (newState.assets.emergency >= 200000) {
               newState.merit += 15;
-              addLog(newState, '防禦大捷', '【天災防禦成功】我軍預備金糧草充足，城牆堅固！不僅成功抵禦大盤崩盤，更趁敵軍潰退時「趁虛而入（分批建倉）」，軍功大斬獲 +15！');
+              addLog(newState, '防禦大捷', '【天災防禦成功】我軍預備金糧草充足，城牆堅固！不僅抵禦大盤崩盤，更趁機「趁虛而入（分批建倉）」，軍功 +15！');
               showToast("防禦大捷！危崖勒馬，彰顯主公定力。", 'success');
           } else {
               newState.merit = Math.max(0, newState.merit - 20);
-              addLog(newState, '城池遭劫', '【防禦失敗】大盤崩盤且預備金空虛，城池遭流寇劫掠，軍心渙散，軍功 -20。記住，市場崩潰不是末日，沒有現金流才是真正的末日！');
+              addLog(newState, '城池遭劫', '【防禦失敗】大盤崩盤且預備金空虛，城池遭流寇劫掠，軍心渙散，軍功 -20。請謹記現金流之重要性！');
               showToast("城防崩潰！預備金不足，部隊遭流寇劫掠。", 'error');
           }
           saveGameState(newState);
           setCrisisEvent(null);
       };
 
-      // V4: 零成本內政系統 (微量軍功)
       const handleDailyTask = (taskName, meritReward) => {
           let newState = JSON.parse(JSON.stringify(gameState));
           
@@ -438,34 +426,145 @@
           showToast(`【${taskName}】完成，軍功 +${meritReward}`, 'success');
       };
 
-      // V4: 取得武將動態對話
+      // ----------------------------------------------------------------------
+      // 動態對話引擎 (Dynamic Dialogue Engine) - 豐富化 10+ 條專屬/職業對話
+      // ----------------------------------------------------------------------
       const getOfficerDialogue = (officer) => {
           const { emergency, entertainment, btc, debt } = displayAssets;
-          
-          if (officer.id === 27) { // 諸葛亮
-              if (emergency >= 200000 && entertainment >= 50000) return "主公深謀遠慮，二十萬預備金如銅牆鐵壁，五萬娛樂金安撫軍心。天下大變亦不足懼！";
-              if (emergency < 50000) return "主公！預備金已見底，若此時大盤崩潰、天災降臨，我軍將死無葬身之地，請速速回防現金流！";
-              return "投資如用兵，未算勝先算敗。主公切記，『緊急預備金』方為立於不敗之地的根本。";
-          }
-          if (officer.id === 3) { // 郭嘉
-              if (btc > 1.0) return "兵貴神速！主公重倉虎豹騎 (BTC)，魄力驚人！只要咬牙拿住，2030年必能橫掃天下！";
-              if (emergency > 500000) return "主公，糧草(現金)堆積如山卻不發兵，豈非錯失良機？該出手時就出手啊！";
-              return "不入虎穴，焉得虎子？若想彎道超車，適當的波動是霸業必經之路。";
-          }
-          if (officer.id === 2) { // 司馬懿
-              if (debt > 1000000) return "主公借用鉅額『傭兵 (信貸)』打仗，如履薄冰。一旦兵變，反噬極深，請務必盯緊還款現金流。";
-              if (debt === 0) return "無債一身輕。主公不假外求，穩紮穩打，此乃長久之霸道。";
-              return "時間，是我們最可怕的武器。只要活得夠久，天下自然是我們的。";
-          }
+          let pool = [];
+
+          const isHighDebt = debt > 1000000;
+          const isLowEmergency = emergency < 100000;
+          const isSafe = emergency >= 200000 && entertainment >= 50000;
+          const isWhale = btc >= 1.0;
+
           if (officer.id === 101) { // 太座
-              return "不管外面大盤怎麼震，家裡的伙食費跟咪波的奶粉錢不能少！知道嗎？(微笑)";
+              if(isHighDebt) pool.push(`信貸還有 ${(debt/10000).toFixed(0)} 萬，給我把皮繃緊一點，發薪水記得優先處理掉，無債一身輕最舒服了！`);
+              if(isLowEmergency) pool.push("老公！緊急預備金不夠了，這個月暫停買幣，先補滿防禦！");
+              pool.push("老公，我們的目標是雙雙考上巡官回南部，每天看一點書，投資自己最實在！");
+              pool.push("不管大盤怎麼震，家裡的伙食費跟咪波的奶粉錢絕對要優先扣留喔！(微笑)");
+              pool.push("與其看盤焦慮，不如陪咪波玩一下吧，家人的陪伴才是最珍貴的財富。");
+              pool.push("買房不用急著跟別人比，我們有自己的 2047 退休計畫，按表操課就好！");
+              pool.push("看到新聞說暴跌？沒事，先把 Ledger 冷錢包收好，不要被市場雜音干擾。");
+              pool.push("只要你不開槓桿亂玩，我們一家三口穩穩的就很幸福了。");
+              pool.push("遇到想亂花錢的時候，記得先啟動『24小時冷靜期』，忍一下就過去了！");
+              pool.push("投資是為了讓生活更好，如果每天盯盤睡不好，那就本末倒置了。");
+              pool.push("今天去散散步吧？健康是一切的根本，沒有好身體怎麼享受退休生活呢。");
+          } 
+          else if (officer.id === 27) { // 諸葛亮
+              if(isSafe) pool.push("主公深謀遠慮，二十萬預備金如銅牆鐵壁，五萬娛樂金安撫軍心。天下大變亦不足懼！");
+              if(isLowEmergency) pool.push("主公！預備金已見底，若此時天災降臨，我軍將死無葬身之地，請速速回防現金流！");
+              pool.push("投資如用兵，未算勝先算敗。主公切記，『緊急預備金』方為立於不敗之地的根本。");
+              pool.push("大盤震盪，正如隆中對所言，我們需靜待天時，按紀律定投即可。");
+              pool.push("兵法云：先為不可勝，以待敵之可勝。主公的雙防禦底線，便是這『不可勝』之基。");
+              pool.push("亮夜觀天象，市場貪婪之氣漸起。主公切勿盲目追高，當留存現金以待時機。");
+              pool.push("主公若能每月堅守紀律，定投不輟，則 2030 年財務自由之霸業可成！");
+              pool.push("理財首重保本，切勿輕信市場上的流言與短線暴利之說。");
+              pool.push("夫君子之行，靜以修身，儉以養德。主公當遠離市場雜音，持續閱讀提升智慧。");
+              pool.push("時間是主公最好的盟友。持之以恆，複利的陣法將無人能破。");
+              pool.push("遇到劇烈波動，請主公靜坐沉思，切莫在恐慌中做出決策。");
+              pool.push("只要大本營後勤無恙，前線縱有小挫，亦能重整旗鼓。");
+          } 
+          else if (officer.id === 3) { // 郭嘉
+              if(isWhale) pool.push("兵貴神速！主公重倉虎豹騎 (BTC)，魄力驚人！只要咬牙拿住，2030年必能橫掃天下！");
+              if(emergency > 500000) pool.push("主公，後勤糧草(現金)堆積如山，防禦既已穩固，該出手時就出手啊！");
+              pool.push("別人恐懼我貪婪！只要確認基本面無虞，大跌正是分批建倉的絕佳時機！");
+              pool.push("高報酬必伴隨高波動，主公若想彎道超車，就得習慣並接納市場的顛簸。");
+              pool.push("大盤跌了？這不過是洗盤，將那些心志不堅、動搖戰略的人洗出去罷了！");
+              pool.push("主公，數位資產的長期爆發力極強，只要撐過寒冬，必有豐碩回報。");
+              pool.push("兵無常勢，水無常形。市場瞬息萬變，但『逢低買進、長期持有』的底層邏輯從未改變。");
+              pool.push("與其買房背負三十年重擔，不如將閒置資金集中於高潛力的數位金庫！");
+              pool.push("只要主公的『雙防禦』完好無缺，前線的虎豹騎就該放手去衝，不必畏首畏尾！");
+              pool.push("投資就像用計，看準了長期趨勢就不要猶豫，堅持到底就是勝利！");
+              pool.push("不要害怕波動，波動不是風險，盲目跟風才是最大的風險！");
+          } 
+          else if (officer.id === 2) { // 司馬懿
+              if(isHighDebt) pool.push("主公若有『傭兵 (信貸)』在身，如履薄冰。請務必優先清償，避免兵變反噬！");
+              if(debt === 0) pool.push("無債一身輕。主公不假外求，穩紮穩打，此乃長久之霸道。");
+              pool.push("時間，是我們最可怕的武器。只要活得夠久，天下自然是我們的。");
+              pool.push("投資比的不是誰一次賺得多，而是誰能活到最後。熬過漫長寒冬，便能迎來春天。");
+              pool.push("讓他們去短線廝殺吧！我們只需冷眼旁觀，耐心持有優質資產到 2030 年。");
+              pool.push("主公，切莫與同儕攀比。他們看似風光，實則槓桿極高，大廈將傾只在旦夕。");
+              pool.push("忍耐，是投資中最難，也最重要的一環。不動如山，方能制勝。");
+              pool.push("不要被市場的雜音迷惑了雙眼，堅守主公的『雙金庫物理隔離』防禦！");
+              pool.push("買房焦慮大可不必。只要我們將核心資產緊緊握住，讓其自我成長，何愁未來？");
+              pool.push("真正的贏家，往往是那些在極度無聊中，依然堅持執行紀律的人。");
+          } 
+          else if (officer.id === 1) { // 曹操
+              if(isSafe) pool.push("好！糧草充足，現金流穩健，進可攻退可守！這天下，終究是孤的！");
+              if(isLowEmergency) pool.push("荒唐！連預備金都籌不出來，還談什麼爭霸天下？快去籌錢！");
+              pool.push("現金流在我手，天下我有！只要預備金充裕，任何危機都是轉機！");
+              pool.push("大盤暴跌？好！孤等的就是這一刻，正好趁虛而入，抄底建倉！");
+              pool.push("孤縱橫天下數十載，靠的就是糧草充足與殺伐果斷！紀律絕對不可廢！");
+              pool.push("不懂資產配置，終究是塚中枯骨！主公的定投戰略，甚合孤意！");
+              pool.push("對酒當歌，人生幾何？『娛樂金』也要準備充足，切勿過度苛待自己與家人！");
+              pool.push("主公的 2047 退休戰略極佳！『靠自己最好』，豈能將命運交給他人！");
+              pool.push("這點波動就怕了？孤當年宛城大敗也未曾皺眉，給我死死拿住籌碼！");
+              pool.push("資產若未能提供長期爆發力，就無情轉換！孤絕不留無用之兵！");
+              pool.push("投資理財，當有雄才大略，不拘泥於一城一地之得失，放眼十年、二十年之後！");
+          }
+          else if (officer.id === 26) { // 劉備
+              pool.push("備雖曾顛沛流離，但深知只要『大本營』安穩，何處不能重新再起？");
+              pool.push("投資理財，當以仁德與耐心為本，切莫貪圖暴利，傷了家庭和氣與身心健康。");
+              pool.push("主公欲調往南部鄉下，備深感贊同。遠離都市喧囂，方能好好陪伴家人成長。");
+              pool.push("只要我們一步一腳印，每月定投優質大盤 (VOO)，終能光復大業！");
+              pool.push("莫以善小而不為，莫以錢少而不存。微量但持續的紀律，亦是霸業的基石。");
+              pool.push("面對市場誘惑，主公務必堅守『24 小時冷靜期』，切勿因一時衝動重蹈夷陵之敗。");
+              pool.push("備有一言：靠人人老，靠山山倒，主公的戰略信仰，實乃亂世真理！");
+              pool.push("那些釣魚影片與恐慌新聞，皆是亂世妖言，主公切莫輕信，堅守本心。");
+              pool.push("願主公與夫人順利考取巡官，投資自己的大腦與能力，才是最穩賺不賠的生意！");
+              pool.push("留得青山在，不怕沒柴燒。做好資金控管與風險隔離，永遠讓自己有從容應對的餘裕。");
           }
 
-          // 通用對話
-          if (officer.type === '統帥') return "主公，為將者當有紀律。每月定投如排兵布陣，不可因一時恐慌而亂了陣腳！";
-          if (officer.type === '智力') return "市場流言蜚語甚多，唯有持續閱讀、自我提升，方能識破虛妄。";
-          if (officer.type === '武力') return "與其焦慮，不如隨末將去校場操練(運動)！身體健康才是享受霸業的本錢！";
-          return "主公，積少成多，聚沙成塔。穩健前行，方能恩澤百姓。";
+          // 通用職階對話池
+          if (pool.length === 0) {
+              if (officer.type === '武力') {
+                  pool.push("主公！與其盯盤焦慮，不如隨末將去校場舉鐵，鍛鍊體魄才是真財富！");
+                  pool.push("管他什麼熊市牛市，末將只知道『定期定額，絕不退縮』！");
+                  pool.push("投資就像練武，沒有捷徑，只有日復一日的執行紀律！");
+                  pool.push("那些短線客就像流寇，不堪一擊。主公的長期戰略才是無敵的重裝步兵！");
+                  pool.push("身體健康才是享受霸業的本錢！主公今日運動流汗了嗎？");
+                  pool.push("市場波動？小事一樁！末將堅守崗位，絕不輕易在恐慌中拋售籌碼！");
+                  pool.push("主公若有消費衝動，末將替您把關！撐過 24 小時冷靜期再說！");
+                  pool.push("戰場上最忌猶豫不決！看準了長期目標，就給我死死咬住不放！");
+                  pool.push("理財就像打熬力氣，一開始很痛苦，久了就能一拳打碎生活中的困難！");
+                  pool.push("末將不懂什麼複雜的線圖，只知道每月發餉就存起來，穩紮穩打最安心！");
+              } else if (officer.type === '智力') {
+                  pool.push("市場如戰場，情緒是大忌。請主公嚴守『24 小時冷靜期』，謀定而後動。");
+                  pool.push("細作回報，群眾陷入貪婪。主公，我們該檢視現金水位是否安全了。");
+                  pool.push("市場流言蜚語甚多，唯有持續閱讀財經知識，方能識破虛妄與騙局。");
+                  pool.push("剝除『買房焦慮』與『同儕比較』，主公的內心方能澄澈如鏡，做出正確決策。");
+                  pool.push("投資不是賭博，是機率與時間的精密計算。請專注於長期的期望值。");
+                  pool.push("複利，乃是這世上最可怕的陣法。只要時間夠久，其威力無人能擋。");
+                  pool.push("主公，切勿被那些釣魚標題與恐慌新聞亂了陣腳，保持獨立思考至關重要。");
+                  pool.push("智者千慮，必有一失。所以我們才需要『緊急預備金』來防範未然。");
+                  pool.push("那些花俏的短線指標都是障眼法。專注資產基本面，方是長久之正道。");
+                  pool.push("主公的 Ledger 雙金庫物理隔離協議，真乃神來之筆，確保資產滴水不漏！");
+              } else if (officer.type === '統帥') {
+                  pool.push("主公，為將者當有紀律。每月定投如排兵布陣，不可因一時恐慌而亂了陣腳！");
+                  pool.push("三軍未動，糧草先行。緊急預備金就是我們軍隊的底氣與防線！");
+                  pool.push("資產配置就像調兵遣將，高波動資產主攻，穩健資產主守，缺一不可。");
+                  pool.push("不要在乎一時的城池得失與帳面波動，我們要的是最終 2030 年的天下！");
+                  pool.push("治軍嚴明，方能百戰不殆。主公堅持的財務紀律，令末將無比欽佩！");
+                  pool.push("將帥無能，累死三軍。主公若隨意動用高槓桿，無異於將將士送入絕境！");
+                  pool.push("穩固後方大本營(家庭與健康)，前線將士方能毫無後顧之憂地為您征戰！");
+                  pool.push("只要我們按部就班執行計畫，這史詩版圖的霸業遲早是我們的！");
+                  pool.push("不論外頭風浪多大，只要主公軍旗不倒、現金流不斷，我軍便不會潰散！");
+                  pool.push("巡視營寨(整理房間)看似小事，實則是維持軍心士氣、理清思緒的關鍵！");
+              } else { // 政治/魅力/仁德
+                  pool.push("主公，積少成多，聚沙成塔。穩健理財，方能長久恩澤家庭。");
+                  pool.push("治大國若烹小鮮。理財也需細火慢燉，急功近利只會將大好局勢燒焦。");
+                  pool.push("主公若能與夫人和睦相處、共同成長，便是這領地內最大的福氣。");
+                  pool.push("外面的世界太過浮躁，主公不妨多花時間陪伴孩子，享受單純的平靜。");
+                  pool.push("只要主公不隨意揮霍，領地內的財政自然會越來越好，生活也會更寬裕。");
+                  pool.push("比起冰冷的金幣與數字，人與人之間的羈絆與健康，才是最珍貴的寶藏。");
+                  pool.push("主公今日的努力與紀律，都是為了將來能過上自由自在、無憂無慮的生活。");
+                  pool.push("不管經濟局勢如何變化，保持一顆善良且平靜的心，好運自然會常伴左右。");
+                  pool.push("世人皆為名利與比較所苦，主公能看破紅塵專注自身目標，實屬難得。");
+                  pool.push("切記，財富是為了服務生活，不要讓生活與情緒反被財富綁架了。");
+              }
+          }
+          return pool[Math.floor(Math.random() * pool.length)];
       };
 
       const handlePayday = () => {
@@ -501,14 +600,13 @@
         newState.merit += gainedMerit;
         
         const displayAdded = target === 'btc' ? addedAmount.toFixed(6) : addedAmount.toLocaleString();
-        let logMsg = `徵兵令下：`;
-        if (amount > 0) logMsg += `壯大 ${target.toUpperCase()} 營 ${displayAdded} 兵力。`;
+        let logMsg = `徵兵令下：壯大 ${target.toUpperCase()} 營 ${displayAdded} 兵力。`;
         if (repayAmount > 0) logMsg += `遣散傭兵(償還信貸) ${repayAmount.toLocaleString()}。`;
         logMsg += `軍功 +${gainedMerit.toFixed(1)}。`;
 
         addLog(newState, '軍令', logMsg);
         saveGameState(newState);
-        setActiveEvent(ev); 
+        if(ev.merit !== 0) showToast(`【${ev.title}】 ${ev.msg}`, ev.type === 'good' ? 'success' : 'warn');
       };
 
       const executeRoutineTask = () => {
@@ -525,7 +623,7 @@
           saveGameState(newState);
           showToast(`巡視完成，軍功 +${totalGained}`, 'success');
         } else {
-          showToast("將軍，您的雙防禦（預備金 20萬、娛樂流動金 5萬）尚未滿編！", 'error');
+          showToast("將軍，您的雙防禦尚未滿編！", 'error');
         }
       };
 
@@ -624,7 +722,7 @@
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `戰略圖兵符_v4_建安${jianAnYear}年${currentRealMonth}月.json`;
+        link.download = `戰略圖兵符_建安${jianAnYear}年${currentRealMonth}月.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -641,7 +739,7 @@
             let importedState = JSON.parse(e.target.result);
             if (importedState && importedState.assets && importedState.merit !== undefined) {
               if (!importedState.occupiedProvinces) importedState.occupiedProvinces = [];
-              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState }); // 相容舊版
+              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState }); 
               showToast("兵符匯入成功，天下大勢已更新！", "success");
             } else {
               showToast("兵符格式錯誤，無法解讀！", "error");
@@ -660,7 +758,7 @@
       return (
         <div className="h-[100dvh] w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
           
-          {/* V4: 熊市危機強制遮罩攔截 */}
+          {/* 熊市危機強制遮罩攔截 */}
           {crisisEvent && (
              <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md">
                  <div className="bg-[#1a0505] border-2 border-red-600 p-6 md:p-10 max-w-lg w-full text-center shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-[stampIn_0.5s_forwards]">
@@ -694,11 +792,9 @@
             </div>
           )}
 
-          {/* Header - Fixed Flex Collapse Bug */}
+          {/* Header */}
           <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl relative">
             <div className="flex justify-between items-center px-2 md:px-4 py-2 md:py-3 relative z-10 gap-1">
-              
-              {/* Left Side Container */}
               <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
                 <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
                   <span className="text-base md:text-lg font-black text-[#e3dac9] leading-none mb-1">魏</span>
@@ -706,16 +802,11 @@
                 </div>
                 <div className="flex flex-col min-w-0 shrink-0">
                   <h1 className="font-bold text-base md:text-xl tracking-widest text-[#d4af37] drop-shadow-md flex items-center gap-2 whitespace-nowrap">
-                    霸業烽火
-                    <span className={`hidden sm:inline-block text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-sm border font-mono tracking-normal whitespace-nowrap
-                      ${weather.trend === 'bull' ? 'border-green-500 text-green-400 bg-green-900/30' : 
-                        weather.trend === 'bear' ? 'border-red-500 text-red-400 bg-red-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>
-                      天象: {weather.desc}
-                    </span>
+                    戰略圖 - 史詩地圖終極版
                   </h1>
                   <div className="text-[8px] md:text-[10px] text-[#8c7e6a] flex items-center gap-1 md:gap-1.5 mt-1 font-mono whitespace-nowrap">
                     <span className="whitespace-nowrap">建安{jianAnYear}年{currentRealMonth}月</span>
-                    <span className={`sm:hidden text-[8px] px-1 py-0.5 rounded-sm border whitespace-nowrap
+                    <span className={`px-1.5 py-0.5 rounded-sm border whitespace-nowrap
                       ${weather.trend === 'bull' ? 'border-green-500 text-green-400 bg-green-900/30' : 
                         weather.trend === 'bear' ? 'border-red-500 text-red-400 bg-red-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>
                       天象: {weather.desc}
@@ -724,8 +815,6 @@
                   </div>
                 </div>
               </div>
-              
-              {/* Right Side Container */}
               <div className="text-right flex flex-col items-end justify-center shrink-0 ml-1">
                 <div className="text-[9px] md:text-[10px] text-[#a3947c] tracking-widest mb-0.5 whitespace-nowrap">總兵力</div>
                 <div className={`text-lg md:text-2xl font-bold font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] whitespace-nowrap ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
@@ -734,7 +823,6 @@
               </div>
             </div>
             
-            {/* Sub-header Asset Bar */}
             <div className="flex px-2 md:px-4 py-1.5 md:py-2 gap-2 md:gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide text-[10px] md:text-[11px] font-mono bg-[#0a0705] border-t border-[#2a1a15] relative z-10 shadow-inner">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
                 <span className="text-[#a3947c] font-serif">軍功</span> <span className="text-[#ffd700] font-bold">{merit.toFixed(1)}</span>
@@ -760,8 +848,6 @@
               {/* ================= MAP TAB ================= */}
               {activeTab === 'map' && (
                 <div className="flex flex-col h-full relative">
-                  
-                  {/* 縮放面板 */}
                   <div className="absolute top-4 right-4 z-[60] flex flex-col gap-2">
                     <button onClick={() => setMapZoom(z => Math.min(z + 0.25, 2.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">+</button>
                     <button onClick={() => setMapZoom(1)} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#8c7e6a] rounded-sm font-bold text-xs shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">重置</button>
@@ -770,23 +856,16 @@
 
                   <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
                     <div className="relative origin-top-left transition-transform duration-300" style={{ transform: `scale(${mapZoom})`, width: '1600px', height: '1200px' }}>
-                      
-                      {/* SVG 水系與版圖 */}
                       <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
                         <rect width="100%" height="100%" fill="#13181f" opacity="0.9"/>
                         <ellipse cx="70%" cy="25%" rx="35%" ry="25%" fill="#1e3a8a" opacity="0.1" filter="blur(80px)" />
                         <ellipse cx="25%" cy="60%" rx="20%" ry="35%" fill="#14532d" opacity="0.1" filter="blur(80px)" />
                         <ellipse cx="75%" cy="65%" rx="30%" ry="25%" fill="#7f1d1d" opacity="0.1" filter="blur(80px)" />
                         <ellipse cx="50%" cy="50%" rx="20%" ry="20%" fill="#b45309" opacity="0.08" filter="blur(60px)" />
-
-                        {/* 長江 */}
                         <path d="M 0 650 Q 300 750 600 680 T 1100 600 T 1600 650" fill="none" stroke="#0ea5e9" strokeWidth="12" opacity="0.3" strokeLinecap="round" />
                         <path d="M 0 650 Q 300 750 600 680 T 1100 600 T 1600 650" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
-
-                        {/* 黃河 */}
                         <path d="M 100 400 Q 300 200 600 350 T 1000 280 T 1600 300" fill="none" stroke="#0284c7" strokeWidth="10" opacity="0.3" strokeLinecap="round" />
                         <path d="M 100 400 Q 300 200 600 350 T 1000 280 T 1600 300" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
-
                         <path d="M 250 450 Q 400 480 500 420" fill="none" stroke="#3f3f46" strokeWidth="25" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
                         <path d="M 500 150 Q 550 250 500 350" fill="none" stroke="#3f3f46" strokeWidth="20" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
 
@@ -841,21 +920,20 @@
                     </div>
                   </div>
 
-                  {/* 底部面板：城池資訊與攻城系統 */}
                   <div className="h-64 bg-[#1a1410] border-t-2 border-[#b8860b] p-4 flex flex-col relative shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.8)] z-20">
                     {!siegeMode && !combatResult ? (
                       <>
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <h2 className="text-[#d4af37] text-lg md:text-xl font-black tracking-widest flex items-center gap-2 whitespace-nowrap">
-                              {selectedProvince.name}
+                              {selectedProvince?.name}
                               <span className={`text-[9px] px-1.5 py-0.5 border rounded-sm font-bold whitespace-nowrap
-                                ${selectedProvince.isConquered ? 'text-yellow-300 border-yellow-500 bg-yellow-900' : 
-                                  selectedProvince.isReqMet ? 'text-blue-300 border-blue-500 bg-blue-900' : 'text-gray-400 border-gray-600'}`}>
-                                {selectedProvince.isConquered ? '已佔據 (守成中)' : selectedProvince.isReqMet ? '獲得攻城權' : '糧草不足未解鎖'}
+                                ${selectedProvince?.isConquered ? 'text-yellow-300 border-yellow-500 bg-yellow-900' : 
+                                  selectedProvince?.isReqMet ? 'text-blue-300 border-blue-500 bg-blue-900' : 'text-gray-400 border-gray-600'}`}>
+                                {selectedProvince?.isConquered ? '已佔據 (守成中)' : selectedProvince?.isReqMet ? '獲得攻城權' : '糧草不足未解鎖'}
                               </span>
                             </h2>
-                            <p className="text-[10px] md:text-xs text-[#a3947c] mt-1 whitespace-nowrap">{selectedProvince.title} | 守軍戰力：<span className="text-red-400 font-mono font-bold">{selectedProvince.def}</span></p>
+                            <p className="text-[10px] md:text-xs text-[#a3947c] mt-1 whitespace-nowrap">{selectedProvince?.title} | 守軍戰力：<span className="text-red-400 font-mono font-bold">{selectedProvince?.def}</span></p>
                           </div>
                           <div className="text-right shrink-0 ml-2">
                             <div className="text-[10px] text-[#8c7e6a] tracking-widest whitespace-nowrap">霸業版圖</div>
@@ -865,7 +943,7 @@
                         
                         <div className="flex-1 mt-2 overflow-y-auto pr-2 scrollbar-hide">
                           <ul className="space-y-3">
-                            {Object.entries(selectedProvince.req).map(([k, targetVal]) => {
+                            {selectedProvince && Object.entries(selectedProvince.req).map(([k, targetVal]) => {
                               let current = 0;
                               if (k === 'netWorth') current = stats.netWorth;
                               else if (k === 'investCount') current = investCount;
@@ -894,7 +972,7 @@
                           </ul>
                         </div>
 
-                        {selectedProvince.isReqMet && !selectedProvince.isConquered && (
+                        {selectedProvince?.isReqMet && !selectedProvince?.isConquered && (
                           <button onClick={() => { setSiegeMode(true); setSiegeGenerals([]); }} 
                             className="w-full py-3 mt-3 bg-[#3b0f0f] text-red-100 border border-red-600 font-black tracking-widest text-sm md:text-base rounded-sm hover:bg-[#5c0000] active:scale-95 animate-pulse-red whitespace-nowrap">
                             點將攻城 (發起戰力檢定)
@@ -1016,7 +1094,6 @@
                     </div>
                   </div>
 
-                  {/* V4 新增：日常內政系統 */}
                   <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
                     <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 tracking-widest flex items-center gap-2">日常內政 (修身齊家)</h3>
                     <p className="text-[10px] text-[#8c7e6a] mb-3">不耗費糧草，每日限制執行 3 次，微幅提升軍功 (+2)。<br/>今日已執行：<span className="text-white font-bold">{dailyTaskDate === todayString ? dailyTaskCount : 0} / 3</span></p>
@@ -1088,7 +1165,7 @@
                       </h2>
                       <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
                         消耗 300 軍功招募將領。獲得重複武將將轉化為「將魂」升星。<br/>
-                        <span className="text-green-400 font-bold mt-1 inline-block">【V4機能】點擊麾下將領，將觸發專屬營地對話，嚴格審視您的紀律。</span>
+                        <span className="text-green-400 font-bold mt-1 inline-block">點擊麾下將領，將觸發專屬營地對話，嚴格審視您的紀律。</span>
                       </p>
                     </div>
                     
@@ -1156,7 +1233,7 @@
                               {level} 星
                             </div>
                             <div className={`text-xs md:text-sm font-bold mt-5 mb-1 tracking-widest whitespace-nowrap ${officer.color}`}>{officer.name}</div>
-                            
+                            <div className="text-[9px] text-[#a3947c] whitespace-nowrap">{officer.type}</div>
                             <div className="w-full border-t border-[#2a1a15] mt-1 pt-1 text-center text-[#8c7e6a] text-[8px] whitespace-nowrap flex items-center justify-center gap-1 hover:text-[#d4af37]">
                               <ICONS.Message className="w-3 h-3" /> 點擊交談
                             </div>
@@ -1168,7 +1245,7 @@
                 </div>
               )}
 
-              {/* V4 武將對話 Modal */}
+              {/* 武將對話 Modal */}
               {activeOfficerDialogue && (
                   <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm" onClick={() => setActiveOfficerDialogue(null)}>
                      <div className={`border-2 ${activeOfficerDialogue.border} bg-[#0a0705] p-6 max-w-sm w-full relative shadow-[0_0_30px_rgba(0,0,0,0.8)] animate-[slideUp_0.2s_ease-out]`} onClick={e => e.stopPropagation()}>
@@ -1182,11 +1259,11 @@
                                  <div className="text-green-400 font-mono text-xs">+ {((activeOfficerDialogue.stat/100) * (1 + (officerStats.roster[activeOfficerDialogue.id]-1)*0.2)).toFixed(2)}</div>
                              </div>
                          </div>
-                         <div className="bg-[#1a1410] border border-[#3e2723] p-4 text-sm leading-relaxed text-[#e3dac9] italic relative">
+                         <div className="bg-[#1a1410] border border-[#3e2723] p-4 text-sm md:text-base leading-relaxed text-[#e3dac9] italic relative shadow-inner">
                              <span className="absolute top-2 left-2 text-3xl text-[#4a3525] opacity-50 font-serif leading-none">"</span>
                              <span className="relative z-10 pl-4 block">{getOfficerDialogue(activeOfficerDialogue)}</span>
                          </div>
-                         <button onClick={() => setActiveOfficerDialogue(null)} className="mt-5 w-full py-2 bg-[#1c1814] text-[#8c7e6a] border border-[#3e2723] hover:text-white transition-colors text-xs tracking-widest">
+                         <button onClick={() => setActiveOfficerDialogue(null)} className="mt-5 w-full py-3 font-bold bg-[#1c1814] text-[#8c7e6a] border border-[#3e2723] hover:text-white transition-colors text-xs tracking-widest">
                              結束交談
                          </button>
                      </div>
