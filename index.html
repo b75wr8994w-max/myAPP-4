@@ -1,1049 +1,1153 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>戰略圖 - 史詩地圖終極版</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>戰略圖 - 史詩地圖終極版</title>
 
-  <!-- 載入 Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- 載入 React 與 ReactDOM -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  
-  <!-- 載入 Babel -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- 載入 React 與 ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- 載入 Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <style>
-    /* 隱藏原生滾動條，保持畫面乾淨 */
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    
-    /* 古風字體與排版 */
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap');
-    body { font-family: 'Noto Serif TC', serif; background-color: #0c0906; margin: 0; padding: 0; }
-    
-    /* 古代州域文字樣式 */
-    .map-region-text {
-      font-family: "Noto Serif TC", serif;
-      writing-mode: vertical-rl;
-      text-orientation: upright;
-      letter-spacing: 0.8em;
-      pointer-events: none;
-      font-weight: 900;
-    }
+  <style>
+    /* 隱藏原生滾動條，保持畫面乾淨 */
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* 古風字體與排版 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap');
+    body { font-family: 'Noto Serif TC', serif; background-color: #0c0906; margin: 0; padding: 0; overflow: hidden; }
+    
+    /* 古代州域文字樣式 */
+    .map-region-text {
+      font-family: "Noto Serif TC", serif;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      letter-spacing: 0.8em;
+      pointer-events: none;
+      font-weight: 900;
+    }
 
-    /* 彈窗動畫 */
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    @keyframes stampIn { 0% { transform: scale(3) rotate(-15deg); opacity: 0; } 50% { transform: scale(0.8) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
-  </style>
+    /* 水系流動動畫 */
+    .river-anim {
+      stroke-dasharray: 20 10;
+      animation: flow 10s linear infinite;
+    }
+    @keyframes flow { to { stroke-dashoffset: -100; } }
+
+    /* 彈窗與按鈕動畫 */
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes stampIn { 0% { transform: scale(3) rotate(-15deg); opacity: 0; } 50% { transform: scale(0.8) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+    @keyframes pulse-red { 0%, 100% { filter: drop-shadow(0 0 5px rgba(239,68,68,0.5)); } 50% { filter: drop-shadow(0 0 15px rgba(239,68,68,1)); } }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
-
-  <script type="text/babel">
-    const { useState, useEffect, useMemo, useRef } = React;
-
-    const DEFAULT_GAME_STATE = {
-      assets: { twd: 0, emergency: 0, entertainment: 0, btc: 1.5432, eth: 32, ada: 75000, qqq: 0, voo: 0, debt: 2800000 },
-      merit: 300, 
-      ownedOfficers: [],
-      investCount: 0,
-      lastInvestMonth: "",
-      lastRoutineMonth: "", 
-      logs: []
-    };
-
-    const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
-
-    // === 沉浸式隨機事件 (整合您的設定 + 新增募兵事件軍功皆為1) ===
-    const RANDOM_EVENTS = [
-      // 您的保留設定
-      { title: '天降祥瑞', msg: '境內出現白鹿祥瑞，軍心大振！', merit: 1, type: 'good' },
-      { title: '風調雨順', msg: '今年氣候宜人，屯田豐收，後勤無虞。', merit: 1, type: 'good' },
-      { title: '名士來投', msg: '有狂士路過大營，獻上奇策。', merit: 1, type: 'good' },
-      { title: '異族朝貢', msg: '邊疆異族感念將軍威名，進獻駿馬。', merit: 1, type: 'good' },
-      { title: '士兵操練', msg: '將士日夜操練，戰鬥力微幅提升。', merit: 1, type: 'good' },
-      { title: '清剿山賊', msg: '地方太守成功剿滅一窩山賊，百姓愛戴。', merit: 1, type: 'good' },
-      { title: '事事順心', msg: '你發現所有事情都朝著好的方向發展！', merit: 1, type: 'good' },
-      { title: '路不拾遺', msg: '領地治安良好，百姓安居樂業。', merit: 1, type: 'good' },
-      { title: '星夜巡防', msg: '主公連日夜巡營寨，身心勞頓。幸得回府休養，體力漸復！', merit: 1, type: 'good' },
-      { title: '急功近利', msg: '細作傳聞敵軍劫掠暴富，營中將士心生浮動。主公嚴明軍紀，不為所動！', merit: 1, type: 'good' },
-      { title: '識破偽書', msg: '敵軍傳來詐降偽書，意圖騙取輜重。主公慧眼識破，專注霸業！', merit: 1, type: 'good' },
-      { title: '膝下承歡', msg: '戰事暫歇，主公於府邸教導幼子，享天倫之樂，身心大悅！', merit: 10, type: 'good' },
-      { title: '豪強兼併', msg: '天下豪強瘋狂兼併土地，軍中議論紛紛。主公嚴守陣腳，穩固現金糧草！', merit: 1, type: 'good' },
-      { title: '挑燈夜讀', msg: '主公夫人徹夜研讀兵法，全軍受其毅力感召，操練更加勤奮！', merit: 1, type: 'good' },
-      { title: '糧價震盪', msg: '天下大旱導致糧價劇烈波動。主公無視商賈炒作，死守庫房底線！', merit: 1, type: 'good' },
-      
-      // 新增募兵正向事件
-      { title: '發掘良才', msg: '主公於鄉野間尋得勇士，募兵成效卓著！', merit: 1, type: 'good' },
-      { title: '豪族資助', msg: '地方豪族感念主公恩德，私下捐獻糧草錙重。', merit: 1, type: 'good' },
-      { title: '商賈勞軍', msg: '過往商隊見我軍軍紀嚴明，主動獻上酒肉犒勞新兵。', merit: 1, type: 'good' },
-      { title: '流民來投', msg: '鄰州戰亂，大批流民仰慕主公仁德，自願編入行伍。', merit: 1, type: 'good' },
-      { title: '巧匠獻器', msg: '軍中巧匠改良了兵器鍛造之法，新兵裝備更加精良。', merit: 1, type: 'good' },
-      
-      { title: '平穩度日', msg: '本月天下太平，無事發生，穩步發展。', merit: 0, type: 'neutral' },
-      
-      // 您的保留負面設定
-      { title: '流言蜚語', msg: '城中散佈著對將軍不利的流言，花費心力安撫。', merit: -1, type: 'bad' },
-      { title: '糧草受潮', msg: '連日大雨導致部分備用糧草發霉，軍心微挫。', merit: -1, type: 'bad' },
-      { title: '軍中風寒', msg: '換季時節，營中多有染上風寒者，影響操練。', merit: -1, type: 'bad' },
-      { title: '貪官汙吏', msg: '查獲地方小吏中飽私囊，雖已嚴懲但民怨微升。', merit: -1, type: 'bad' },
-      { title: '馬匹受驚', msg: '夜半營中馬匹受驚狂奔，踩傷數名士兵。', merit: -1, type: 'bad' },
-      { title: '盜賊橫行', msg: '邊境出現小股盜賊劫掠，調兵遣將平息。', merit: -1, type: 'bad' },
-      
-      // 新增募兵負面事件
-      { title: '兵痞鬧事', msg: '新募兵丁不諳軍紀，與老兵發生械鬥，花費心力整頓。', merit: -1, type: 'bad' },
-      { title: '兵器生鏽', msg: '連日梅雨，庫房部分兵器生鏽，延宕了新軍成軍之日。', merit: -1, type: 'bad' },
-      { title: '糧道受阻', msg: '大雨沖毀運糧棧道，新兵補給短缺，士氣微降。', merit: -1, type: 'bad' },
-      { title: '細作潛入', msg: '敵軍細作混入新兵營中散佈謠言，幸及早查獲，稍損軍心。', merit: -1, type: 'bad' }
-    ];
-
-    // === 城池戰略目標 (替換 ETH/ADA，新增千萬級別 VOO/QQQ，BTC 最終3顆) ===
-    const PROVINCES = [
-      // 內政防禦
-      { id: 'wancheng', name: '宛城', title: '築牆積糧', targetLabel: '雙防禦滿血', req: { emergency: 200000, entertainment: 50000 }, x: 48, y: 55 },
-      { id: 'xuchang', name: '許昌', title: '百廢待興', targetLabel: '債務清零', req: { debt: 0 }, x: 55, y: 48 },
-      
-      // BTC (虎豹騎) 路線 - 終極目標3顆
-      { id: 'xiangyang', name: '襄陽', title: '主力成型', targetLabel: '虎豹騎 0.3 顆', req: { btc: 0.3 }, x: 52, y: 65 },
-      { id: 'xinye', name: '新野', title: '火燒新野', targetLabel: '虎豹騎 1 顆', req: { btc: 1 }, x: 52, y: 58 },
-      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '虎豹騎 2 顆', req: { btc: 2 }, x: 45, y: 45 },
-      { id: 'guandu', name: '官渡', title: '鼎足三分', targetLabel: '虎豹騎 3 顆', req: { btc: 3 }, x: 58, y: 38 },
-
-      // QQQ (元戎弩) 路線 - 終極目標1000萬
-      { id: 'chengdu', name: '成都', title: '西蜀天險', targetLabel: '元戎弩 200 萬', req: { qqq: 2000000 }, x: 22, y: 68 },
-      { id: 'zhitong', name: '梓潼', title: '劍閣天險', targetLabel: '元戎弩 500 萬', req: { qqq: 5000000 }, x: 25, y: 55 },
-      { id: 'baidi', name: '白帝城', title: '白帝託孤', targetLabel: '元戎弩 1000 萬', req: { qqq: 10000000 }, x: 35, y: 60 },
-
-      // VOO (重步兵) 路線 - 終極目標1000萬
-      { id: 'changan', name: '長安', title: '關中霸主', targetLabel: '重步兵 200 萬', req: { voo: 2000000 }, x: 40, y: 45 },
-      { id: 'tianshui', name: '天水', title: '收伏姜維', targetLabel: '重步兵 500 萬', req: { voo: 5000000 }, x: 28, y: 40 },
-      { id: 'wuwei', name: '武威', title: '絲路霸主', targetLabel: '重步兵 1000 萬', req: { voo: 10000000 }, x: 18, y: 28 },
-
-      // 總兵力 (淨資產) 路線
-      { id: 'jiangling', name: '江陵', title: '草創之初', targetLabel: '兵力 100 萬', req: { netWorth: 1000000 }, x: 46, y: 72 },
-      { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '兵力 300 萬', req: { netWorth: 3000000 }, x: 56, y: 70 },
-      { id: 'hanzhong', name: '漢中', title: '中原逐鹿', targetLabel: '兵力 1000 萬', req: { netWorth: 10000000 }, x: 30, y: 50 },
-      { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '兵力 3000 萬', req: { netWorth: 30000000 }, x: 76, y: 62 },
-      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 5000 萬', req: { netWorth: 50000000 }, x: 68, y: 55 },
-      { id: 'ye', name: '鄴城', title: '河北霸主', targetLabel: '兵力 8000 萬', req: { netWorth: 80000000 }, x: 60, y: 32 },
-      { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '兵力 1 億', req: { netWorth: 100000000 }, x: 75, y: 15 },
-
-      // 募兵次數 路線
-      { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '募兵 1 次', req: { investCount: 1 }, x: 60, y: 45 },
-      { id: 'chaisang', name: '柴桑', title: '移鎮南疆', targetLabel: '募兵 12 次', req: { investCount: 12 }, x: 65, y: 75 },
-      { id: 'xiapi', name: '下邳', title: '堅持一載', targetLabel: '募兵 24 次', req: { investCount: 24 }, x: 72, y: 42 },
-      { id: 'xuzhou', name: '徐州', title: '持之以恆', targetLabel: '募兵 36 次', req: { investCount: 36 }, x: 80, y: 45 },
-      { id: 'puyang', name: '濮陽', title: '三年有成', targetLabel: '募兵 48 次', req: { investCount: 48 }, x: 65, y: 38 },
-      { id: 'beihai', name: '北海', title: '聲名遠播', targetLabel: '募兵 60 次', req: { investCount: 60 }, x: 82, y: 35 },
-      { id: 'pingyuan', name: '平原', title: '半璧江山', targetLabel: '募兵 66 次', req: { investCount: 66 }, x: 70, y: 28 },
-      { id: 'jinyang', name: '晉陽', title: '威鎮北疆', targetLabel: '募兵 72 次', req: { investCount: 72 }, x: 48, y: 22 },
-      { id: 'jicheng', name: '薊城', title: '七年之癢', targetLabel: '募兵 84 次', req: { investCount: 84 }, x: 65, y: 18 },
-      { id: 'xiangping', name: '襄平', title: '十年磨劍', targetLabel: '募兵 120 次', req: { investCount: 120 }, x: 88, y: 10 },
-      { id: 'changsha', name: '長沙', title: '荊南四郡', targetLabel: '募兵 144 次', req: { investCount: 144 }, x: 55, y: 80 },
-      { id: 'guiyang', name: '桂陽', title: '南征北討', targetLabel: '募兵 160 次', req: { investCount: 160 }, x: 50, y: 88 },
-      { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '募兵 180 次', req: { investCount: 180 }, x: 18, y: 85 },
-      { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '募兵 200 次', req: { investCount: 200 }, x: 88, y: 72 },
-      { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, x: 32, y: 92 }
-    ];
-
-    // === 武將總表 (已修復舊版逗號語法錯誤) ===
-    const RAW_OFFICERS = [
-      { id: 1, name: '曹操', stat: 98, type: '統帥' }, { id: 2, name: '司馬懿', stat: 99, type: '智力' }, { id: 3, name: '郭嘉', stat: 98, type: '智力' },
-      { id: 4, name: '荀彧', stat: 95, type: '政治' }, { id: 5, name: '張遼', stat: 92, type: '統帥' }, { id: 6, name: '夏侯惇', stat: 90, type: '武力' },
-      { id: 7, name: '夏侯淵', stat: 91, type: '武力' }, { id: 8, name: '許褚', stat: 96, type: '武力' }, { id: 9, name: '典韋', stat: 95, type: '武力' },
-      { id: 10, name: '徐晃', stat: 91, type: '武力' }, { id: 11, name: '張郃', stat: 90, type: '武力' }, { id: 12, name: '賈詡', stat: 97, type: '智力' },
-      { id: 13, name: '曹仁', stat: 89, type: '統帥' }, { id: 14, name: '曹洪', stat: 81, type: '武力' }, { id: 15, name: '于禁', stat: 84, type: '統帥' },
-      { id: 16, name: '樂進', stat: 85, type: '武力' }, { id: 17, name: '荀攸', stat: 94, type: '智力' }, { id: 18, name: '程昱', stat: 90, type: '智力' },
-      { id: 19, name: '滿寵', stat: 84, type: '統帥' }, { id: 20, name: '龐德', stat: 94, type: '武力' }, { id: 21, name: '郝昭', stat: 89, type: '統帥' },
-      { id: 22, name: '曹丕', stat: 83, type: '政治' }, { id: 23, name: '司馬師', stat: 88, type: '統帥' }, { id: 24, name: '司馬昭', stat: 87, type: '政治' }, { id: 25, name: '鄧艾', stat: 94, type: '統帥' },
-      { id: 26, name: '劉備', stat: 80, type: '仁德' }, { id: 27, name: '諸葛亮', stat: 100, type: '智力' }, { id: 28, name: '關羽', stat: 97, type: '武力' },
-      { id: 29, name: '張飛', stat: 98, type: '武力' }, { id: 30, name: '趙雲', stat: 96, type: '武力' }, { id: 31, name: '馬超', stat: 97, type: '武力' },
-      { id: 32, name: '黃忠', stat: 93, type: '武力' }, { id: 33, name: '龐統', stat: 97, type: '智力' }, { id: 34, name: '姜維', stat: 90, type: '智力' },
-      { id: 35, name: '魏延', stat: 92, type: '武力' }, { id: 36, name: '法正', stat: 94, type: '智力' }, { id: 37, name: '馬良', stat: 85, type: '政治' },
-      { id: 38, name: '關平', stat: 82, type: '武力' }, { id: 39, name: '周倉', stat: 84, type: '武力' }, { id: 40, name: '徐庶', stat: 93, type: '智力' },
-      { id: 41, name: '劉禪', stat: 30, type: '魅力' }, { id: 42, name: '星彩', stat: 81, type: '武力' }, { id: 43, name: '嚴顏', stat: 83, type: '武力' },
-      { id: 44, name: '王平', stat: 83, type: '統帥' }, { id: 45, name: '廖化', stat: 78, type: '武力' }, { id: 46, name: '蔣琬', stat: 88, type: '政治' },
-      { id: 47, name: '費禕', stat: 85, type: '政治' }, { id: 48, name: '孟獲', stat: 87, type: '武力' }, { id: 49, name: '祝融', stat: 85, type: '武力' }, { id: 50, name: '馬岱', stat: 85, type: '武力' },
-      { id: 51, name: '孫權', stat: 85, type: '統帥' }, { id: 52, name: '周瑜', stat: 96, type: '智力' }, { id: 53, name: '陸遜', stat: 95, type: '智力' },
-      { id: 54, name: '甘寧', stat: 94, type: '武力' }, { id: 55, name: '太史慈', stat: 93, type: '武力' }, { id: 56, name: '呂蒙', stat: 89, type: '統帥' },
-      { id: 57, name: '魯肅', stat: 92, type: '政治' }, { id: 58, name: '黃蓋', stat: 83, type: '武力' }, { id: 59, name: '孫堅', stat: 93, type: '統帥' },
-      { id: 60, name: '孫策', stat: 96, type: '武力' }, { id: 61, name: '程普', stat: 84, type: '統帥' }, { id: 62, name: '韓當', stat: 82, type: '武力' },
-      { id: 63, name: '周泰', stat: 91, type: '武力' }, { id: 64, name: '蔣欽', stat: 81, type: '武力' }, { id: 65, name: '凌統', stat: 89, type: '武力' },
-      { id: 66, name: '丁奉', stat: 80, type: '武力' }, { id: 67, name: '徐盛', stat: 82, type: '統帥' }, { id: 68, name: '潘璋', stat: 80, type: '武力' },
-      { id: 69, name: '張昭', stat: 94, type: '政治' }, { id: 70, name: '張紘', stat: 93, type: '政治' }, { id: 71, name: '大喬', stat: 86, type: '魅力' },
-      { id: 72, name: '小喬', stat: 88, type: '魅力' }, { id: 73, name: '孫尚香', stat: 85, type: '武力' }, { id: 74, name: '諸葛瑾', stat: 85, type: '政治' }, { id: 75, name: '陸抗', stat: 92, type: '統帥' },
-      { id: 76, name: '呂布', stat: 100, type: '武力' }, { id: 77, name: '貂蟬', stat: 95, type: '魅力' }, { id: 78, name: '董卓', stat: 87, type: '武力' },
-      { id: 79, name: '袁紹', stat: 81, type: '統帥' }, { id: 80, name: '顏良', stat: 93, type: '武力' }, { id: 81, name: '文醜', stat: 94, type: '武力' },
-      { id: 82, name: '袁術', stat: 65, type: '政治' }, { id: 83, name: '劉表', stat: 75, type: '政治' }, { id: 84, name: '馬騰', stat: 85, type: '統帥' },
-      { id: 85, name: '公孫瓚', stat: 84, type: '統帥' }, { id: 86, name: '華佗', stat: 99, type: '政治' }, { id: 87, name: '左慈', stat: 100, type: '智力' },
-      { id: 88, name: '于吉', stat: 96, type: '智力' }, { id: 89, name: '高順', stat: 89, type: '武力' }, { id: 90, name: '陳宮', stat: 89, type: '智力' },
-      { id: 91, name: '田豐', stat: 93, type: '智力' }, { id: 92, name: '沮授', stat: 90, type: '智力' }, { id: 93, name: '張角', stat: 96, type: '智力' },
-      { id: 94, name: '紀靈', stat: 83, type: '武力' }, { id: 95, name: '張魯', stat: 75, type: '政治' }, { id: 96, name: '韓遂', stat: 78, type: '統帥' },
-      { id: 97, name: '蔡文姬', stat: 85, type: '魅力' }, { id: 98, name: '李儒', stat: 93, type: '智力' }, { id: 99, name: '張任', stat: 85, type: '武力' }, { id: 100, name: '皇甫嵩', stat: 88, type: '統帥' },
-      { id: 101, name: '太座', stat: 85, type: '魅力' }, { id: 102, name: '肉球', stat: 3, type: '智力' }, { id: 103, name: '華雄', stat: 88, type: '武力' }, { id: 104, name: '相國蕭何', stat: 120, type: '政治' },
-      { id: 105, name: '西楚霸王', stat: 105, type: '武力' }, { id: 106, name: '兵仙韓信', stat: 100, type: '統帥' }, { id: 107, name: '謀聖張良', stat: 100, type: '智力' }, { id: 108, name: '絕代虞姬', stat: 100, type: '魅力'}
-    ];
-
-    const OFFICERS = RAW_OFFICERS.map(o => {
-      let faction = '群'; let color = 'text-gray-300'; let bg = 'bg-gray-900'; let border = 'border-gray-600';
-      if (o.id <= 25) { faction = '魏'; color = 'text-blue-300'; bg = 'bg-blue-950/60'; border = 'border-blue-700'; }
-      else if (o.id <= 50) { faction = '蜀'; color = 'text-green-300'; bg = 'bg-green-950/60'; border = 'border-green-700'; }
-      else if (o.id <= 75) { faction = '吳'; color = 'text-red-300'; bg = 'bg-red-950/60'; border = 'border-red-700'; }
-      else if (o.id > 100 && o.id !== 103) { 
-        faction = '神'; color = 'text-yellow-300'; bg = 'bg-yellow-900/60'; border = 'border-yellow-400'; 
-      }
-      return { ...o, faction, color, bg, border };
-    });
-
-    const BONDS = [
-      { id: 'taoyuan', name: '桃園結義', req: [26, 28, 29], desc: '劉關張齊聚。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'wuhu', name: '五虎上將', req: [28, 29, 30, 31, 32], desc: '蜀國最強戰力。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'wuzi', name: '五子良將', req: [5, 16, 15, 11, 10], desc: '魏國前線棟樑。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'erqiao', name: '江東二喬', req: [71, 72], desc: '絕世美人。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
-      { id: 'wolongfengchu', name: '臥龍鳳雛', req: [27, 33], desc: '得一可安天下。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'lubudiaochan', name: '英雄美人', req: [76, 77], desc: '呂布與貂蟬。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
-      { id: 'sunjianzi', name: '江東猛虎', req: [59, 60, 51], desc: '孫家父子。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'han_trinity', name: '漢初三傑', req: [104, 106, 107], desc: '張良、蕭何、韓信齊聚。兵法內政登峰造極！每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
-      { id: 'chu_han', name: '霸王別姬', req: [105, 108], desc: '項羽與絕世佳人。戰鬥力突破天際。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
-    ];
-
-    const TITLES = [
-      { rank: '平民', min: 0 }, { rank: '縣令', min: 1000000 }, { rank: '太守', min: 3000000 },
-      { rank: '刺史', min: 10000000 }, { rank: '州牧', min: 30000000 }, { rank: '大將軍', min: 50000000 },
-      { rank: '魏王', min: 100000000 }, { rank: '皇帝', min: 200000000 }
-    ];
-
-    const ICONS = {
-      Castle: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M4 21h16v-6h-2v4H6v-4H4v6zm14-10V5l-6 3-6-3v6l6 3 6-3z"/></svg>,
-      Sword: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5m-3.5-3.5 4-4L22 4V1h-3l-4.5 4.5"/></svg>,
-      Scroll: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="10" x2="16" y1="6" y2="6"/><line x1="10" x2="16" y1="10" y2="10"/></svg>,
-      Map: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6z"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>,
-      Tent: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M12 3l9 18M12 3L3 21"/><path d="M12 3v18M8 13h8"/></svg>,
-      Users: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-      Target: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>,
-      Download: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-      Upload: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-    };
-
-    function App() {
-      // 啟動本機 LocalStorage 存檔機制
-      const [gameState, setGameState] = useState(() => {
-        const saved = localStorage.getItem('wealth_game_save');
-        return saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
-      });
-      
-      const [prices, setPrices] = useState(FALLBACK_PRICES);
-      const [investPlan, setInvestPlan] = useState({ amount: 10000, repayAmount: 0, target: 'btc' });
-      const [activeTab, setActiveTab] = useState('map');
-      const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
-      const [syncStatus, setSyncStatus] = useState('實體隔離中');
-      
-      const [gachaResult, setGachaResult] = useState(null);
-      const [activeEvent, setActiveEvent] = useState(null);
-      const [toastMessage, setToastMessage] = useState(null);
-      const [localAssets, setLocalAssets] = useState(null);
-      
-      // 新增：地圖縮放狀態
-      const [mapZoom, setMapZoom] = useState(1);
-
-      const fileInputRef = useRef(null);
-
-      const realDate = new Date();
-      const currentRealYear = realDate.getFullYear();
-      const currentRealMonth = realDate.getMonth() + 1;
-      const currentMonthString = `${currentRealYear}-${String(currentRealMonth).padStart(2, '0')}`;
-      const jianAnYear = Math.max(0, currentRealYear - 2026);
-
-      useEffect(() => {
-        const fetchPrices = async () => {
-          try {
-            // 僅抓取虛擬貨幣價格，美股為台幣價值
-            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,cardano&vs_currencies=twd');
-            if (res.ok) {
-              const data = await res.json();
-              setPrices(prev => ({
-                ...prev, 
-                btc: data.bitcoin?.twd || prev.btc, 
-                eth: data.ethereum?.twd || prev.eth, 
-                ada: data.cardano?.twd || prev.ada,
-              }));
-            }
-          } catch (error) {}
-        };
-        fetchPrices();
-      }, []);
-
-      const { assets, merit, ownedOfficers, investCount, lastInvestMonth, lastRoutineMonth, logs } = gameState;
-      const displayAssets = localAssets || assets;
-
-      // 核心計算修正：
-      // 1. 步兵 (QQQ/VOO) 直接視為等值台幣，不乘股價
-      // 2. 總兵力 (netWorth) 必須扣除信貸 (debt)
-      const stats = useMemo(() => {
-        const crypto = (displayAssets.btc * prices.btc) + (displayAssets.eth * prices.eth) + (displayAssets.ada * prices.ada);
-        const trad = displayAssets.qqq + displayAssets.voo; 
-        const cash = displayAssets.twd + displayAssets.emergency + displayAssets.entertainment;
-        const netWorth = crypto + trad + cash - displayAssets.debt;
-        return { crypto, trad, cash, netWorth, debt: displayAssets.debt };
-      }, [displayAssets, prices]);
-
-      const playerTitle = useMemo(() => {
-        let currentTitle = TITLES[0].rank;
-        for (let t of TITLES) {
-          if (stats.netWorth >= t.min) currentTitle = t.rank;
-        }
-        return currentTitle;
-      }, [stats.netWorth]);
-
-      const officerBuff = useMemo(() => {
-        let totalBuff = 0;
-        ownedOfficers.forEach(id => {
-          const off = OFFICERS.find(o => o.id === id);
-          if (off) totalBuff += (off.stat / 100); 
-        });
-        return totalBuff;
-      }, [ownedOfficers]);
-
-      const activeBonds = useMemo(() => {
-        return BONDS.filter(bond => bond.req.every(reqId => ownedOfficers.includes(reqId)));
-      }, [ownedOfficers]);
-
-      const bondPaydayBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusPayday, 0), [activeBonds]);
-      const bondRoutineBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusRoutine, 0), [activeBonds]);
-
-      const provincesState = useMemo(() => {
-        return PROVINCES.map(prov => {
-          let isMet = true;
-          for (const [key, reqVal] of Object.entries(prov.req)) {
-            let current = 0;
-            if (key === 'netWorth') current = stats.netWorth;
-            else if (key === 'investCount') current = investCount;
-            else if (key === 'debt') current = displayAssets.debt;
-            else current = displayAssets[key] || 0;
-
-            if (key === 'debt') { if (current > reqVal) isMet = false; }
-            else { if (current < reqVal) isMet = false; }
-          }
-          return { ...prov, isOccupied: isMet };
-        });
-      }, [displayAssets, stats, investCount]);
-
-      const showToast = (msg, type = 'info') => {
-        setToastMessage({ msg, type });
-        setTimeout(() => setToastMessage(null), 3500);
-      };
-
-      const saveGameState = (newState) => {
-        setGameState(newState);
-        localStorage.setItem('wealth_game_save', JSON.stringify(newState));
-        setSyncStatus('已儲存本機');
-        setTimeout(() => setSyncStatus('實體隔離中'), 2000);
-      };
-
-      const addLog = (newState, type, msg) => {
-        const dateStr = `建安${jianAnYear}年${currentRealMonth}月`;
-        newState.logs = [{ date: dateStr, type, msg }, ...(newState.logs || [])].slice(0, 50);
-      };
-
-      const handlePayday = () => {
-        if (lastInvestMonth === currentMonthString) {
-          showToast("本月軍令已下達！將軍，請靜候下月。", 'warn');
-          return;
-        }
-        if (investPlan.amount <= 0 && investPlan.repayAmount <= 0) {
-          showToast("請輸入欲調度的糧草或償還數量！", 'warn');
-          return;
-        }
-        if (!['btc', 'qqq', 'voo'].includes(investPlan.target)) {
-          showToast("軍令錯誤：只能定投 BTC, QQQ, VOO。", 'error');
-          return;
-        }
-
-        let newState = JSON.parse(JSON.stringify(gameState));
-        const amount = investPlan.amount;
-        const repayAmount = investPlan.repayAmount;
-        const target = investPlan.target;
-        
-        let addedAmount = amount;
-        // 如果是 BTC，除以幣價算出顆數；若是 QQQ 或 VOO，則係台幣等值
-        if (target === 'btc') addedAmount = amount / prices.btc;
-        
-        if (amount > 0) {
-          newState.assets[target] = (newState.assets[target] || 0) + addedAmount;
-        }
-        
-        if (repayAmount > 0) {
-          newState.assets.debt = Math.max(0, (newState.assets.debt || 0) - repayAmount);
-        }
-
-        newState.investCount += 1;
-        newState.lastInvestMonth = currentMonthString;
-        
-        const ev = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
-        let gainedMerit = 50 + officerBuff + bondPaydayBuff + ev.merit; 
-        newState.merit += gainedMerit;
-        
-        const displayAdded = target === 'btc' ? addedAmount.toFixed(6) : addedAmount.toLocaleString();
-        
-        let logMsg = `徵兵令下：`;
-        if (amount > 0) logMsg += `壯大 ${target.toUpperCase()} 營 ${displayAdded} 兵力。`;
-        if (repayAmount > 0) logMsg += `遣散傭兵(償還信貸) ${repayAmount.toLocaleString()}。`;
-        logMsg += `軍功 +${gainedMerit.toFixed(1)}。`;
-
-        addLog(newState, '軍令', logMsg);
-        
-        saveGameState(newState);
-        setActiveEvent(ev); 
-      };
-
-      const executeRoutineTask = () => {
-        if (lastRoutineMonth === currentMonthString) {
-          showToast("本月已巡視過營地。", 'warn');
-          return;
-        }
-        let newState = JSON.parse(JSON.stringify(gameState));
-        if (newState.assets.emergency >= 200000 && newState.assets.entertainment >= 50000) {
-          let totalGained = 30 + bondRoutineBuff; 
-          newState.merit += totalGained;
-          newState.lastRoutineMonth = currentMonthString;
-          addLog(newState, '內政', `糧草滿編，防禦陣地穩固，獲賞軍功 +${totalGained}。`);
-          saveGameState(newState);
-          showToast(`巡視完成，軍功 +${totalGained}`, 'success');
-        } else {
-          showToast("將軍，您的雙防禦（預備金 20萬、娛樂流動金 5萬）尚未滿編！", 'error');
-        }
-      };
-
-      const drawOfficer = () => {
-        if (merit < 300) {
-          showToast("軍功不足 300，無法設宴招賢！", 'warn');
-          return;
-        }
-        let newState = JSON.parse(JSON.stringify(gameState));
-        
-        const unowned = OFFICERS.filter(o => !newState.ownedOfficers.includes(o.id));
-        if (unowned.length === 0) {
-          showToast("天下英傑已盡歸麾下！", 'info');
-          return;
-        }
-
-        newState.merit -= 300; 
-        const drawn = unowned[Math.floor(Math.random() * unowned.length)];
-        newState.ownedOfficers.push(drawn.id);
-        addLog(newState, '招賢', `耗費 300 軍功，登庸名將【${drawn.name}】！`);
-        saveGameState(newState);
-        setGachaResult(drawn);
-      };
-
-      const handleAssetChange = (key, val) => {
-        if (!localAssets) setLocalAssets({ ...assets, [key]: val });
-        else setLocalAssets({ ...localAssets, [key]: val });
-      };
-
-      const handleAssetBlur = () => {
-        if (localAssets) {
-          let newState = JSON.parse(JSON.stringify(gameState));
-          newState.assets = localAssets;
-          saveGameState(newState);
-          setLocalAssets(null);
-          showToast("帳冊已更新至本機", 'success');
-        }
-      };
-
-      // ================= 兵符管理 (匯出/匯入) =================
-      const handleExport = () => {
-        const dataStr = JSON.stringify(gameState);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `戰略圖兵符_建安${jianAnYear}年${currentRealMonth}月.json`;
-        document.body.appendChild(link);
-        link.click();
-        
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        showToast("兵符已成功匯出備份！", "success");
-      };
-
-      const handleImport = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const importedState = JSON.parse(e.target.result);
-            if (importedState && importedState.assets && importedState.merit !== undefined) {
-              saveGameState(importedState);
-              showToast("兵符匯入成功，天下大勢已更新！", "success");
-            } else {
-              showToast("兵符格式錯誤，無法解讀！", "error");
-            }
-          } catch (error) {
-            showToast("兵符毀損，無法解讀！", "error");
-          }
-        };
-        reader.readAsText(file);
-        event.target.value = null; // 重置 input
-      };
-
-      const selectedProvince = provincesState.find(p => p.id === selectedProvinceId);
-      const canInvestThisMonth = lastInvestMonth !== currentMonthString;
-      const canDoRoutineThisMonth = lastRoutineMonth !== currentMonthString;
-      const occupiedCount = provincesState.filter(p => p.isOccupied).length;
-
-      return (
-        <div className="h-screen w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
-          
-          {toastMessage && (
-            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
-              <div className={`px-6 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center gap-2
-                ${toastMessage.type === 'error' ? 'bg-[#3b0f0f]/90 text-red-300 border-red-800' : 
-                  toastMessage.type === 'success' ? 'bg-[#0f291e]/90 text-green-300 border-green-800' : 
-                  toastMessage.type === 'warn' ? 'bg-[#3b2d0f]/90 text-yellow-300 border-yellow-800' : 
-                  'bg-[#0f172a]/90 text-blue-300 border-blue-800'}`}
-              >
-                {toastMessage.msg}
-              </div>
-            </div>
-          )}
-
-          {gachaResult && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4" onClick={() => setGachaResult(null)}>
-              <div className={`border-2 ${gachaResult.border} ${gachaResult.bg} w-full max-w-xs relative shadow-2xl animate-[stampIn_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]`}>
-                <div className="absolute inset-0 bg-[#0c0906] opacity-80 pointer-events-none mix-blend-multiply"></div>
-                
-                <div className={`absolute inset-0 flex items-center justify-center text-9xl font-black opacity-10 select-none pointer-events-none ${gachaResult.color}`}>
-                  {gachaResult.faction}
-                </div>
-                
-                <div className="relative z-10 flex flex-col items-center p-8">
-                  <div className={`text-xs tracking-widest mb-4 font-bold border ${gachaResult.border} px-3 py-1 bg-black/50 ${gachaResult.color}`}>
-                    【 {gachaResult.faction}軍將領 】
-                  </div>
-                  <h3 className={`text-4xl font-black mb-8 tracking-widest ${gachaResult.color} drop-shadow-lg`}>
-                    {gachaResult.name}
-                  </h3>
-                  
-                  <div className="w-full bg-[#0a0705]/80 border border-[#3e2723] p-4 mb-4 backdrop-blur-sm">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-[#a3947c] text-sm">定位</span>
-                      <span className="text-[#e3dac9] font-bold">{gachaResult.type} <span className={gachaResult.color}>{gachaResult.stat}</span></span>
-                    </div>
-                    <div className="flex justify-between items-center border-t border-[#3e2723] pt-2">
-                      <span className="text-[#a3947c] text-sm">被動 (軍功/月)</span>
-                      <span className="text-green-400 font-mono font-bold text-sm">+{((gachaResult.stat)/100).toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <p className="text-[#8c7e6a] text-xs mt-2 animate-pulse">點擊任意處收入麾下</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeEvent && !gachaResult && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-              <div className="bg-[#1c1814] border-2 border-[#b8860b] w-full max-w-sm relative shadow-2xl animate-[slideUp_0.3s_ease-out]">
-                
-                <div className="p-4 border-b border-[#4a3525] flex justify-between items-center bg-[#0a0705]">
-                  <h3 className="text-lg font-black tracking-widest text-[#d4af37]">邊關急報</h3>
-                  <div className="w-5 h-5 text-[#d4af37]"><ICONS.Scroll className="w-full h-full"/></div>
-                </div>
-
-                <div className="p-6 relative z-10">
-                  <h4 className="text-xl font-bold text-[#e3dac9] mb-3 text-center">{activeEvent.title}</h4>
-                  <p className="text-[#a3947c] text-sm mb-6 text-center leading-relaxed bg-[#0a0705] p-3 border border-[#3e2723]">{activeEvent.msg}</p>
-                  
-                  <div className="flex justify-center mb-6">
-                    <div className={`px-6 py-2 text-base font-bold border rounded-sm shadow-inner
-                      ${activeEvent.merit > 0 ? 'bg-[#0f291e] text-green-400 border-green-700' : 
-                        activeEvent.merit < 0 ? 'bg-[#3b0f0f] text-red-400 border-red-700' : 'bg-[#1a1a1a] text-gray-400 border-gray-600'}`}>
-                      軍功波動 {activeEvent.merit > 0 ? '+' : ''}{activeEvent.merit}
-                    </div>
-                  </div>
-
-                  <button onClick={() => setActiveEvent(null)} className="w-full bg-[#2a2218] text-[#d4af37] border border-[#b8860b] font-bold py-3 text-sm hover:bg-[#3a2f22] active:scale-95 transition-all tracking-widest">
-                    確認
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl relative">
-            
-            <div className="flex justify-between items-center px-4 py-3 relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
-                  <span className="text-lg font-black text-[#e3dac9] leading-none mb-1">魏</span>
-                  <span className="text-[9px] text-[#d4af37] bg-[#2a2218] px-1 border border-[#4a3525] rounded-sm whitespace-nowrap">{playerTitle}</span>
-                </div>
-                <div>
-                  <h1 className="font-bold text-xl tracking-widest text-[#d4af37] drop-shadow-md">戰略圖</h1>
-                  <div className="text-[10px] text-[#8c7e6a] flex items-center gap-1.5 mt-1 font-mono">
-                    <span>建安{jianAnYear}年{currentRealMonth}月</span>
-                    <span className={`text-[9px] ml-1 px-1.5 py-0.5 rounded-sm border ${syncStatus.includes('已儲存') ? 'border-green-500 text-green-400 bg-green-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>{syncStatus}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-right flex flex-col items-end justify-center">
-                <div className="text-[10px] text-[#a3947c] tracking-widest mb-1">總兵力 (淨戰力)</div>
-                <div className={`text-2xl font-bold font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
-                  {(stats.netWorth / 10000).toFixed(0)} <span className="text-xs text-[#d4af37] font-serif">萬</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex px-4 py-2 gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide text-[11px] font-mono bg-[#0a0705] border-t border-[#2a1a15] relative z-10 shadow-inner">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
-                <span className="text-[#a3947c] font-serif">軍功</span> <span className="text-[#ffd700] font-bold">{merit.toFixed(1)}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
-                <span className="text-[#a3947c] font-serif">糧草</span> <span className="text-[#4ade80]">{(stats.cash / 10000).toFixed(2)}w</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
-                <span className="text-[#a3947c] font-serif">騎兵</span> <span className="text-[#60a5fa]">{(stats.crypto / 10000).toFixed(2)}w</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
-                <span className="text-[#a3947c] font-serif">步兵</span> <span className="text-[#c084fc]">{(stats.trad / 10000).toFixed(2)}w</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#3b0f0f]/80 border border-red-900">
-                <span className="text-red-300 font-serif">傭兵(信貸)</span> <span className="text-red-400 font-bold">-{(stats.debt / 10000).toFixed(2)}w</span>
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1 overflow-y-auto relative bg-[#0c1014] scrollbar-hide">
-            <div className="relative z-10 w-full h-full flex flex-col">
-              
-              {/* ================= MAP TAB (地圖視覺升級與縮放功能) ================= */}
-              {activeTab === 'map' && (
-                <div className="flex flex-col h-full relative">
-                  
-                  {/* === 原生縮放面板 === */}
-                  <div className="absolute top-4 right-4 z-[60] flex flex-col gap-2">
-                    <button onClick={() => setMapZoom(z => Math.min(z + 0.25, 2.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">+</button>
-                    <button onClick={() => setMapZoom(1)} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#8c7e6a] rounded-sm font-bold text-xs shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">重置</button>
-                    <button onClick={() => setMapZoom(z => Math.max(z - 0.25, 0.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">-</button>
-                  </div>
-
-                  <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
-                    
-                    {/* 地圖縮放包裝層 */}
-                    <div className="relative origin-top-left transition-transform duration-300" style={{ transform: `scale(${mapZoom})`, width: '1600px', height: '1200px' }}>
-                      
-                      {/* 豐富的 SVG 地理環境與州域浮水印 */}
-                      <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-                        
-                        {/* 基礎背景色 */}
-                        <rect width="100%" height="100%" fill="#13181f" opacity="0.9"/>
-                        
-                        {/* 勢力板塊渲染 (幽州/冀州/江東/荊楚/巴蜀) */}
-                        <ellipse cx="70%" cy="25%" rx="35%" ry="25%" fill="#1e3a8a" opacity="0.1" filter="blur(80px)" />
-                        <ellipse cx="25%" cy="60%" rx="20%" ry="35%" fill="#14532d" opacity="0.1" filter="blur(80px)" />
-                        <ellipse cx="75%" cy="65%" rx="30%" ry="25%" fill="#7f1d1d" opacity="0.1" filter="blur(80px)" />
-                        <ellipse cx="50%" cy="50%" rx="20%" ry="20%" fill="#b45309" opacity="0.08" filter="blur(60px)" />
-
-                        {/* 長江 (水系) */}
-                        <path d="M 0 650 Q 300 750 600 680 T 1100 600 T 1600 650" fill="none" stroke="#0ea5e9" strokeWidth="12" opacity="0.3" strokeLinecap="round" />
-                        <path d="M 0 650 Q 300 750 600 680 T 1100 600 T 1600 650" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
-
-                        {/* 黃河 (水系) */}
-                        <path d="M 100 400 Q 300 200 600 350 T 1000 280 T 1600 300" fill="none" stroke="#0284c7" strokeWidth="10" opacity="0.3" strokeLinecap="round" />
-                        <path d="M 100 400 Q 300 200 600 350 T 1000 280 T 1600 300" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
-
-                        {/* 山脈 (地形輪廓) */}
-                        <path d="M 250 450 Q 400 480 500 420" fill="none" stroke="#3f3f46" strokeWidth="25" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
-                        <path d="M 500 150 Q 550 250 500 350" fill="none" stroke="#3f3f46" strokeWidth="20" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
-
-                        {/* 古代州域浮水印 */}
-                        <text x="700" y="150" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">幽州</text>
-                        <text x="650" y="300" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">冀州</text>
-                        <text x="450" y="200" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">并州</text>
-                        <text x="850" y="320" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">青州</text>
-                        <text x="650" y="420" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">兗州</text>
-                        <text x="820" y="450" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">徐州</text>
-                        <text x="680" y="520" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">豫州</text>
-                        <text x="450" y="420" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">司隸</text>
-                        <text x="200" y="300" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">涼州</text>
-                        <text x="200" y="650" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">益州</text>
-                        <text x="550" y="680" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">荊州</text>
-                        <text x="800" y="650" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">揚州</text>
-                        <text x="450" y="900" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">交州</text>
-                      </svg>
-
-                      {/* 輕量級六角形網格紋理 (取代耗能濾鏡) */}
-                      <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px' }}></div>
-
-                      {provincesState.map(prov => (
-                        <div key={prov.id}
-                          className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer flex flex-col items-center group z-10"
-                          style={{ left: `${prov.x}%`, top: `${prov.y}%` }}
-                          onClick={() => setSelectedProvinceId(prov.id)}
-                        >
-                          <div className={`relative w-12 h-12 flex items-center justify-center transition-all duration-300
-                            ${selectedProvinceId === prov.id ? 'scale-125 z-20 drop-shadow-[0_0_15px_rgba(212,175,55,0.8)]' : 'hover:scale-110'}
-                            ${prov.isOccupied ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'text-gray-600'}`}
-                          >
-                            <ICONS.Castle className="w-full h-full" />
-                            {prov.isOccupied && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-900 border border-blue-400 rounded-sm text-[9px] flex items-center justify-center font-bold text-white shadow-lg">魏</div>
-                            )}
-                            {selectedProvinceId === prov.id && (
-                              <div className="absolute inset-[-8px] border border-[#d4af37] animate-ping rounded-full opacity-40"></div>
-                            )}
-                          </div>
-                          
-                          <div className={`mt-1 px-2 py-0.5 text-[10px] md:text-xs font-bold border rounded-sm shadow-xl whitespace-nowrap tracking-widest backdrop-blur-sm
-                            ${selectedProvinceId === prov.id ? 'bg-[#d4af37] text-black border-white' : 
-                              prov.isOccupied ? 'bg-[#0f172a]/90 border-blue-500 text-blue-200' : 'bg-[#1a1111]/90 border-red-900/50 text-gray-400'}`}>
-                            {prov.name}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="h-48 bg-[#1a1410] border-t-2 border-[#b8860b] p-4 flex flex-col relative shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.8)] z-20">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h2 className="text-[#d4af37] text-lg md:text-xl font-black tracking-widest flex items-center gap-2">
-                          {selectedProvince.name}
-                          <span className={`text-[9px] px-1.5 py-0.5 border rounded-sm font-bold ${selectedProvince.isOccupied ? 'text-blue-300 border-blue-500 bg-blue-900/50' : 'text-red-400 border-red-800 bg-red-950/50'}`}>
-                            {selectedProvince.isOccupied ? '已佔領' : '敵軍割據'}
-                          </span>
-                        </h2>
-                        <p className="text-[10px] md:text-xs text-[#a3947c] mt-1">{selectedProvince.title}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[10px] text-[#8c7e6a] tracking-widest">霸業進度</div>
-                        <div className="font-mono text-[#e3dac9] text-base md:text-lg">{occupiedCount}<span className="text-[#8c7e6a] text-xs">/{PROVINCES.length}</span></div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 mt-2 overflow-y-auto pr-2 scrollbar-hide">
-                      <ul className="space-y-3">
-                        {Object.entries(selectedProvince.req).map(([k, targetVal]) => {
-                          let current = 0;
-                          if (k === 'netWorth') current = stats.netWorth;
-                          else if (k === 'investCount') current = investCount;
-                          else if (k === 'debt') current = displayAssets.debt;
-                          else current = displayAssets[k] || 0;
-
-                          const isMet = k === 'debt' ? current <= targetVal : current >= targetVal;
-                          const progress = k === 'debt' ? (current === 0 ? 100 : 0) : Math.min(100, (current / targetVal) * 100);
-                          
-                          return (
-                            <li key={k} className="flex flex-col">
-                              <div className="flex justify-between mb-1 text-[10px] md:text-xs font-bold text-[#e3dac9]">
-                                <span>{selectedProvince.targetLabel}</span>
-                                <span className={isMet ? 'text-green-400' : 'text-red-400'}>{isMet ? '達成' : '未滿'}</span>
-                              </div>
-                              <div className="w-full bg-[#0a0705] h-1.5 rounded-full overflow-hidden border border-[#3e2723]">
-                                <div className={`h-full transition-all duration-1000 ${isMet ? 'bg-green-500' : 'bg-red-800'}`} style={{ width: `${progress}%` }}></div>
-                              </div>
-                              <div className="flex justify-between mt-1 text-[#8c7e6a] text-[9px] font-mono">
-                                <span>{current.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
-                                <span>/ {targetVal.toLocaleString()}</span>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ================= COMMAND TAB (內政軍令) ================= */}
-              {activeTab === 'command' && (
-                <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-6 h-full overflow-y-auto w-full">
-                  
-                  <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-[#b8860b]"></div>
-                    <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-4 tracking-widest flex items-center gap-2">
-                      <ICONS.Tent className="w-5 h-5"/> 頒布徵兵令 (閒錢定投)
-                    </h2>
-                    
-                    <div className="bg-[#0a0705] p-3 md:p-4 border border-[#3e2723] mb-5">
-                      <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed">
-                        將軍，軍餉即為戰力。發布軍令僅為推進霸業進度與累積軍功，<span className="text-green-400 font-bold">不扣除法幣餘額</span>。<br/>
-                        為確保戰力穩固，軍令僅限招募精銳部隊 (BTC, QQQ, VOO)。<br/>
-                        如欲同時<span className="text-red-400 font-bold">遣散傭兵(償還信貸)</span>，請於下方一併撥放糧草。
-                      </p>
-                      
-                      <div className="flex flex-col gap-3">
-                        <div>
-                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest">調度糧草 (投入額 TWD)</label>
-                          <input type="number" 
-                            value={investPlan.amount === 0 ? '' : investPlan.amount}
-                            onChange={(e) => setInvestPlan({...investPlan, amount: parseFloat(e.target.value) || 0})}
-                            className="w-full bg-[#1c1814] border border-[#4a3525] text-[#e3dac9] p-3 focus:outline-none focus:border-[#d4af37] font-mono text-base text-right rounded-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest">訓練精兵 (標的)</label>
-                          <select 
-                            value={investPlan.target}
-                            onChange={(e) => setInvestPlan({...investPlan, target: e.target.value})}
-                            className="w-full bg-[#1c1814] border border-[#4a3525] text-[#e3dac9] p-3 focus:outline-none focus:border-[#d4af37] font-bold text-sm rounded-sm appearance-none"
-                          >
-                            <option value="btc">虎豹騎 (BTC) - 前期主力</option>
-                            <option value="qqq">元戎弩 (QQQ) - 中期穩健</option>
-                            <option value="voo">重步兵 (VOO) - 後期防禦</option>
-                          </select>
-                        </div>
-                        <div className="mt-2 border-t border-[#3e2723] pt-3">
-                          <label className="text-[10px] md:text-xs text-red-400/80 mb-1 block tracking-widest">遣散傭兵 (償還信貸額 TWD)</label>
-                          <input type="number" 
-                            value={investPlan.repayAmount === 0 ? '' : investPlan.repayAmount}
-                            onChange={(e) => setInvestPlan({...investPlan, repayAmount: parseFloat(e.target.value) || 0})}
-                            className="w-full bg-[#1c1814] border border-red-900/50 text-red-300 p-3 focus:outline-none focus:border-red-500 font-mono text-base text-right rounded-sm"
-                            placeholder="輸入本月額外還款額"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={handlePayday} disabled={!canInvestThisMonth}
-                      className={`w-full py-3 md:py-4 font-black text-base md:text-lg border rounded-sm transition-all tracking-widest relative overflow-hidden
-                        ${canInvestThisMonth 
-                          ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000] active:scale-95 shadow-[0_0_10px_rgba(139,0,0,0.5)]' 
-                          : 'bg-[#1c1814] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
-                    >
-                      <span className="relative z-10">{canInvestThisMonth ? '確認出兵與軍務' : '本月軍令已畢'}</span>
-                    </button>
-                    
-                    <div className="mt-3 flex justify-between items-center text-[10px] md:text-xs bg-[#0a0705] p-2 border border-[#2a1a15]">
-                      <span className="text-[#a3947c]">武將被動: <span className="text-green-400">+{officerBuff.toFixed(2)}</span></span>
-                      <span className="text-[#a3947c]">羈絆加成: <span className="text-yellow-400">+{bondPaydayBuff}</span></span>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex justify-between items-center">
-                    <div>
-                      <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1">日常巡視 (雙防禦)</h3>
-                      <p className="text-[10px] text-[#8c7e6a]">檢閱預備金 20萬 & 娛樂流動金 5萬</p>
-                    </div>
-                    <button onClick={executeRoutineTask} disabled={!canDoRoutineThisMonth}
-                      className={`px-4 py-2 text-xs md:text-sm font-bold border rounded-sm tracking-widest whitespace-nowrap
-                        ${canDoRoutineThisMonth ? 'bg-[#0f291e] text-green-400 border-green-700 hover:bg-[#14532d] active:scale-95' : 'bg-[#0a0705] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
-                    >
-                      {canDoRoutineThisMonth ? `檢閱領賞 (+${30 + bondRoutineBuff})` : '已巡視'}
-                    </button>
-                  </div>
-
-                  <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex-1 min-h-[200px] flex flex-col">
-                    <h3 className="text-[#d4af37] text-sm md:text-base font-bold mb-3 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest shrink-0">
-                      <ICONS.Scroll className="w-4 h-4"/> 烽火紀年錄
-                    </h3>
-                    <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-2">
-                      {logs.length === 0 ? <p className="text-[#5c4033] text-center mt-6 text-xs">尚無戰事紀錄...</p> : 
-                        logs.map((log, i) => (
-                          <div key={i} className="flex gap-2 py-2 border-b border-[#2a1a15] items-start text-[10px] md:text-xs">
-                            <span className="text-[#8c7e6a] shrink-0 font-mono pt-0.5">[{log.date.slice(4)}]</span>
-                            <span className={`shrink-0 rounded-sm px-1.5 py-0.5 border font-bold
-                              ${log.type === '軍令' ? 'bg-[#3b0f0f] text-red-400 border-red-800' : 
-                                log.type === '內政' ? 'bg-[#0f291e] text-green-400 border-green-800' : 
-                                log.type === '招賢' ? 'bg-[#3b2d0f] text-yellow-400 border-yellow-800' : 
-                                'bg-gray-900 text-gray-400 border-gray-700'}`}>
-                              {log.type}
-                            </span>
-                            <span className="text-[#e3dac9] flex-1 leading-relaxed">{log.msg}</span>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ================= TAVERN TAB (招賢與羈絆) ================= */}
-              {activeTab === 'tavern' && (
-                <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
-                  
-                  <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="absolute inset-0 bg-wood opacity-30 pointer-events-none"></div>
-                    <div className="relative z-10 text-center md:text-left flex-1">
-                      <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest">
-                        <ICONS.Users className="w-5 h-5"/> 招賢館
-                      </h2>
-                      <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
-                        設宴招攬天下群雄 (每次 <span className="text-yellow-400 font-bold">300 軍功</span>)。每位將領都能提供微幅軍功加成，特定組合更可解鎖強大「羈絆」。
-                      </p>
-                    </div>
-                    
-                    <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto">
-                      <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1">軍功庫存</div>
-                      <div className="text-2xl font-bold text-yellow-400 font-mono mb-3">{merit.toFixed(0)}</div>
-                      <button onClick={drawOfficer} disabled={merit < 300}
-                        className={`w-full py-2.5 font-bold text-sm md:text-base border rounded-sm transition-all tracking-widest
-                          ${merit >= 300 ? 'bg-[#2a2218] text-[#d4af37] border-[#b8860b] hover:bg-[#3a2f22] active:scale-95' : 'bg-[#110a05] border-[#2a1a15] text-[#5c4033] cursor-not-allowed'}`}
-                      >
-                        設宴 (300)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mb-6">
-                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest border-l-4 border-[#b8860b] pl-2 mb-3 flex items-center gap-2">
-                      <ICONS.Link className="w-4 h-4"/> 英雄羈絆
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {BONDS.map(bond => {
-                        const isActive = bond.req.every(reqId => ownedOfficers.includes(reqId));
-                        return (
-                          <div key={bond.id} className={`p-3 border rounded-sm relative overflow-hidden transition-colors
-                            ${isActive ? 'bg-[#2a2218] border-[#d4af37]' : 'bg-[#0a0705] border-[#2a1a15]'}`}>
-                            {isActive && <div className="absolute right-[-20px] top-[10px] transform rotate-45 bg-[#b8860b] text-black text-[9px] font-bold py-0.5 w-24 text-center">已解鎖</div>}
-                            <h4 className={`font-bold text-sm mb-1 tracking-widest ${isActive ? 'text-[#d4af37]' : 'text-[#8c7e6a]'}`}>{bond.name}</h4>
-                            <p className={`text-[10px] ${isActive ? 'text-[#e3dac9]' : 'text-[#5c4033]'}`}>{bond.desc}</p>
-                            <div className="flex gap-1 mt-2">
-                              {bond.req.map(reqId => {
-                                const isOwned = ownedOfficers.includes(reqId);
-                                const off = OFFICERS.find(o => o.id === reqId);
-                                return (
-                                  <span key={reqId} className={`text-[9px] px-1 py-0.5 border rounded-sm
-                                    ${isOwned ? `border-gray-500 text-gray-300 bg-gray-800` : 'border-[#2a1a15] text-[#4a3525]'}`}>
-                                    {off?.name || '?'}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-end mb-3 border-b border-[#3e2723] pb-2 px-1">
-                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest">麾下名將</h3>
-                    <span className="text-[10px] md:text-xs text-[#8c7e6a] font-mono">{ownedOfficers.length} / {OFFICERS.length}</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-3">
-                    {ownedOfficers.length === 0 ? <div className="col-span-full py-10 text-center text-[#5c4033] text-xs">尚無將領，大營空虛。</div> : 
-                      [...ownedOfficers].reverse().map(id => {
-                        const officer = OFFICERS.find(o => o.id === id);
-                        if(!officer) return null;
-                        return (
-                          <div key={id} className={`bg-[#0a0705] border p-2 flex flex-col items-center relative overflow-hidden ${officer.border}`}>
-                            <div className={`absolute top-0 right-0 px-1.5 py-0.5 text-[8px] font-black ${officer.bg} ${officer.color} border-b border-l ${officer.border}`}>
-                              {officer.faction}
-                            </div>
-                            <div className={`text-xs md:text-sm font-bold mt-4 mb-1 tracking-widest ${officer.color}`}>{officer.name}</div>
-                            <div className="text-[9px] text-[#a3947c]">{officer.type} <span className="text-white font-mono">{officer.stat}</span></div>
-                            <div className="w-full border-t border-[#2a1a15] mt-1 pt-1 text-center text-green-500 font-mono text-[9px]">
-                              +{((officer.stat)/100).toFixed(2)}
-                            </div>
-                          </div>
-                        );
-                      })
-                    }
-                  </div>
-                </div>
-              )}
-
-              {/* ================= LEDGER TAB (兵力編制) ================= */}
-              {activeTab === 'ledger' && (
-                <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
-                  
-                  <div className="bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 mb-5 shadow-lg">
-                    <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-2 flex items-center gap-2 tracking-widest">
-                      <ICONS.Scroll className="w-5 h-5"/> 兵力編制 (手動校準)
-                    </h2>
-                    <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
-                      將軍，請在此登記載路兵馬的數量。<br/>
-                      <span className="text-red-400">注意：</span> 步兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
-                    </p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {Object.keys(DEFAULT_GAME_STATE.assets).map(key => (
-                      <div key={key} className={`bg-[#1a1410] border p-3 transition-colors relative 
-                        ${key === 'debt' ? 'border-red-900 focus-within:border-red-500' : 'border-[#4a3525] focus-within:border-[#d4af37]'}`}>
-                        <label className="text-[10px] md:text-xs font-bold tracking-widest text-[#a3947c] mb-2 flex justify-between border-b border-[#3e2723] pb-1 uppercase">
-                          <span className={key === 'debt' ? 'text-red-400' : ''}>{
-                            key === 'twd' ? '活存現金' : key === 'emergency' ? '預備金' : key === 'entertainment' ? '娛樂金' :
-                            key === 'btc' ? 'BTC (顆數)' : key === 'eth' ? 'ETH (顆數)' : key === 'ada' ? 'ADA (顆數)' :
-                            key === 'qqq' ? 'QQQ (台幣現值)' : key === 'voo' ? 'VOO (台幣現值)' : key === 'debt' ? '信貸餘額 (扣除)' : key
-                          }</span>
-                        </label>
-                        <input 
-                          type="number" step="any" 
-                          value={displayAssets[key] === 0 ? '' : displayAssets[key]}
-                          onChange={(e) => {
-                            const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                            handleAssetChange(key, val);
-                          }}
-                          onBlur={handleAssetBlur}
-                          className={`w-full bg-[#0a0705] border border-[#3e2723] p-2 text-right text-sm md:text-base focus:outline-none font-mono shadow-inner
-                            ${key === 'debt' ? 'text-red-400 focus:border-red-500' : 'text-[#e3dac9] focus:border-[#d4af37]'}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* 兵符管理區塊 */}
-                  <div className="mt-8 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gray-500"></div>
-                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest">
-                      兵符閣 (存檔管理)
-                    </h3>
-                    <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
-                      為防天災人禍（如意外清除瀏覽器資料），請定期將兵符（本機存檔）匯出保管。<br/>
-                      若移防至新設備，可持舊兵符匯入，延續霸業。
-                    </p>
-                    <div className="flex gap-3">
-                      <button onClick={handleExport} className="flex-1 py-3 bg-[#2a2218] text-[#d4af37] border border-[#b8860b] rounded-sm font-bold tracking-widest hover:bg-[#3a2f22] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all">
-                        <ICONS.Download className="w-4 h-4" /> 匯出兵符
-                      </button>
-                      <button onClick={() => fileInputRef.current.click()} className="flex-1 py-3 bg-[#0a0705] text-[#a3947c] border border-[#4a3525] rounded-sm font-bold tracking-widest hover:bg-[#1a1410] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all">
-                        <ICONS.Upload className="w-4 h-4" /> 匯入兵符
-                      </button>
-                      {/* 隱藏的檔案上傳輸入框 */}
-                      <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} className="hidden" />
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
-            </div>
-          </main>
-
-          <nav className="bg-[#1a1410] border-t border-[#3e2723] flex justify-around items-center shrink-0 h-16 pb-safe z-40 relative shadow-[0_-5px_15px_rgba(0,0,0,0.5)]">
-            {[
-              { id: 'map', label: '大勢', icon: ICONS.Map },
-              { id: 'command', label: '軍令', icon: ICONS.Tent },
-              { id: 'tavern', label: '招賢', icon: ICONS.Users },
-              { id: 'ledger', label: '編制', icon: ICONS.Scroll },
-            ].map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center justify-center w-full h-full transition-colors relative
-                  ${activeTab === tab.id ? 'text-[#d4af37]' : 'text-[#5c4033] hover:text-[#8c7e6a]'}`}
-              >
-                {activeTab === tab.id && <div className="absolute top-0 w-8 h-0.5 bg-[#d4af37]"></div>}
-                <div className={`w-5 h-5 mb-1 ${activeTab === tab.id ? 'animate-bounce' : ''}`} style={{animationDuration: '2s'}}><tab.icon className="w-full h-full" /></div>
-                <span className="text-[10px] font-bold tracking-widest">{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-
-        </div>
-      );
-    }
-
-    // 啟動引擎
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    const DEFAULT_GAME_STATE = {
+      assets: { twd: 0, emergency: 0, entertainment: 0, btc: 1.5432, eth: 32, ada: 75000, qqq: 0, voo: 0, debt: 2800000 },
+      merit: 300, 
+      ownedOfficers: [], // 允許重複寫入，代表星級
+      occupiedProvinces: [], // 記錄打下的城池 ID
+      investCount: 0,
+      lastInvestMonth: "",
+      lastRoutineMonth: "", 
+      logs: []
+    };
+
+    const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
+
+    // 隨機事件
+    const RANDOM_EVENTS = [
+      { title: '天降祥瑞', msg: '境內出現白鹿祥瑞，軍心大振！', merit: 1, type: 'good' },
+      { title: '風調雨順', msg: '今年氣候宜人，屯田豐收，後勤無虞。', merit: 1, type: 'good' },
+      { title: '名士來投', msg: '有狂士路過大營，獻上奇策。', merit: 1, type: 'good' },
+      { title: '異族朝貢', msg: '邊疆異族感念將軍威名，進獻駿馬。', merit: 1, type: 'good' },
+      { title: '士兵操練', msg: '將士日夜操練，戰鬥力微幅提升。', merit: 1, type: 'good' },
+      { title: '清剿山賊', msg: '地方太守成功剿滅一窩山賊，百姓愛戴。', merit: 1, type: 'good' },
+      { title: '事事順心', msg: '你發現所有事情都朝著好的方向發展！', merit: 1, type: 'good' },
+      { title: '路不拾遺', msg: '領地治安良好，百姓安居樂業。', merit: 1, type: 'good' },
+      { title: '星夜巡防', msg: '主公連日夜巡營寨，身心勞頓。幸得回府休養，體力漸復！', merit: 1, type: 'good' },
+      { title: '急功近利', msg: '細作傳聞敵軍劫掠暴富，營中將士心生浮動。主公嚴明軍紀，不為所動！', merit: 1, type: 'good' },
+      { title: '識破偽書', msg: '敵軍傳來詐降偽書，意圖騙取輜重。主公慧眼識破，專注霸業！', merit: 1, type: 'good' },
+      { title: '膝下承歡', msg: '戰事暫歇，主公於府邸教導幼子，享天倫之樂，身心大悅！', merit: 10, type: 'good' },
+      { title: '豪強兼併', msg: '天下豪強瘋狂兼併土地，軍中議論紛紛。主公嚴守陣腳，穩固現金糧草！', merit: 1, type: 'good' },
+      { title: '挑燈夜讀', msg: '主公夫人徹夜研讀兵法，全軍受其毅力感召，操練更加勤奮！', merit: 1, type: 'good' },
+      { title: '糧價震盪', msg: '天下大旱導致糧價劇烈波動。主公無視商賈炒作，死守庫房底線！', merit: 1, type: 'good' },
+      { title: '發掘良才', msg: '主公於鄉野間尋得勇士，募兵成效卓著！', merit: 1, type: 'good' },
+      { title: '豪族資助', msg: '地方豪族感念主公恩德，私下捐獻糧草錙重。', merit: 1, type: 'good' },
+      { title: '商賈勞軍', msg: '過往商隊見我軍軍紀嚴明，主動獻上酒肉犒勞新兵。', merit: 1, type: 'good' },
+      { title: '流民來投', msg: '鄰州戰亂，大批流民仰慕主公仁德，自願編入行伍。', merit: 1, type: 'good' },
+      { title: '巧匠獻器', msg: '軍中巧匠改良了兵器鍛造之法，新兵裝備更加精良。', merit: 1, type: 'good' },
+      { title: '平穩度日', msg: '本月天下太平，無事發生，穩步發展。', merit: 0, type: 'neutral' },
+      { title: '流言蜚語', msg: '城中散佈著對將軍不利的流言，花費心力安撫。', merit: -1, type: 'bad' },
+      { title: '糧草受潮', msg: '連日大雨導致部分備用糧草發霉，軍心微挫。', merit: -1, type: 'bad' },
+      { title: '軍中風寒', msg: '換季時節，營中多有染上風寒者，影響操練。', merit: -1, type: 'bad' },
+      { title: '貪官汙吏', msg: '查獲地方小吏中飽私囊，雖已嚴懲但民怨微升。', merit: -1, type: 'bad' },
+      { title: '馬匹受驚', msg: '夜半營中馬匹受驚狂奔，踩傷數名士兵。', merit: -1, type: 'bad' },
+      { title: '盜賊橫行', msg: '邊境出現小股盜賊劫掠，調兵遣將平息。', merit: -1, type: 'bad' },
+      { title: '兵痞鬧事', msg: '新募兵丁不諳軍紀，與老兵發生械鬥，花費心力整頓。', merit: -1, type: 'bad' },
+      { title: '兵器生鏽', msg: '連日梅雨，庫房部分兵器生鏽，延宕了新軍成軍之日。', merit: -1, type: 'bad' },
+      { title: '糧道受阻', msg: '大雨沖毀運糧棧道，新兵補給短缺，士氣微降。', merit: -1, type: 'bad' },
+      { title: '細作潛入', msg: '敵軍細作混入新兵營中散佈謠言，幸及早查獲，稍損軍心。', merit: -1, type: 'bad' }
+    ];
+
+    // 城池戰略目標 (加入守軍 def 值供攻城系統計算)
+    const PROVINCES = [
+      { id: 'wancheng', name: '宛城', title: '築牆積糧', targetLabel: '雙防禦滿血', req: { emergency: 200000, entertainment: 50000 }, def: 30, x: 48, y: 55 },
+      { id: 'xuchang', name: '許昌', title: '百廢待興', targetLabel: '債務清零', req: { debt: 0 }, def: 50, x: 55, y: 48 },
+      { id: 'xiangyang', name: '襄陽', title: '主力成型', targetLabel: '虎豹騎 0.3 顆', req: { btc: 0.3 }, def: 120, x: 52, y: 65 },
+      { id: 'xinye', name: '新野', title: '火燒新野', targetLabel: '虎豹騎 1 顆', req: { btc: 1 }, def: 350, x: 52, y: 58 },
+      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '虎豹騎 2 顆', req: { btc: 2 }, def: 800, x: 45, y: 45 },
+      { id: 'guandu', name: '官渡', title: '鼎足三分', targetLabel: '虎豹騎 3 顆', req: { btc: 3 }, def: 1500, x: 58, y: 38 },
+      { id: 'chengdu', name: '成都', title: '西蜀天險', targetLabel: '元戎弩 200 萬', req: { qqq: 2000000 }, def: 250, x: 22, y: 68 },
+      { id: 'zhitong', name: '梓潼', title: '劍閣天險', targetLabel: '元戎弩 500 萬', req: { qqq: 5000000 }, def: 600, x: 25, y: 55 },
+      { id: 'baidi', name: '白帝城', title: '白帝託孤', targetLabel: '元戎弩 1000 萬', req: { qqq: 10000000 }, def: 1500, x: 35, y: 60 },
+      { id: 'changan', name: '長安', title: '關中霸主', targetLabel: '重步兵 200 萬', req: { voo: 2000000 }, def: 250, x: 40, y: 45 },
+      { id: 'tianshui', name: '天水', title: '收伏姜維', targetLabel: '重步兵 500 萬', req: { voo: 5000000 }, def: 600, x: 28, y: 40 },
+      { id: 'wuwei', name: '武威', title: '絲路霸主', targetLabel: '重步兵 1000 萬', req: { voo: 10000000 }, def: 1500, x: 18, y: 28 },
+      { id: 'jiangling', name: '江陵', title: '草創之初', targetLabel: '兵力 100 萬', req: { netWorth: 1000000 }, def: 80, x: 46, y: 72 },
+      { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '兵力 300 萬', req: { netWorth: 3000000 }, def: 280, x: 56, y: 70 },
+      { id: 'hanzhong', name: '漢中', title: '中原逐鹿', targetLabel: '兵力 1000 萬', req: { netWorth: 10000000 }, def: 950, x: 30, y: 50 },
+      { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '兵力 3000 萬', req: { netWorth: 30000000 }, def: 2800, x: 76, y: 62 },
+      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 5000 萬', req: { netWorth: 50000000 }, def: 4800, x: 68, y: 55 },
+      { id: 'ye', name: '鄴城', title: '河北霸主', targetLabel: '兵力 8000 萬', req: { netWorth: 80000000 }, def: 8500, x: 60, y: 32 },
+      { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '兵力 1 億', req: { netWorth: 100000000 }, def: 12000, x: 75, y: 15 },
+      { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '募兵 1 次', req: { investCount: 1 }, def: 10, x: 60, y: 45 },
+      { id: 'chaisang', name: '柴桑', title: '移鎮南疆', targetLabel: '募兵 12 次', req: { investCount: 12 }, def: 80, x: 65, y: 75 },
+      { id: 'xiapi', name: '下邳', title: '堅持一載', targetLabel: '募兵 24 次', req: { investCount: 24 }, def: 200, x: 72, y: 42 },
+      { id: 'xuzhou', name: '徐州', title: '持之以恆', targetLabel: '募兵 36 次', req: { investCount: 36 }, def: 350, x: 80, y: 45 },
+      { id: 'puyang', name: '濮陽', title: '三年有成', targetLabel: '募兵 48 次', req: { investCount: 48 }, def: 550, x: 65, y: 38 },
+      { id: 'beihai', name: '北海', title: '聲名遠播', targetLabel: '募兵 60 次', req: { investCount: 60 }, def: 800, x: 82, y: 35 },
+      { id: 'pingyuan', name: '平原', title: '半璧江山', targetLabel: '募兵 66 次', req: { investCount: 66 }, def: 1100, x: 70, y: 28 },
+      { id: 'jinyang', name: '晉陽', title: '威鎮北疆', targetLabel: '募兵 72 次', req: { investCount: 72 }, def: 1500, x: 48, y: 22 },
+      { id: 'jicheng', name: '薊城', title: '七年之癢', targetLabel: '募兵 84 次', req: { investCount: 84 }, def: 2000, x: 65, y: 18 },
+      { id: 'xiangping', name: '襄平', title: '十年磨劍', targetLabel: '募兵 120 次', req: { investCount: 120 }, def: 3500, x: 88, y: 10 },
+      { id: 'changsha', name: '長沙', title: '荊南四郡', targetLabel: '募兵 144 次', req: { investCount: 144 }, def: 5000, x: 55, y: 80 },
+      { id: 'guiyang', name: '桂陽', title: '南征北討', targetLabel: '募兵 160 次', req: { investCount: 160 }, def: 6500, x: 50, y: 88 },
+      { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '募兵 180 次', req: { investCount: 180 }, def: 8500, x: 18, y: 85 },
+      { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '募兵 200 次', req: { investCount: 200 }, def: 11000, x: 88, y: 72 },
+      { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, def: 15000, x: 32, y: 92 }
+    ];
+
+    const RAW_OFFICERS = [
+      { id: 1, name: '曹操', stat: 98, type: '統帥' }, { id: 2, name: '司馬懿', stat: 99, type: '智力' }, { id: 3, name: '郭嘉', stat: 98, type: '智力' },
+      { id: 4, name: '荀彧', stat: 95, type: '政治' }, { id: 5, name: '張遼', stat: 92, type: '統帥' }, { id: 6, name: '夏侯惇', stat: 90, type: '武力' },
+      { id: 7, name: '夏侯淵', stat: 91, type: '武力' }, { id: 8, name: '許褚', stat: 96, type: '武力' }, { id: 9, name: '典韋', stat: 95, type: '武力' },
+      { id: 10, name: '徐晃', stat: 91, type: '武力' }, { id: 11, name: '張郃', stat: 90, type: '武力' }, { id: 12, name: '賈詡', stat: 97, type: '智力' },
+      { id: 13, name: '曹仁', stat: 89, type: '統帥' }, { id: 14, name: '曹洪', stat: 81, type: '武力' }, { id: 15, name: '于禁', stat: 84, type: '統帥' },
+      { id: 16, name: '樂進', stat: 85, type: '武力' }, { id: 17, name: '荀攸', stat: 94, type: '智力' }, { id: 18, name: '程昱', stat: 90, type: '智力' },
+      { id: 19, name: '滿寵', stat: 84, type: '統帥' }, { id: 20, name: '龐德', stat: 94, type: '武力' }, { id: 21, name: '郝昭', stat: 89, type: '統帥' },
+      { id: 22, name: '曹丕', stat: 83, type: '政治' }, { id: 23, name: '司馬師', stat: 88, type: '統帥' }, { id: 24, name: '司馬昭', stat: 87, type: '政治' }, { id: 25, name: '鄧艾', stat: 94, type: '統帥' },
+      { id: 26, name: '劉備', stat: 80, type: '仁德' }, { id: 27, name: '諸葛亮', stat: 100, type: '智力' }, { id: 28, name: '關羽', stat: 97, type: '武力' },
+      { id: 29, name: '張飛', stat: 98, type: '武力' }, { id: 30, name: '趙雲', stat: 96, type: '武力' }, { id: 31, name: '馬超', stat: 97, type: '武力' },
+      { id: 32, name: '黃忠', stat: 93, type: '武力' }, { id: 33, name: '龐統', stat: 97, type: '智力' }, { id: 34, name: '姜維', stat: 90, type: '智力' },
+      { id: 35, name: '魏延', stat: 92, type: '武力' }, { id: 36, name: '法正', stat: 94, type: '智力' }, { id: 37, name: '馬良', stat: 85, type: '政治' },
+      { id: 38, name: '關平', stat: 82, type: '武力' }, { id: 39, name: '周倉', stat: 84, type: '武力' }, { id: 40, name: '徐庶', stat: 93, type: '智力' },
+      { id: 41, name: '劉禪', stat: 30, type: '魅力' }, { id: 42, name: '星彩', stat: 81, type: '武力' }, { id: 43, name: '嚴顏', stat: 83, type: '武力' },
+      { id: 44, name: '王平', stat: 83, type: '統帥' }, { id: 45, name: '廖化', stat: 78, type: '武力' }, { id: 46, name: '蔣琬', stat: 88, type: '政治' },
+      { id: 47, name: '費禕', stat: 85, type: '政治' }, { id: 48, name: '孟獲', stat: 87, type: '武力' }, { id: 49, name: '祝融', stat: 85, type: '武力' }, { id: 50, name: '馬岱', stat: 85, type: '武力' },
+      { id: 51, name: '孫權', stat: 85, type: '統帥' }, { id: 52, name: '周瑜', stat: 96, type: '智力' }, { id: 53, name: '陸遜', stat: 95, type: '智力' },
+      { id: 54, name: '甘寧', stat: 94, type: '武力' }, { id: 55, name: '太史慈', stat: 93, type: '武力' }, { id: 56, name: '呂蒙', stat: 89, type: '統帥' },
+      { id: 57, name: '魯肅', stat: 92, type: '政治' }, { id: 58, name: '黃蓋', stat: 83, type: '武力' }, { id: 59, name: '孫堅', stat: 93, type: '統帥' },
+      { id: 60, name: '孫策', stat: 96, type: '武力' }, { id: 61, name: '程普', stat: 84, type: '統帥' }, { id: 62, name: '韓當', stat: 82, type: '武力' },
+      { id: 63, name: '周泰', stat: 91, type: '武力' }, { id: 64, name: '蔣欽', stat: 81, type: '武力' }, { id: 65, name: '凌統', stat: 89, type: '武力' },
+      { id: 66, name: '丁奉', stat: 80, type: '武力' }, { id: 67, name: '徐盛', stat: 82, type: '統帥' }, { id: 68, name: '潘璋', stat: 80, type: '武力' },
+      { id: 69, name: '張昭', stat: 94, type: '政治' }, { id: 70, name: '張紘', stat: 93, type: '政治' }, { id: 71, name: '大喬', stat: 86, type: '魅力' },
+      { id: 72, name: '小喬', stat: 88, type: '魅力' }, { id: 73, name: '孫尚香', stat: 85, type: '武力' }, { id: 74, name: '諸葛瑾', stat: 85, type: '政治' }, { id: 75, name: '陸抗', stat: 92, type: '統帥' },
+      { id: 76, name: '呂布', stat: 100, type: '武力' }, { id: 77, name: '貂蟬', stat: 95, type: '魅力' }, { id: 78, name: '董卓', stat: 87, type: '武力' },
+      { id: 79, name: '袁紹', stat: 81, type: '統帥' }, { id: 80, name: '顏良', stat: 93, type: '武力' }, { id: 81, name: '文醜', stat: 94, type: '武力' },
+      { id: 82, name: '袁術', stat: 65, type: '政治' }, { id: 83, name: '劉表', stat: 75, type: '政治' }, { id: 84, name: '馬騰', stat: 85, type: '統帥' },
+      { id: 85, name: '公孫瓚', stat: 84, type: '統帥' }, { id: 86, name: '華佗', stat: 99, type: '政治' }, { id: 87, name: '左慈', stat: 100, type: '智力' },
+      { id: 88, name: '于吉', stat: 96, type: '智力' }, { id: 89, name: '高順', stat: 89, type: '武力' }, { id: 90, name: '陳宮', stat: 89, type: '智力' },
+      { id: 91, name: '田豐', stat: 93, type: '智力' }, { id: 92, name: '沮授', stat: 90, type: '智力' }, { id: 93, name: '張角', stat: 96, type: '智力' },
+      { id: 94, name: '紀靈', stat: 83, type: '武力' }, { id: 95, name: '張魯', stat: 75, type: '政治' }, { id: 96, name: '韓遂', stat: 78, type: '統帥' },
+      { id: 97, name: '蔡文姬', stat: 85, type: '魅力' }, { id: 98, name: '李儒', stat: 93, type: '智力' }, { id: 99, name: '張任', stat: 85, type: '武力' }, { id: 100, name: '皇甫嵩', stat: 88, type: '統帥' },
+      { id: 101, name: '太座', stat: 85, type: '魅力' }, { id: 102, name: '肉球', stat: 3, type: '智力' }, { id: 103, name: '華雄', stat: 88, type: '武力' }, { id: 104, name: '相國蕭何', stat: 120, type: '政治' },
+      { id: 105, name: '西楚霸王', stat: 105, type: '武力' }, { id: 106, name: '兵仙韓信', stat: 100, type: '統帥' }, { id: 107, name: '謀聖張良', stat: 100, type: '智力' }, { id: 108, name: '絕代虞姬', stat: 100, type: '魅力'}
+    ];
+
+    const OFFICERS = RAW_OFFICERS.map(o => {
+      let faction = '群'; let color = 'text-gray-300'; let bg = 'bg-gray-900'; let border = 'border-gray-600';
+      if (o.id <= 25) { faction = '魏'; color = 'text-blue-300'; bg = 'bg-blue-950/60'; border = 'border-blue-700'; }
+      else if (o.id <= 50) { faction = '蜀'; color = 'text-green-300'; bg = 'bg-green-950/60'; border = 'border-green-700'; }
+      else if (o.id <= 75) { faction = '吳'; color = 'text-red-300'; bg = 'bg-red-950/60'; border = 'border-red-700'; }
+      else if (o.id > 100 && o.id !== 103) { 
+        faction = '神'; color = 'text-yellow-300'; bg = 'bg-yellow-900/60'; border = 'border-yellow-400'; 
+      }
+      return { ...o, faction, color, bg, border };
+    });
+
+    const BONDS = [
+      { id: 'taoyuan', name: '桃園結義', req: [26, 28, 29], desc: '劉關張齊聚。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'wuhu', name: '五虎上將', req: [28, 29, 30, 31, 32], desc: '蜀國最強戰力。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'wuzi', name: '五子良將', req: [5, 16, 15, 11, 10], desc: '魏國前線棟樑。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'erqiao', name: '江東二喬', req: [71, 72], desc: '絕世美人。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
+      { id: 'wolongfengchu', name: '臥龍鳳雛', req: [27, 33], desc: '得一可安天下。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'lubudiaochan', name: '英雄美人', req: [76, 77], desc: '呂布與貂蟬。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
+      { id: 'sunjianzi', name: '江東猛虎', req: [59, 60, 51], desc: '孫家父子。每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'han_trinity', name: '漢初三傑', req: [104, 106, 107], desc: '張良、蕭何、韓信齊聚。兵法內政登峰造極！每次徵兵額外 +1 軍功。', bonusPayday: 1, bonusRoutine: 0 },
+      { id: 'chu_han', name: '霸王別姬', req: [105, 108], desc: '項羽與絕世佳人。戰鬥力突破天際。每月巡視額外 +1 軍功。', bonusPayday: 0, bonusRoutine: 1 },
+    ];
+
+    const TITLES = [
+      { rank: '平民', min: 0 }, { rank: '縣令', min: 1000000 }, { rank: '太守', min: 3000000 },
+      { rank: '刺史', min: 10000000 }, { rank: '州牧', min: 30000000 }, { rank: '大將軍', min: 50000000 },
+      { rank: '魏王', min: 100000000 }, { rank: '皇帝', min: 200000000 }
+    ];
+
+    const ICONS = {
+      Castle: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M4 21h16v-6h-2v4H6v-4H4v6zm14-10V5l-6 3-6-3v6l6 3 6-3z"/></svg>,
+      Sword: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5m-3.5-3.5 4-4L22 4V1h-3l-4.5 4.5"/></svg>,
+      Scroll: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="10" x2="16" y1="6" y2="6"/><line x1="10" x2="16" y1="10" y2="10"/></svg>,
+      Map: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6z"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>,
+      Tent: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M12 3l9 18M12 3L3 21"/><path d="M12 3v18M8 13h8"/></svg>,
+      Users: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      Download: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+      Upload: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+    };
+
+    function App() {
+      // 升級至 v3 獨立存檔，避免與前兩版衝突
+      const [gameState, setGameState] = useState(() => {
+        const saved = localStorage.getItem('wealth_game_save_v3');
+        let parsed = saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
+        if (!parsed.occupiedProvinces) parsed.occupiedProvinces = [];
+        return parsed;
+      });
+      
+      const [prices, setPrices] = useState(FALLBACK_PRICES);
+      const [weather, setWeather] = useState({ trend: 'neutral', change: 0, desc: '風平浪靜' });
+      
+      const [investPlan, setInvestPlan] = useState({ amount: 10000, repayAmount: 0, target: 'btc' });
+      const [activeTab, setActiveTab] = useState('map');
+      const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
+      const [syncStatus, setSyncStatus] = useState('實體隔離中');
+      
+      // 攻城系統狀態
+      const [siegeMode, setSiegeMode] = useState(false);
+      const [siegeGenerals, setSiegeGenerals] = useState([]);
+      const [combatResult, setCombatResult] = useState(null);
+
+      const [gachaResult, setGachaResult] = useState(null);
+      const [activeEvent, setActiveEvent] = useState(null);
+      const [toastMessage, setToastMessage] = useState(null);
+      const [localAssets, setLocalAssets] = useState(null);
+      const [mapZoom, setMapZoom] = useState(1);
+
+      const fileInputRef = useRef(null);
+
+      const realDate = new Date();
+      const currentRealYear = realDate.getFullYear();
+      const currentRealMonth = realDate.getMonth() + 1;
+      const currentMonthString = `${currentRealYear}-${String(currentRealMonth).padStart(2, '0')}`;
+      const jianAnYear = Math.max(0, currentRealYear - 2026);
+
+      useEffect(() => {
+        const fetchPricesAndWeather = async () => {
+          try {
+            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,cardano&vs_currencies=twd&include_24hr_change=true');
+            if (res.ok) {
+              const data = await res.json();
+              setPrices(prev => ({
+                ...prev, 
+                btc: data.bitcoin?.twd || prev.btc, 
+                eth: data.ethereum?.twd || prev.eth, 
+                ada: data.cardano?.twd || prev.ada,
+              }));
+              
+              const btcChange = data.bitcoin?.twd_24h_change || 0;
+              if (btcChange >= 2) setWeather({ trend: 'bull', change: btcChange, desc: '紫微星明 (戰力+20%)' });
+              else if (btcChange <= -2) setWeather({ trend: 'bear', change: btcChange, desc: '天狗食月 (戰力-10%)' });
+              else setWeather({ trend: 'neutral', change: btcChange, desc: '風平浪靜' });
+            }
+          } catch (error) {}
+        };
+        fetchPricesAndWeather();
+      }, []);
+
+      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, logs } = gameState;
+      const displayAssets = localAssets || assets;
+
+      // 總資產計算 (扣除信貸)
+      const stats = useMemo(() => {
+        const crypto = (displayAssets.btc * prices.btc) + (displayAssets.eth * prices.eth) + (displayAssets.ada * prices.ada);
+        const trad = displayAssets.qqq + displayAssets.voo; 
+        const cash = displayAssets.twd + displayAssets.emergency + displayAssets.entertainment;
+        const netWorth = crypto + trad + cash - displayAssets.debt;
+        return { crypto, trad, cash, netWorth, debt: displayAssets.debt };
+      }, [displayAssets, prices]);
+
+      const playerTitle = useMemo(() => {
+        let currentTitle = TITLES[0].rank;
+        for (let t of TITLES) {
+          if (stats.netWorth >= t.min) currentTitle = t.rank;
+        }
+        return currentTitle;
+      }, [stats.netWorth]);
+
+      // 武將星級與加成 (持有數量 = 星級)
+      const officerStats = useMemo(() => {
+        let totalPassiveBuff = 0;
+        const roster = {}; 
+        ownedOfficers.forEach(id => { roster[id] = (roster[id] || 0) + 1; });
+        
+        Object.entries(roster).forEach(([idStr, level]) => {
+          const off = OFFICERS.find(o => o.id === parseInt(idStr));
+          if (off) totalPassiveBuff += (off.stat / 100) * (1 + (level - 1) * 0.2); 
+        });
+        
+        return { roster, passiveBuff: totalPassiveBuff };
+      }, [ownedOfficers]);
+
+      const activeBonds = useMemo(() => {
+        const uniqueOwned = [...new Set(ownedOfficers)];
+        return BONDS.filter(bond => bond.req.every(reqId => uniqueOwned.includes(reqId)));
+      }, [ownedOfficers]);
+
+      const bondPaydayBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusPayday, 0), [activeBonds]);
+      const bondRoutineBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusRoutine, 0), [activeBonds]);
+
+      // 結算城池條件與佔領狀態
+      const provincesState = useMemo(() => {
+        return PROVINCES.map(prov => {
+          let isReqMet = true;
+          for (const [key, reqVal] of Object.entries(prov.req)) {
+            let current = 0;
+            if (key === 'netWorth') current = stats.netWorth;
+            else if (key === 'investCount') current = investCount;
+            else if (key === 'debt') current = displayAssets.debt;
+            else current = displayAssets[key] || 0;
+
+            if (key === 'debt') { if (current > reqVal) isReqMet = false; }
+            else { if (current < reqVal) isReqMet = false; }
+          }
+          const isConquered = occupiedProvinces.includes(prov.id);
+          return { ...prov, isReqMet, isConquered };
+        });
+      }, [displayAssets, stats, investCount, occupiedProvinces]);
+
+      const showToast = (msg, type = 'info') => {
+        setToastMessage({ msg, type });
+        setTimeout(() => setToastMessage(null), 3500);
+      };
+
+      const saveGameState = (newState) => {
+        setGameState(newState);
+        localStorage.setItem('wealth_game_save_v3', JSON.stringify(newState));
+        setSyncStatus('已儲存本機');
+        setTimeout(() => setSyncStatus('實體隔離中'), 2000);
+      };
+
+      // 核心機制修復一：城池動態失守系統 (Territory Loss Logic)
+      useEffect(() => {
+        if (!provincesState || provincesState.length === 0) return;
+        let lostNames = [];
+        let nextOccupied = [...occupiedProvinces];
+
+        provincesState.forEach(prov => {
+          // 如果已被佔領，但條件不再滿足 (例如幣價大跌或花費掉資產)
+          if (prov.isConquered && !prov.isReqMet) {
+            lostNames.push(prov.name);
+            nextOccupied = nextOccupied.filter(id => id !== prov.id);
+          }
+        });
+
+        if (lostNames.length > 0) {
+          setGameState(prev => {
+            const newState = JSON.parse(JSON.stringify(prev));
+            newState.occupiedProvinces = nextOccupied;
+            const dateStr = `建安${jianAnYear}年${currentRealMonth}月`;
+            newState.logs = [{ 
+              date: dateStr, type: '戰報', 
+              msg: `【城池失守】大盤震盪/軍資萎縮，防線空虛，敵軍趁機奪回了 ${lostNames.join('、')}！` 
+            }, ...(newState.logs || [])].slice(0, 50);
+            
+            localStorage.setItem('wealth_game_save_v3', JSON.stringify(newState));
+            return newState;
+          });
+          showToast(`警告！${lostNames.join('、')} 遭敵軍奪回！`, 'error');
+        }
+      }, [displayAssets, stats, investCount]); // 嚴格監聽資產與條件變數
+
+      const addLog = (newState, type, msg) => {
+        const dateStr = `建安${jianAnYear}年${currentRealMonth}月`;
+        newState.logs = [{ date: dateStr, type, msg }, ...(newState.logs || [])].slice(0, 50);
+      };
+
+      const handlePayday = () => {
+        if (lastInvestMonth === currentMonthString) {
+          showToast("本月軍令已下達！將軍，請靜候下月。", 'warn');
+          return;
+        }
+        if (investPlan.amount <= 0 && investPlan.repayAmount <= 0) {
+          showToast("請輸入欲調度的糧草或償還數量！", 'warn');
+          return;
+        }
+        if (!['btc', 'qqq', 'voo'].includes(investPlan.target)) {
+          showToast("軍令錯誤：只能定投 BTC, QQQ, VOO。", 'error');
+          return;
+        }
+
+        let newState = JSON.parse(JSON.stringify(gameState));
+        const amount = investPlan.amount;
+        const repayAmount = investPlan.repayAmount;
+        const target = investPlan.target;
+        
+        let addedAmount = amount;
+        if (target === 'btc') addedAmount = amount / prices.btc;
+        
+        if (amount > 0) newState.assets[target] = (newState.assets[target] || 0) + addedAmount;
+        if (repayAmount > 0) newState.assets.debt = Math.max(0, (newState.assets.debt || 0) - repayAmount);
+
+        newState.investCount += 1;
+        newState.lastInvestMonth = currentMonthString;
+        
+        const ev = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+        let gainedMerit = 50 + officerStats.passiveBuff + bondPaydayBuff + ev.merit; 
+        newState.merit += gainedMerit;
+        
+        const displayAdded = target === 'btc' ? addedAmount.toFixed(6) : addedAmount.toLocaleString();
+        let logMsg = `徵兵令下：`;
+        if (amount > 0) logMsg += `壯大 ${target.toUpperCase()} 營 ${displayAdded} 兵力。`;
+        if (repayAmount > 0) logMsg += `遣散傭兵(償還信貸) ${repayAmount.toLocaleString()}。`;
+        logMsg += `軍功 +${gainedMerit.toFixed(1)}。`;
+
+        addLog(newState, '軍令', logMsg);
+        saveGameState(newState);
+        setActiveEvent(ev); 
+      };
+
+      const executeRoutineTask = () => {
+        if (lastRoutineMonth === currentMonthString) {
+          showToast("本月已巡視過營地。", 'warn');
+          return;
+        }
+        let newState = JSON.parse(JSON.stringify(gameState));
+        if (newState.assets.emergency >= 200000 && newState.assets.entertainment >= 50000) {
+          let totalGained = 30 + bondRoutineBuff; 
+          newState.merit += totalGained;
+          newState.lastRoutineMonth = currentMonthString;
+          addLog(newState, '內政', `糧草滿編，防禦陣地穩固，獲賞軍功 +${totalGained}。`);
+          saveGameState(newState);
+          showToast(`巡視完成，軍功 +${totalGained}`, 'success');
+        } else {
+          showToast("將軍，您的雙防禦（預備金 20萬、娛樂流動金 5萬）尚未滿編！", 'error');
+        }
+      };
+
+      // 招賢：抽卡升星
+      const drawOfficer = () => {
+        if (merit < 300) {
+          showToast("軍功不足 300，無法設宴招賢！", 'warn');
+          return;
+        }
+        let newState = JSON.parse(JSON.stringify(gameState));
+        newState.merit -= 300; 
+        
+        const drawn = OFFICERS[Math.floor(Math.random() * OFFICERS.length)];
+        const isDupe = newState.ownedOfficers.includes(drawn.id);
+        newState.ownedOfficers.push(drawn.id); // 允許重複寫入陣列
+        
+        if (isDupe) addLog(newState, '招賢', `獲得將魂！名將【${drawn.name}】星級提升，戰力大增！`);
+        else addLog(newState, '招賢', `耗費 300 軍功，登庸名將【${drawn.name}】！`);
+        
+        saveGameState(newState);
+        setGachaResult({ ...drawn, isDupe });
+      };
+
+      // 核心機制修復二：沙盤推演 (攻城戰鬥運算與軍功平衡)
+      const executeSiege = () => {
+        const prov = provincesState.find(p => p.id === selectedProvinceId);
+        if (!prov || siegeGenerals.length === 0) return showToast("請至少派遣一名將領出征！", 'warn');
+
+        const basePower = Math.max(1, stats.netWorth / 10000); 
+        
+        let generalMultiplier = 0;
+        siegeGenerals.forEach(id => {
+          const lvl = officerStats.roster[id];
+          const off = OFFICERS.find(o => o.id === id);
+          generalMultiplier += (off.stat / 100) * (1 + (lvl - 1) * 0.5); 
+        });
+
+        let weatherMod = 1;
+        if (weather.trend === 'bull') weatherMod = 1.2;
+        if (weather.trend === 'bear') weatherMod = 0.9;
+
+        const totalAttack = Math.floor(basePower * (1 + generalMultiplier) * weatherMod);
+        const defense = prov.def;
+        
+        let newState = JSON.parse(JSON.stringify(gameState));
+        let logMsg = "";
+        let success = false;
+
+        if (totalAttack >= defense) {
+          success = true;
+          newState.occupiedProvinces.push(prov.id);
+          // 修正：對數級別的軍功發放，避免後期破壞平衡 (基礎 200 + 防禦力*0.3)
+          const rewardMerit = 200 + Math.floor(defense * 0.3); 
+          newState.merit += rewardMerit;
+          logMsg = `【大捷】我軍以 ${totalAttack} 戰力擊破 ${prov.name} 守軍(${defense})，斬獲軍功 ${rewardMerit}！`;
+        } else {
+          logMsg = `【惜敗】我軍戰力 ${totalAttack} 不敵 ${prov.name} 守軍(${defense})，鎩羽而歸。`;
+        }
+        
+        addLog(newState, '征戰', logMsg);
+        saveGameState(newState);
+        setCombatResult({ success, totalAttack, defense, provName: prov.name, logMsg });
+      };
+
+      const toggleSiegeGeneral = (id) => {
+        if (siegeGenerals.includes(id)) setSiegeGenerals(siegeGenerals.filter(gid => gid !== id));
+        else if (siegeGenerals.length < 3) setSiegeGenerals([...siegeGenerals, id]);
+        else showToast("最多只能指派三名將領！", "warn");
+      };
+
+      const handleAssetChange = (key, val) => {
+        if (!localAssets) setLocalAssets({ ...assets, [key]: val });
+        else setLocalAssets({ ...localAssets, [key]: val });
+      };
+
+      const handleAssetBlur = () => {
+        if (localAssets) {
+          let newState = JSON.parse(JSON.stringify(gameState));
+          newState.assets = localAssets;
+          saveGameState(newState);
+          setLocalAssets(null);
+          showToast("帳冊已更新至本機", 'success');
+        }
+      };
+
+      const handleExport = () => {
+        const dataStr = JSON.stringify(gameState);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `戰略圖兵符_v3_建安${jianAnYear}年${currentRealMonth}月.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast("兵符已成功匯出備份！", "success");
+      };
+
+      const handleImport = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            let importedState = JSON.parse(e.target.result);
+            if (importedState && importedState.assets && importedState.merit !== undefined) {
+              if (!importedState.occupiedProvinces) importedState.occupiedProvinces = [];
+              saveGameState(importedState);
+              showToast("兵符匯入成功，天下大勢已更新！", "success");
+            } else {
+              showToast("兵符格式錯誤，無法解讀！", "error");
+            }
+          } catch (error) { showToast("兵符毀損，無法解讀！", "error"); }
+        };
+        reader.readAsText(file);
+        event.target.value = null; 
+      };
+
+      const selectedProvince = provincesState.find(p => p.id === selectedProvinceId);
+      const canInvestThisMonth = lastInvestMonth !== currentMonthString;
+      const canDoRoutineThisMonth = lastRoutineMonth !== currentMonthString;
+      const occupiedCount = occupiedProvinces.length;
+
+      return (
+        <div className="h-screen w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
+          
+          {/* Notifications */}
+          {toastMessage && (
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
+              <div className={`px-6 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center gap-2
+                ${toastMessage.type === 'error' ? 'bg-[#3b0f0f]/90 text-red-300 border-red-800' : 
+                  toastMessage.type === 'success' ? 'bg-[#0f291e]/90 text-green-300 border-green-800' : 
+                  toastMessage.type === 'warn' ? 'bg-[#3b2d0f]/90 text-yellow-300 border-yellow-800' : 
+                  'bg-[#0f172a]/90 text-blue-300 border-blue-800'}`}
+              >
+                {toastMessage.msg}
+              </div>
+            </div>
+          )}
+
+          {/* Header */}
+          <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl relative">
+            <div className="flex justify-between items-center px-4 py-3 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
+                  <span className="text-lg font-black text-[#e3dac9] leading-none mb-1">魏</span>
+                  <span className="text-[9px] text-[#d4af37] bg-[#2a2218] px-1 border border-[#4a3525] rounded-sm whitespace-nowrap">{playerTitle}</span>
+                </div>
+                <div>
+                  <h1 className="font-bold text-xl tracking-widest text-[#d4af37] drop-shadow-md flex items-center gap-2">
+                    霸業烽火
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-mono tracking-normal
+                      ${weather.trend === 'bull' ? 'border-green-500 text-green-400 bg-green-900/30' : 
+                        weather.trend === 'bear' ? 'border-red-500 text-red-400 bg-red-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>
+                      天象: {weather.desc}
+                    </span>
+                  </h1>
+                  <div className="text-[10px] text-[#8c7e6a] flex items-center gap-1.5 mt-1 font-mono">
+                    <span>建安{jianAnYear}年{currentRealMonth}月</span>
+                    <span className={`text-[9px] ml-1 px-1.5 py-0.5 rounded-sm border ${syncStatus.includes('已儲存') ? 'border-green-500 text-green-400 bg-green-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>{syncStatus}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right flex flex-col items-end justify-center">
+                <div className="text-[10px] text-[#a3947c] tracking-widest mb-1">總兵力 (淨戰力)</div>
+                <div className={`text-2xl font-bold font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
+                  {(stats.netWorth / 10000).toFixed(0)} <span className="text-xs text-[#d4af37] font-serif">萬</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex px-4 py-2 gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide text-[11px] font-mono bg-[#0a0705] border-t border-[#2a1a15] relative z-10 shadow-inner">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
+                <span className="text-[#a3947c] font-serif">軍功</span> <span className="text-[#ffd700] font-bold">{merit.toFixed(1)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
+                <span className="text-[#a3947c] font-serif">糧草</span> <span className="text-[#4ade80]">{(stats.cash / 10000).toFixed(2)}w</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
+                <span className="text-[#a3947c] font-serif">騎兵</span> <span className="text-[#60a5fa]">{(stats.crypto / 10000).toFixed(2)}w</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723]">
+                <span className="text-[#a3947c] font-serif">步兵</span> <span className="text-[#c084fc]">{(stats.trad / 10000).toFixed(2)}w</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#3b0f0f]/80 border border-red-900">
+                <span className="text-red-300 font-serif">傭兵(信貸)</span> <span className="text-red-400 font-bold">-{(stats.debt / 10000).toFixed(2)}w</span>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-y-auto relative bg-[#0c1014] scrollbar-hide">
+            <div className="relative z-10 w-full h-full flex flex-col">
+              
+              {/* ================= MAP TAB ================= */}
+              {activeTab === 'map' && (
+                <div className="flex flex-col h-full relative">
+                  
+                  {/* 縮放面板 */}
+                  <div className="absolute top-4 right-4 z-[60] flex flex-col gap-2">
+                    <button onClick={() => setMapZoom(z => Math.min(z + 0.25, 2.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">+</button>
+                    <button onClick={() => setMapZoom(1)} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#8c7e6a] rounded-sm font-bold text-xs shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">重置</button>
+                    <button onClick={() => setMapZoom(z => Math.max(z - 0.25, 0.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">-</button>
+                  </div>
+
+                  <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
+                    <div className="relative origin-top-left transition-transform duration-300" style={{ transform: `scale(${mapZoom})`, width: '1600px', height: '1200px' }}>
+                      
+                      {/* SVG 水系與版圖 */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100%" height="100%" fill="#13181f" opacity="0.9"/>
+                        <ellipse cx="70%" cy="25%" rx="35%" ry="25%" fill="#1e3a8a" opacity="0.1" filter="blur(80px)" />
+                        <ellipse cx="25%" cy="60%" rx="20%" ry="35%" fill="#14532d" opacity="0.1" filter="blur(80px)" />
+                        <ellipse cx="75%" cy="65%" rx="30%" ry="25%" fill="#7f1d1d" opacity="0.1" filter="blur(80px)" />
+                        <ellipse cx="50%" cy="50%" rx="20%" ry="20%" fill="#b45309" opacity="0.08" filter="blur(60px)" />
+
+                        {/* 長江 */}
+                        <path d="M 0 650 Q 300 750 600 680 T 1100 600 T 1600 650" fill="none" stroke="#0ea5e9" strokeWidth="12" opacity="0.3" strokeLinecap="round" />
+                        <path d="M 0 650 Q 300 750 600 680 T 1100 600 T 1600 650" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
+
+                        {/* 黃河 */}
+                        <path d="M 100 400 Q 300 200 600 350 T 1000 280 T 1600 300" fill="none" stroke="#0284c7" strokeWidth="10" opacity="0.3" strokeLinecap="round" />
+                        <path d="M 100 400 Q 300 200 600 350 T 1000 280 T 1600 300" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
+
+                        <path d="M 250 450 Q 400 480 500 420" fill="none" stroke="#3f3f46" strokeWidth="25" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
+                        <path d="M 500 150 Q 550 250 500 350" fill="none" stroke="#3f3f46" strokeWidth="20" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
+
+                        <text x="700" y="150" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">幽州</text>
+                        <text x="650" y="300" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">冀州</text>
+                        <text x="450" y="200" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">并州</text>
+                        <text x="850" y="320" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">青州</text>
+                        <text x="650" y="420" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">兗州</text>
+                        <text x="820" y="450" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">徐州</text>
+                        <text x="680" y="520" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">豫州</text>
+                        <text x="450" y="420" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">司隸</text>
+                        <text x="200" y="300" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">涼州</text>
+                        <text x="200" y="650" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">益州</text>
+                        <text x="550" y="680" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">荊州</text>
+                        <text x="800" y="650" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">揚州</text>
+                        <text x="450" y="900" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">交州</text>
+                      </svg>
+
+                      <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px' }}></div>
+
+                      {provincesState.map(prov => (
+                        <div key={prov.id}
+                          className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer flex flex-col items-center group z-10"
+                          style={{ left: `${prov.x}%`, top: `${prov.y}%` }}
+                          onClick={() => { setSelectedProvinceId(prov.id); setSiegeMode(false); setCombatResult(null); }}
+                        >
+                          <div className={`relative w-12 h-12 flex items-center justify-center transition-all duration-300
+                            ${selectedProvinceId === prov.id ? 'scale-125 z-20' : 'hover:scale-110'}
+                            ${prov.isConquered ? 'text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 
+                              prov.isReqMet ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'text-gray-600'}`}
+                          >
+                            <ICONS.Castle className="w-full h-full" />
+                            {prov.isConquered && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-600 border border-yellow-300 rounded-sm text-[9px] flex items-center justify-center font-black text-black shadow-lg">魏</div>
+                            )}
+                            {prov.isReqMet && !prov.isConquered && (
+                              <ICONS.Sword className="absolute inset-0 m-auto w-6 h-6 text-red-500 animate-pulse drop-shadow-md" />
+                            )}
+                            {selectedProvinceId === prov.id && !prov.isConquered && (
+                              <div className="absolute inset-[-8px] border border-[#d4af37] animate-ping rounded-full opacity-40 pointer-events-none"></div>
+                            )}
+                          </div>
+                          
+                          <div className={`mt-1 px-2 py-0.5 text-[10px] md:text-xs font-bold border rounded-sm shadow-xl whitespace-nowrap tracking-widest backdrop-blur-sm
+                            ${selectedProvinceId === prov.id ? 'bg-[#d4af37] text-black border-white' : 
+                              prov.isConquered ? 'bg-yellow-900/90 text-yellow-200 border-yellow-500' :
+                              prov.isReqMet ? 'bg-blue-900/90 border-blue-500 text-blue-200' : 'bg-[#1a1111]/90 border-red-900/50 text-gray-400'}`}>
+                            {prov.name}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 底部面板：城池資訊與攻城系統 */}
+                  <div className="h-64 bg-[#1a1410] border-t-2 border-[#b8860b] p-4 flex flex-col relative shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.8)] z-20">
+                    {!siegeMode && !combatResult ? (
+                      <>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h2 className="text-[#d4af37] text-lg md:text-xl font-black tracking-widest flex items-center gap-2">
+                              {selectedProvince.name}
+                              <span className={`text-[9px] px-1.5 py-0.5 border rounded-sm font-bold 
+                                ${selectedProvince.isConquered ? 'text-yellow-300 border-yellow-500 bg-yellow-900' : 
+                                  selectedProvince.isReqMet ? 'text-blue-300 border-blue-500 bg-blue-900' : 'text-gray-400 border-gray-600'}`}>
+                                {selectedProvince.isConquered ? '已佔據 (守成中)' : selectedProvince.isReqMet ? '獲得攻城權' : '糧草不足未解鎖'}
+                              </span>
+                            </h2>
+                            <p className="text-[10px] md:text-xs text-[#a3947c] mt-1">{selectedProvince.title} | 守軍戰力：<span className="text-red-400 font-mono font-bold">{selectedProvince.def}</span></p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[10px] text-[#8c7e6a] tracking-widest">霸業版圖</div>
+                            <div className="font-mono text-[#e3dac9] text-base md:text-lg text-yellow-400">{occupiedCount}<span className="text-[#8c7e6a] text-xs">/{PROVINCES.length}</span></div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 mt-2 overflow-y-auto pr-2 scrollbar-hide">
+                          <ul className="space-y-3">
+                            {Object.entries(selectedProvince.req).map(([k, targetVal]) => {
+                              let current = 0;
+                              if (k === 'netWorth') current = stats.netWorth;
+                              else if (k === 'investCount') current = investCount;
+                              else if (k === 'debt') current = displayAssets.debt;
+                              else current = displayAssets[k] || 0;
+
+                              const isMet = k === 'debt' ? current <= targetVal : current >= targetVal;
+                              const progress = k === 'debt' ? (current === 0 ? 100 : 0) : Math.min(100, (current / targetVal) * 100);
+                              
+                              return (
+                                <li key={k} className="flex flex-col">
+                                  <div className="flex justify-between mb-1 text-[10px] md:text-xs font-bold text-[#e3dac9]">
+                                    <span>{selectedProvince.targetLabel}</span>
+                                    <span className={isMet ? 'text-green-400' : 'text-red-400'}>{isMet ? '達成' : '未滿'}</span>
+                                  </div>
+                                  <div className="w-full bg-[#0a0705] h-1.5 rounded-full overflow-hidden border border-[#3e2723]">
+                                    <div className={`h-full transition-all duration-1000 ${isMet ? 'bg-green-500' : 'bg-red-800'}`} style={{ width: `${progress}%` }}></div>
+                                  </div>
+                                  <div className="flex justify-between mt-1 text-[#8c7e6a] text-[9px] font-mono">
+                                    <span>{current.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
+                                    <span>/ {targetVal.toLocaleString()}</span>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+
+                        {selectedProvince.isReqMet && !selectedProvince.isConquered && (
+                          <button onClick={() => { setSiegeMode(true); setSiegeGenerals([]); }} 
+                            className="w-full py-3 mt-3 bg-[#3b0f0f] text-red-100 border border-red-600 font-black tracking-widest text-sm md:text-base rounded-sm hover:bg-[#5c0000] active:scale-95 animate-pulse-red">
+                            點將攻城 (發起戰力檢定)
+                          </button>
+                        )}
+                      </>
+                    ) : combatResult ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center animate-[stampIn_0.5s_forwards]">
+                        <h2 className={`text-2xl md:text-3xl font-black mb-3 ${combatResult.success ? 'text-yellow-400' : 'text-red-500'}`}>
+                          {combatResult.success ? '大 獲 全 勝' : '折 戟 沉 沙'}
+                        </h2>
+                        <p className="text-xs md:text-sm text-[#e3dac9] mb-5 bg-[#0a0705] p-4 border border-[#3e2723] leading-relaxed w-full max-w-md">{combatResult.logMsg}</p>
+                        <button onClick={() => setCombatResult(null)} className="px-10 py-2.5 bg-[#1c1814] border border-[#d4af37] text-[#d4af37] font-bold rounded-sm tracking-widest hover:bg-[#2a2218] active:scale-95">確認戰果</button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col h-full animate-[slideUp_0.3s]">
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="text-[#d4af37] font-bold tracking-widest flex items-center gap-2"><ICONS.Users className="w-4 h-4"/> 點將出征 (最多3名)</h3>
+                          <button onClick={() => setSiegeMode(false)} className="text-[10px] text-[#8c7e6a] border border-[#4a3525] px-3 py-1 hover:bg-[#2a1a15]">取消出征</button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto mb-3 border border-[#3e2723] p-2 bg-[#0a0705] grid grid-cols-4 md:grid-cols-6 gap-2 scrollbar-hide">
+                          {Object.keys(officerStats.roster).length === 0 ? <p className="text-xs text-gray-500 col-span-full text-center mt-4">尚無將領，僅憑基礎兵力出戰</p> : 
+                            Object.entries(officerStats.roster).map(([idStr, level]) => {
+                              const id = parseInt(idStr);
+                              const off = OFFICERS.find(o => o.id === id);
+                              const isSelected = siegeGenerals.includes(id);
+                              return (
+                                <div key={id} onClick={() => toggleSiegeGeneral(id)} className={`relative border p-1 md:p-2 text-center cursor-pointer transition-all select-none
+                                  ${isSelected ? 'border-red-500 bg-red-900/30' : 'border-[#3e2723] bg-[#1a1410] hover:border-gray-500'}`}>
+                                  <div className="text-[9px] text-yellow-400 absolute top-0 left-0 bg-black/80 px-1 font-bold">{level}星</div>
+                                  <div className={`text-[10px] md:text-xs font-bold mt-3 ${off.color}`}>{off.name}</div>
+                                  <div className="text-[8px] text-gray-400">{off.type} {off.stat}</div>
+                                  {isSelected && <div className="absolute inset-0 border-2 border-red-500 pointer-events-none"></div>}
+                                </div>
+                              )
+                            })
+                          }
+                        </div>
+
+                        <div className="flex items-center justify-between bg-[#0a0705] border border-[#2a1a15] p-2">
+                          <div className="text-[10px] md:text-xs text-[#a3947c] leading-tight flex-1">
+                            基礎戰力: <span className="text-white font-mono">{Math.max(1, stats.netWorth/10000).toFixed(0)}</span><br/>
+                            將領/天象加成: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' ? 'text-green-400' : 'text-gray-500'}>已計算</span>
+                          </div>
+                          <button onClick={executeSiege} className={`px-6 py-2 md:py-3 font-black tracking-widest rounded-sm text-sm shrink-0 transition-all
+                            ${siegeGenerals.length > 0 ? 'bg-red-800 text-white border border-red-500 animate-pulse-red active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border border-[#3e2723]'}`}>
+                            全軍出擊
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ================= COMMAND TAB (內政軍令) ================= */}
+              {activeTab === 'command' && (
+                <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-6 h-full overflow-y-auto w-full">
+                  <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-[#b8860b]"></div>
+                    <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-4 tracking-widest flex items-center gap-2">
+                      <ICONS.Tent className="w-5 h-5"/> 頒布徵兵令 (閒錢定投)
+                    </h2>
+                    
+                    <div className="bg-[#0a0705] p-3 md:p-4 border border-[#3e2723] mb-5">
+                      <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed">
+                        將軍，軍餉即為戰力。發布軍令僅為推進霸業進度與累積軍功，<span className="text-green-400 font-bold">不扣除法幣餘額</span>。<br/>
+                        為確保戰力穩固，軍令僅限招募精銳部隊 (BTC, QQQ, VOO)。<br/>
+                        如欲同時<span className="text-red-400 font-bold">遣散傭兵(償還信貸)</span>，請於下方一併撥放糧草。
+                      </p>
+                      
+                      <div className="flex flex-col gap-3">
+                        <div>
+                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest">調度糧草 (投入額 TWD)</label>
+                          <input type="number" 
+                            value={investPlan.amount === 0 ? '' : investPlan.amount}
+                            onChange={(e) => setInvestPlan({...investPlan, amount: parseFloat(e.target.value) || 0})}
+                            className="w-full bg-[#1c1814] border border-[#4a3525] text-[#e3dac9] p-3 focus:outline-none focus:border-[#d4af37] font-mono text-base text-right rounded-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest">訓練精兵 (標的)</label>
+                          <select 
+                            value={investPlan.target}
+                            onChange={(e) => setInvestPlan({...investPlan, target: e.target.value})}
+                            className="w-full bg-[#1c1814] border border-[#4a3525] text-[#e3dac9] p-3 focus:outline-none focus:border-[#d4af37] font-bold text-sm rounded-sm appearance-none"
+                          >
+                            <option value="btc">虎豹騎 (BTC) - 前期主力</option>
+                            <option value="qqq">元戎弩 (QQQ) - 中期穩健</option>
+                            <option value="voo">重步兵 (VOO) - 後期防禦</option>
+                          </select>
+                        </div>
+                        <div className="mt-2 border-t border-[#3e2723] pt-3">
+                          <label className="text-[10px] md:text-xs text-red-400/80 mb-1 block tracking-widest">遣散傭兵 (償還信貸額 TWD)</label>
+                          <input type="number" 
+                            value={investPlan.repayAmount === 0 ? '' : investPlan.repayAmount}
+                            onChange={(e) => setInvestPlan({...investPlan, repayAmount: parseFloat(e.target.value) || 0})}
+                            className="w-full bg-[#1c1814] border border-red-900/50 text-red-300 p-3 focus:outline-none focus:border-red-500 font-mono text-base text-right rounded-sm"
+                            placeholder="輸入本月額外還款額"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={handlePayday} disabled={!canInvestThisMonth}
+                      className={`w-full py-3 md:py-4 font-black text-base md:text-lg border rounded-sm transition-all tracking-widest relative overflow-hidden
+                        ${canInvestThisMonth 
+                          ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000] active:scale-95 shadow-[0_0_10px_rgba(139,0,0,0.5)]' 
+                          : 'bg-[#1c1814] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
+                    >
+                      <span className="relative z-10">{canInvestThisMonth ? '確認出兵與軍務' : '本月軍令已畢'}</span>
+                    </button>
+                    
+                    <div className="mt-3 flex justify-between items-center text-[10px] md:text-xs bg-[#0a0705] p-2 border border-[#2a1a15]">
+                      <span className="text-[#a3947c]">武將被動加成: <span className="text-green-400">+{officerStats.passiveBuff.toFixed(2)}</span></span>
+                      <span className="text-[#a3947c]">羈絆軍功加成: <span className="text-yellow-400">+{bondPaydayBuff}</span></span>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex justify-between items-center">
+                    <div>
+                      <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1">日常巡視 (雙防禦)</h3>
+                      <p className="text-[10px] text-[#8c7e6a]">檢閱預備金 20萬 & 娛樂流動金 5萬</p>
+                    </div>
+                    <button onClick={executeRoutineTask} disabled={!canDoRoutineThisMonth}
+                      className={`px-4 py-2 text-xs md:text-sm font-bold border rounded-sm tracking-widest whitespace-nowrap
+                        ${canDoRoutineThisMonth ? 'bg-[#0f291e] text-green-400 border-green-700 hover:bg-[#14532d] active:scale-95' : 'bg-[#0a0705] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
+                    >
+                      {canDoRoutineThisMonth ? `檢閱領賞 (+${30 + bondRoutineBuff})` : '已巡視'}
+                    </button>
+                  </div>
+
+                  <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex-1 min-h-[200px] flex flex-col">
+                    <h3 className="text-[#d4af37] text-sm md:text-base font-bold mb-3 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest shrink-0">
+                      <ICONS.Scroll className="w-4 h-4"/> 烽火紀年錄
+                    </h3>
+                    <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-2">
+                      {logs.length === 0 ? <p className="text-[#5c4033] text-center mt-6 text-xs">尚無戰事紀錄...</p> : 
+                        logs.map((log, i) => (
+                          <div key={i} className="flex gap-2 py-2 border-b border-[#2a1a15] items-start text-[10px] md:text-xs">
+                            <span className="text-[#8c7e6a] shrink-0 font-mono pt-0.5">[{log.date.slice(4)}]</span>
+                            <span className={`shrink-0 rounded-sm px-1.5 py-0.5 border font-bold
+                              ${log.type === '軍令' ? 'bg-[#3b0f0f] text-red-400 border-red-800' : 
+                                log.type === '征戰' ? 'bg-purple-900 text-purple-300 border-purple-700' :
+                                log.type === '內政' ? 'bg-[#0f291e] text-green-400 border-green-800' : 
+                                log.type === '戰報' ? 'bg-red-950 text-red-500 border-red-700 animate-pulse' :
+                                log.type === '招賢' ? 'bg-[#3b2d0f] text-yellow-400 border-yellow-800' : 
+                                'bg-gray-900 text-gray-400 border-gray-700'}`}>
+                              {log.type}
+                            </span>
+                            <span className={`flex-1 leading-relaxed ${log.type === '戰報' ? 'text-red-400 font-bold' : 'text-[#e3dac9]'}`}>{log.msg}</span>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ================= TAVERN TAB ================= */}
+              {activeTab === 'tavern' && (
+                <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
+                  
+                  <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="relative z-10 text-center md:text-left flex-1">
+                      <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest">
+                        <ICONS.Users className="w-5 h-5"/> 招賢館 (無盡將魂)
+                      </h2>
+                      <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
+                        設宴招攬天下群雄 (每次 <span className="text-yellow-400 font-bold">300 軍功</span>)。<br/>
+                        <span className="text-white">若招攬到重複武將，將自動轉化為「將魂」提升星級。</span><br/>
+                        星級提升能巨幅強化其「每月軍功被動」與「攻城戰力乘區」。
+                      </p>
+                    </div>
+                    
+                    <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto">
+                      <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1">軍功庫存</div>
+                      <div className="text-2xl font-bold text-yellow-400 font-mono mb-3">{merit.toFixed(0)}</div>
+                      <button onClick={drawOfficer} disabled={merit < 300}
+                        className={`w-full py-2.5 font-bold text-sm md:text-base border rounded-sm transition-all tracking-widest
+                          ${merit >= 300 ? 'bg-[#2a2218] text-[#d4af37] border-[#b8860b] hover:bg-[#3a2f22] active:scale-95 shadow-[0_0_10px_rgba(184,134,11,0.2)]' : 'bg-[#110a05] border-[#2a1a15] text-[#5c4033] cursor-not-allowed'}`}
+                      >
+                        設宴招賢 (300)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest border-l-4 border-[#b8860b] pl-2 mb-3 flex items-center gap-2">
+                      <ICONS.Link className="w-4 h-4"/> 英雄羈絆
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {BONDS.map(bond => {
+                        const uniqueOwned = [...new Set(ownedOfficers)];
+                        const isActive = bond.req.every(reqId => uniqueOwned.includes(reqId));
+                        return (
+                          <div key={bond.id} className={`p-3 border rounded-sm relative overflow-hidden transition-colors
+                            ${isActive ? 'bg-[#2a2218] border-[#d4af37]' : 'bg-[#0a0705] border-[#2a1a15]'}`}>
+                            {isActive && <div className="absolute right-[-20px] top-[10px] transform rotate-45 bg-[#b8860b] text-black text-[9px] font-bold py-0.5 w-24 text-center shadow-lg">已解鎖</div>}
+                            <h4 className={`font-bold text-sm mb-1 tracking-widest ${isActive ? 'text-[#d4af37]' : 'text-[#8c7e6a]'}`}>{bond.name}</h4>
+                            <p className={`text-[10px] ${isActive ? 'text-[#e3dac9]' : 'text-[#5c4033]'}`}>{bond.desc}</p>
+                            <div className="flex gap-1 mt-2 flex-wrap">
+                              {bond.req.map(reqId => {
+                                const isOwned = uniqueOwned.includes(reqId);
+                                const off = OFFICERS.find(o => o.id === reqId);
+                                return (
+                                  <span key={reqId} className={`text-[9px] px-1 py-0.5 border rounded-sm
+                                    ${isOwned ? `border-gray-500 text-gray-300 bg-gray-800` : 'border-[#2a1a15] text-[#4a3525]'}`}>
+                                    {off?.name || '?'}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-end mb-3 border-b border-[#3e2723] pb-2 px-1">
+                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest">麾下名將 (陣容星級)</h3>
+                    <span className="text-[10px] md:text-xs text-[#8c7e6a] font-mono">圖鑑解鎖: {Object.keys(officerStats.roster).length} / {OFFICERS.length}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-3">
+                    {Object.keys(officerStats.roster).length === 0 ? <div className="col-span-full py-10 text-center text-[#5c4033] text-xs">尚無將領，大營空虛。</div> : 
+                      Object.entries(officerStats.roster).reverse().map(([idStr, level]) => {
+                        const id = parseInt(idStr);
+                        const officer = OFFICERS.find(o => o.id === id);
+                        if(!officer) return null;
+                        return (
+                          <div key={id} className={`bg-[#0a0705] border p-2 flex flex-col items-center relative overflow-hidden ${officer.border}`}>
+                            <div className={`absolute top-0 right-0 px-1.5 py-0.5 text-[8px] font-black ${officer.bg} ${officer.color} border-b border-l ${officer.border}`}>
+                              {officer.faction}
+                            </div>
+                            <div className="absolute top-0 left-0 bg-yellow-600/90 text-black px-1.5 py-0.5 text-[9px] font-black border-b border-r border-yellow-400">
+                              {level} 星
+                            </div>
+                            <div className={`text-xs md:text-sm font-bold mt-5 mb-1 tracking-widest ${officer.color}`}>{officer.name}</div>
+                            <div className="text-[9px] text-[#a3947c]">{officer.type} <span className="text-white font-mono">{officer.stat}</span></div>
+                            <div className="w-full border-t border-[#2a1a15] mt-1 pt-1 text-center text-green-500 font-mono text-[9px]">
+                              軍功 +{((officer.stat/100) * (1 + (level-1)*0.2)).toFixed(2)}
+                            </div>
+                          </div>
+                        );
+                      })
+                    }
+                  </div>
+                </div>
+              )}
+
+              {/* 抽卡結果 Modal */}
+              {gachaResult && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4" onClick={() => setGachaResult(null)}>
+                  <div className={`border-2 ${gachaResult.border} ${gachaResult.bg} w-full max-w-xs relative shadow-2xl animate-[stampIn_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]`}>
+                    <div className="absolute inset-0 bg-[#0c0906] opacity-80 pointer-events-none mix-blend-multiply"></div>
+                    <div className={`absolute inset-0 flex items-center justify-center text-9xl font-black opacity-10 select-none pointer-events-none ${gachaResult.color}`}>
+                      {gachaResult.faction}
+                    </div>
+                    <div className="relative z-10 flex flex-col items-center p-8">
+                      {gachaResult.isDupe && (
+                        <div className="text-yellow-400 font-black text-sm mb-3 animate-bounce tracking-widest border border-yellow-400 px-3 py-1 bg-yellow-900/50 shadow-[0_0_15px_rgba(234,179,8,0.5)]">
+                          ✨ 獲得將魂！星級提升 ✨
+                        </div>
+                      )}
+                      <div className={`text-xs tracking-widest mb-4 font-bold border ${gachaResult.border} px-3 py-1 bg-black/50 ${gachaResult.color}`}>
+                        【 {gachaResult.faction}軍將領 】
+                      </div>
+                      <h3 className={`text-4xl font-black mb-8 tracking-widest ${gachaResult.color} drop-shadow-lg`}>
+                        {gachaResult.name}
+                      </h3>
+                      <div className="w-full bg-[#0a0705]/80 border border-[#3e2723] p-4 mb-4 backdrop-blur-sm">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-[#a3947c] text-sm">定位能力</span>
+                          <span className="text-[#e3dac9] font-bold">{gachaResult.type} <span className={gachaResult.color}>{gachaResult.stat}</span></span>
+                        </div>
+                      </div>
+                      <p className="text-[#8c7e6a] text-xs mt-2 animate-pulse">點擊任意處收入麾下</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ================= LEDGER TAB ================= */}
+              {activeTab === 'ledger' && (
+                <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
+                  
+                  <div className="bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 mb-5 shadow-lg">
+                    <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-2 flex items-center gap-2 tracking-widest">
+                      <ICONS.Scroll className="w-5 h-5"/> 兵力編制 (手動校準)
+                    </h2>
+                    <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
+                      將軍，請在此登記載路兵馬的數量。<br/>
+                      <span className="text-red-400">注意：</span> 步兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {Object.keys(DEFAULT_GAME_STATE.assets).map(key => (
+                      <div key={key} className={`bg-[#1a1410] border p-3 transition-colors relative 
+                        ${key === 'debt' ? 'border-red-900 focus-within:border-red-500' : 'border-[#4a3525] focus-within:border-[#d4af37]'}`}>
+                        <label className="text-[10px] md:text-xs font-bold tracking-widest text-[#a3947c] mb-2 flex justify-between border-b border-[#3e2723] pb-1 uppercase">
+                          <span className={key === 'debt' ? 'text-red-400' : ''}>{
+                            key === 'twd' ? '活存現金' : key === 'emergency' ? '預備金' : key === 'entertainment' ? '娛樂金' :
+                            key === 'btc' ? 'BTC (顆數)' : key === 'eth' ? 'ETH (顆數)' : key === 'ada' ? 'ADA (顆數)' :
+                            key === 'qqq' ? 'QQQ (台幣現值)' : key === 'voo' ? 'VOO (台幣現值)' : key === 'debt' ? '信貸餘額 (扣除)' : key
+                          }</span>
+                        </label>
+                        <input 
+                          type="number" step="any" 
+                          value={displayAssets[key] === 0 ? '' : displayAssets[key]}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                            handleAssetChange(key, val);
+                          }}
+                          onBlur={handleAssetBlur}
+                          className={`w-full bg-[#0a0705] border border-[#3e2723] p-2 text-right text-sm md:text-base focus:outline-none font-mono shadow-inner
+                            ${key === 'debt' ? 'text-red-400 focus:border-red-500' : 'text-[#e3dac9] focus:border-[#d4af37]'}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-8 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gray-500"></div>
+                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest">
+                      兵符閣 (存檔管理)
+                    </h3>
+                    <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
+                      為防天災人禍（如意外清除瀏覽器資料），請定期將兵符（本機存檔）匯出保管。<br/>
+                      若移防至新設備，可持舊兵符匯入，延續霸業。舊版兵符匯入後將自動相容新版天象與攻城機制。
+                    </p>
+                    <div className="flex gap-3">
+                      <button onClick={handleExport} className="flex-1 py-3 bg-[#2a2218] text-[#d4af37] border border-[#b8860b] rounded-sm font-bold tracking-widest hover:bg-[#3a2f22] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all">
+                        <ICONS.Download className="w-4 h-4" /> 匯出兵符
+                      </button>
+                      <button onClick={() => fileInputRef.current.click()} className="flex-1 py-3 bg-[#0a0705] text-[#a3947c] border border-[#4a3525] rounded-sm font-bold tracking-widest hover:bg-[#1a1410] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all">
+                        <ICONS.Upload className="w-4 h-4" /> 匯入兵符
+                      </button>
+                      <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} className="hidden" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </main>
+
+          <nav className="bg-[#1a1410] border-t border-[#3e2723] flex justify-around items-center shrink-0 h-16 pb-safe z-40 relative shadow-[0_-5px_15px_rgba(0,0,0,0.5)]">
+            {[
+              { id: 'map', label: '大勢', icon: ICONS.Map },
+              { id: 'command', label: '軍令', icon: ICONS.Tent },
+              { id: 'tavern', label: '招賢', icon: ICONS.Users },
+              { id: 'ledger', label: '編制', icon: ICONS.Scroll },
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`flex flex-col items-center justify-center w-full h-full transition-colors relative
+                  ${activeTab === tab.id ? 'text-[#d4af37]' : 'text-[#5c4033] hover:text-[#8c7e6a]'}`}
+              >
+                {activeTab === tab.id && <div className="absolute top-0 w-8 h-0.5 bg-[#d4af37]"></div>}
+                <div className={`w-5 h-5 mb-1 ${activeTab === tab.id ? 'animate-bounce' : ''}`} style={{animationDuration: '2s'}}><tab.icon className="w-full h-full" /></div>
+                <span className="text-[10px] font-bold tracking-widest">{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
 </body>
 </html>
