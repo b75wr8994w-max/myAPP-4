@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="google" content="notranslate" />
-  <title>戰略圖 - 史詩地圖終極版</title>
+  <title>戰略圖 - 史詩地圖終極版 (V4)</title>
 
   <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -46,6 +46,7 @@
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     @keyframes stampIn { 0% { transform: scale(3) rotate(-15deg); opacity: 0; } 50% { transform: scale(0.8) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
     @keyframes pulse-red { 0%, 100% { filter: drop-shadow(0 0 5px rgba(239,68,68,0.5)); } 50% { filter: drop-shadow(0 0 15px rgba(239,68,68,1)); } }
+    @keyframes siren { 0%, 100% { background-color: rgba(69, 10, 10, 0.9); } 50% { background-color: rgba(153, 27, 27, 0.9); } }
   </style>
 </head>
 <body>
@@ -62,12 +63,15 @@
       investCount: 0,
       lastInvestMonth: "",
       lastRoutineMonth: "", 
+      dailyTaskDate: "",  // V4: 日常任務紀錄日期
+      dailyTaskCount: 0,  // V4: 日常任務次數
+      lastCrisisMonth: "",// V4: 熊市危機紀錄月份
       logs: []
     };
 
     const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
 
-    // 隨機事件 (修改文字時請保留前後的單引號 '')
+    // 隨機事件
     const RANDOM_EVENTS = [
       { title: '天降祥瑞', msg: '境內出現白鹿祥瑞，軍心大振！', merit: 1, type: 'good' },
       { title: '風調雨順', msg: '今年氣候宜人，屯田豐收，後勤無虞。', merit: 1, type: 'good' },
@@ -187,7 +191,6 @@
       return { ...o, faction, color, bg, border };
     });
 
-    // 羈絆加成已更新為 +5 / +10
     const BONDS = [
       { id: 'taoyuan', name: '桃園結義', req: [26, 28, 29], desc: '劉關張齊聚。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
       { id: 'wuhu', name: '五虎上將', req: [28, 29, 30, 31, 32], desc: '蜀國最強戰力。每次徵兵額外 +5 軍功。', bonusPayday: 5, bonusRoutine: 0 },
@@ -215,16 +218,16 @@
       Users: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
       Download: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
       Upload: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
-      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>,
+      Message: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
     };
 
     function App() {
-      // 升級至 v3 獨立存檔
+      // 相容舊版存檔並注入 V4 新參數
       const [gameState, setGameState] = useState(() => {
-        const saved = localStorage.getItem('wealth_game_save_v3');
+        const saved = localStorage.getItem('wealth_game_save_v4') || localStorage.getItem('wealth_game_save_v3');
         let parsed = saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
-        if (!parsed.occupiedProvinces) parsed.occupiedProvinces = [];
-        return parsed;
+        return { ...DEFAULT_GAME_STATE, ...parsed, occupiedProvinces: parsed.occupiedProvinces || [] };
       });
       
       const [prices, setPrices] = useState(FALLBACK_PRICES);
@@ -241,7 +244,9 @@
       const [combatResult, setCombatResult] = useState(null);
 
       const [gachaResult, setGachaResult] = useState(null);
-      const [activeEvent, setActiveEvent] = useState(null);
+      const [activeOfficerDialogue, setActiveOfficerDialogue] = useState(null); // V4 武將對話狀態
+      const [crisisEvent, setCrisisEvent] = useState(null); // V4 熊市危機狀態
+
       const [toastMessage, setToastMessage] = useState(null);
       const [localAssets, setLocalAssets] = useState(null);
       const [mapZoom, setMapZoom] = useState(1);
@@ -251,6 +256,7 @@
       const realDate = new Date();
       const currentRealYear = realDate.getFullYear();
       const currentRealMonth = realDate.getMonth() + 1;
+      const todayString = realDate.toISOString().split('T')[0];
       const currentMonthString = `${currentRealYear}-${String(currentRealMonth).padStart(2, '0')}`;
       const jianAnYear = Math.max(0, currentRealYear - 2026);
 
@@ -271,13 +277,21 @@
               if (btcChange >= 2) setWeather({ trend: 'bull', change: btcChange, desc: '紫微星明 (戰力+20%)' });
               else if (btcChange <= -2) setWeather({ trend: 'bear', change: btcChange, desc: '天狗食月 (戰力-10%)' });
               else setWeather({ trend: 'neutral', change: btcChange, desc: '風平浪靜' });
+
+              // V4: 熊市危機觸發 (BTC 24小時跌幅超過 25%)，每月限觸發一次
+              if (btcChange <= -25 && gameState.lastCrisisMonth !== currentMonthString) {
+                  setCrisisEvent({
+                      title: '🚨 異族入侵 / 熊市警報 🚨',
+                      desc: `天狗食月，大盤重挫 ${btcChange.toFixed(1)}%！北方匈奴見我方防線動盪，大舉南下！\n請主公立即親臨城頭，檢視【預備金】是否足以守城！`
+                  });
+              }
             }
           } catch (error) {}
         };
         fetchPricesAndWeather();
-      }, []);
+      }, [gameState.lastCrisisMonth, currentMonthString]);
 
-      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, logs } = gameState;
+      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, logs } = gameState;
       const displayAssets = localAssets || assets;
 
       // 總資產計算 (扣除信貸)
@@ -345,7 +359,7 @@
 
       const saveGameState = (newState) => {
         setGameState(newState);
-        localStorage.setItem('wealth_game_save_v3', JSON.stringify(newState));
+        localStorage.setItem('wealth_game_save_v4', JSON.stringify(newState));
         setSyncStatus('已儲存本機');
         setTimeout(() => setSyncStatus('推進中'), 2000);
       };
@@ -373,7 +387,7 @@
               msg: `【城池失守】大盤震盪/軍資萎縮，防線空虛，敵軍趁機奪回了 ${lostNames.join('、')}！` 
             }, ...(newState.logs || [])].slice(0, 50);
             
-            localStorage.setItem('wealth_game_save_v3', JSON.stringify(newState));
+            localStorage.setItem('wealth_game_save_v4', JSON.stringify(newState));
             return newState;
           });
           showToast(`警告！${lostNames.join('、')} 遭敵軍奪回！`, 'error');
@@ -383,6 +397,75 @@
       const addLog = (newState, type, msg) => {
         const dateStr = `建安${jianAnYear}年${currentRealMonth}月`;
         newState.logs = [{ date: dateStr, type, msg }, ...(newState.logs || [])].slice(0, 50);
+      };
+
+      // V4: 熊市危機防禦結算
+      const handleResolveCrisis = () => {
+          let newState = JSON.parse(JSON.stringify(gameState));
+          newState.lastCrisisMonth = currentMonthString; 
+
+          if (newState.assets.emergency >= 200000) {
+              newState.merit += 15;
+              addLog(newState, '防禦大捷', '【天災防禦成功】我軍預備金糧草充足，城牆堅固！不僅成功抵禦大盤崩盤，更趁敵軍潰退時「趁虛而入（分批建倉）」，軍功大斬獲 +15！');
+              showToast("防禦大捷！危崖勒馬，彰顯主公定力。", 'success');
+          } else {
+              newState.merit = Math.max(0, newState.merit - 20);
+              addLog(newState, '城池遭劫', '【防禦失敗】大盤崩盤且預備金空虛，城池遭流寇劫掠，軍心渙散，軍功 -20。記住，市場崩潰不是末日，沒有現金流才是真正的末日！');
+              showToast("城防崩潰！預備金不足，部隊遭流寇劫掠。", 'error');
+          }
+          saveGameState(newState);
+          setCrisisEvent(null);
+      };
+
+      // V4: 零成本內政系統 (微量軍功)
+      const handleDailyTask = (taskName, meritReward) => {
+          let newState = JSON.parse(JSON.stringify(gameState));
+          
+          if (newState.dailyTaskDate !== todayString) {
+              newState.dailyTaskDate = todayString;
+              newState.dailyTaskCount = 0;
+          }
+
+          if (newState.dailyTaskCount >= 3) {
+              showToast("主公，今日將士已操練疲憊，請明日再行內政！", 'warn');
+              return;
+          }
+
+          newState.dailyTaskCount += 1;
+          newState.merit += meritReward;
+          addLog(newState, '微內政', `執行【${taskName}】，微幅提升軍心，軍功 +${meritReward}。`);
+          saveGameState(newState);
+          showToast(`【${taskName}】完成，軍功 +${meritReward}`, 'success');
+      };
+
+      // V4: 取得武將動態對話
+      const getOfficerDialogue = (officer) => {
+          const { emergency, entertainment, btc, debt } = displayAssets;
+          
+          if (officer.id === 27) { // 諸葛亮
+              if (emergency >= 200000 && entertainment >= 50000) return "主公深謀遠慮，二十萬預備金如銅牆鐵壁，五萬娛樂金安撫軍心。天下大變亦不足懼！";
+              if (emergency < 50000) return "主公！預備金已見底，若此時大盤崩潰、天災降臨，我軍將死無葬身之地，請速速回防現金流！";
+              return "投資如用兵，未算勝先算敗。主公切記，『緊急預備金』方為立於不敗之地的根本。";
+          }
+          if (officer.id === 3) { // 郭嘉
+              if (btc > 1.0) return "兵貴神速！主公重倉虎豹騎 (BTC)，魄力驚人！只要咬牙拿住，2030年必能橫掃天下！";
+              if (emergency > 500000) return "主公，糧草(現金)堆積如山卻不發兵，豈非錯失良機？該出手時就出手啊！";
+              return "不入虎穴，焉得虎子？若想彎道超車，適當的波動是霸業必經之路。";
+          }
+          if (officer.id === 2) { // 司馬懿
+              if (debt > 1000000) return "主公借用鉅額『傭兵 (信貸)』打仗，如履薄冰。一旦兵變，反噬極深，請務必盯緊還款現金流。";
+              if (debt === 0) return "無債一身輕。主公不假外求，穩紮穩打，此乃長久之霸道。";
+              return "時間，是我們最可怕的武器。只要活得夠久，天下自然是我們的。";
+          }
+          if (officer.id === 101) { // 太座
+              return "不管外面大盤怎麼震，家裡的伙食費跟咪波的奶粉錢不能少！知道嗎？(微笑)";
+          }
+
+          // 通用對話
+          if (officer.type === '統帥') return "主公，為將者當有紀律。每月定投如排兵布陣，不可因一時恐慌而亂了陣腳！";
+          if (officer.type === '智力') return "市場流言蜚語甚多，唯有持續閱讀、自我提升，方能識破虛妄。";
+          if (officer.type === '武力') return "與其焦慮，不如隨末將去校場操練(運動)！身體健康才是享受霸業的本錢！";
+          return "主公，積少成多，聚沙成塔。穩健前行，方能恩澤百姓。";
       };
 
       const handlePayday = () => {
@@ -468,7 +551,6 @@
       const executeSiege = () => {
         const prov = provincesState.find(p => p.id === selectedProvinceId);
         
-        // 防呆：如果已經佔領，則不允許重複攻打
         if (prov && prov.isConquered) {
             showToast("此城池已在我軍控制之下，無需重複攻打！", "warn");
             setSiegeMode(false);
@@ -477,13 +559,9 @@
         
         if (!prov || siegeGenerals.length === 0) return showToast("請至少派遣一名將領出征！", 'warn');
 
-        // 1. 資產基礎戰力
         const basePower = Math.max(1, stats.netWorth / 10000); 
-
-        // 2. 定投資歷轉化為「全軍軍紀」：每累積定投 1 次，全軍基礎戰力提升 +0.5% (240次可提升 +120%)
         const investDisciplineBuff = 1 + (investCount * 0.005);
         
-        // 3. 武將戰力乘區改為 (stat / 200)，三名頂級神將約可提供 +120%~+150% 戰力
         let generalMultiplier = 0;
         siegeGenerals.forEach(id => {
           const lvl = officerStats.roster[id];
@@ -495,7 +573,6 @@
         if (weather.trend === 'bull') weatherMod = 1.2;
         if (weather.trend === 'bear') weatherMod = 0.9;
 
-        // 總戰力 = (基礎資產戰力 * 軍紀加成) * (1 + 武將加成) * 天象
         const totalAttack = Math.floor(basePower * investDisciplineBuff * (1 + generalMultiplier) * weatherMod);
         const defense = prov.def;
         
@@ -505,7 +582,6 @@
 
         if (totalAttack >= defense) {
           success = true;
-          // 防呆：確保陣列中沒有重複的城池 ID
           if (!newState.occupiedProvinces.includes(prov.id)) {
              newState.occupiedProvinces.push(prov.id);
           }
@@ -548,7 +624,7 @@
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `戰略圖兵符_v3_建安${jianAnYear}年${currentRealMonth}月.json`;
+        link.download = `戰略圖兵符_v4_建安${jianAnYear}年${currentRealMonth}月.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -565,7 +641,7 @@
             let importedState = JSON.parse(e.target.result);
             if (importedState && importedState.assets && importedState.merit !== undefined) {
               if (!importedState.occupiedProvinces) importedState.occupiedProvinces = [];
-              saveGameState(importedState);
+              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState }); // 相容舊版
               showToast("兵符匯入成功，天下大勢已更新！", "success");
             } else {
               showToast("兵符格式錯誤，無法解讀！", "error");
@@ -584,6 +660,26 @@
       return (
         <div className="h-[100dvh] w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
           
+          {/* V4: 熊市危機強制遮罩攔截 */}
+          {crisisEvent && (
+             <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md">
+                 <div className="bg-[#1a0505] border-2 border-red-600 p-6 md:p-10 max-w-lg w-full text-center shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-[stampIn_0.5s_forwards]">
+                     <h2 className="text-2xl md:text-3xl font-black text-red-500 mb-4 tracking-widest">{crisisEvent.title}</h2>
+                     <p className="text-[#e3dac9] text-sm md:text-base leading-relaxed mb-6 font-bold">{crisisEvent.desc}</p>
+                     
+                     <div className="bg-[#0a0202] border border-red-900 p-4 mb-6 text-left text-xs md:text-sm text-gray-400">
+                        <p>🔹 守城條件：緊急預備金 ≥ 20 萬</p>
+                        <p>🔹 當前預備金：<span className={displayAssets.emergency >= 200000 ? "text-green-400 font-bold" : "text-red-400 font-bold"}>{displayAssets.emergency.toLocaleString()}</span></p>
+                     </div>
+
+                     <button onClick={handleResolveCrisis} 
+                        className="w-full py-4 bg-red-800 text-white font-black tracking-widest text-lg border border-red-500 hover:bg-red-700 animate-[siren_1s_infinite]">
+                         發起守城檢定
+                     </button>
+                 </div>
+             </div>
+          )}
+
           {/* Notifications */}
           {toastMessage && (
             <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
@@ -811,7 +907,6 @@
                           {combatResult.success ? '大 獲 全 勝' : '折 戟 沉 沙'}
                         </h2>
                         <p className="text-xs md:text-sm text-[#e3dac9] mb-5 bg-[#0a0705] p-4 border border-[#3e2723] leading-relaxed w-full max-w-md">{combatResult.logMsg}</p>
-                        {/* 修正：點擊確認戰果時，必須關閉 siegeMode (setSiegeMode(false))，防止無限攻城 */}
                         <button onClick={() => { setCombatResult(null); setSiegeMode(false); }} className="px-10 py-2.5 bg-[#1c1814] border border-[#d4af37] text-[#d4af37] font-bold rounded-sm tracking-widest hover:bg-[#2a2218] active:scale-95 whitespace-nowrap">確認戰果</button>
                       </div>
                     ) : (
@@ -921,9 +1016,30 @@
                     </div>
                   </div>
 
+                  {/* V4 新增：日常內政系統 */}
+                  <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
+                    <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 tracking-widest flex items-center gap-2">日常內政 (修身齊家)</h3>
+                    <p className="text-[10px] text-[#8c7e6a] mb-3">不耗費糧草，每日限制執行 3 次，微幅提升軍功 (+2)。<br/>今日已執行：<span className="text-white font-bold">{dailyTaskDate === todayString ? dailyTaskCount : 0} / 3</span></p>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                        <button onClick={() => handleDailyTask('閱讀', 2)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-blue-500 hover:bg-[#0a1128] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                            <span className="text-blue-400 text-xs font-bold tracking-widest whitespace-nowrap">研讀兵法</span>
+                            <span className="text-[9px] text-gray-500">(知識提升)</span>
+                        </button>
+                        <button onClick={() => handleDailyTask('整理營帳', 2)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-green-500 hover:bg-[#0a1a0f] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                            <span className="text-green-400 text-xs font-bold tracking-widest whitespace-nowrap">巡視營帳</span>
+                            <span className="text-[9px] text-gray-500">(整理家務)</span>
+                        </button>
+                        <button onClick={() => handleDailyTask('校場操練', 2)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-red-500 hover:bg-[#2a0808] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                            <span className="text-red-400 text-xs font-bold tracking-widest whitespace-nowrap">校場操練</span>
+                            <span className="text-[9px] text-gray-500">(運動鍛鍊)</span>
+                        </button>
+                    </div>
+                  </div>
+
                   <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex justify-between items-center">
                     <div>
-                      <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 whitespace-nowrap">日常巡視 (雙防禦)</h3>
+                      <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 whitespace-nowrap">大營巡視 (雙防禦)</h3>
                       <p className="text-[10px] text-[#8c7e6a] whitespace-nowrap">檢閱預備金 20萬 & 娛樂流動金 5萬</p>
                     </div>
                     <button onClick={executeRoutineTask} disabled={!canDoRoutineThisMonth}
@@ -946,13 +1062,13 @@
                             <span className={`shrink-0 rounded-sm px-1.5 py-0.5 border font-bold whitespace-nowrap
                               ${log.type === '軍令' ? 'bg-[#3b0f0f] text-red-400 border-red-800' : 
                                 log.type === '征戰' ? 'bg-purple-900 text-purple-300 border-purple-700' :
-                                log.type === '內政' ? 'bg-[#0f291e] text-green-400 border-green-800' : 
-                                log.type === '戰報' ? 'bg-red-950 text-red-500 border-red-700 animate-pulse' :
+                                log.type === '內政' || log.type === '微內政' || log.type === '防禦大捷' ? 'bg-[#0f291e] text-green-400 border-green-800' : 
+                                log.type === '戰報' || log.type === '城池遭劫' ? 'bg-red-950 text-red-500 border-red-700 animate-pulse' :
                                 log.type === '招賢' ? 'bg-[#3b2d0f] text-yellow-400 border-yellow-800' : 
                                 'bg-gray-900 text-gray-400 border-gray-700'}`}>
                               {log.type}
                             </span>
-                            <span className={`flex-1 leading-relaxed ${log.type === '戰報' ? 'text-red-400 font-bold' : 'text-[#e3dac9]'}`}>{log.msg}</span>
+                            <span className={`flex-1 leading-relaxed ${log.type === '戰報' || log.type === '城池遭劫' ? 'text-red-400 font-bold' : log.type === '防禦大捷' ? 'text-green-400 font-bold' : 'text-[#e3dac9]'}`}>{log.msg}</span>
                           </div>
                         ))
                       }
@@ -968,12 +1084,11 @@
                   <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="relative z-10 text-center md:text-left flex-1">
                       <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest whitespace-nowrap">
-                        <ICONS.Users className="w-5 h-5"/> 招賢館 (無盡將魂)
+                        <ICONS.Users className="w-5 h-5"/> 招賢館 (動態將營)
                       </h2>
                       <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
-                        設宴招攬天下群雄 (每次 <span className="text-yellow-400 font-bold whitespace-nowrap">300 軍功</span>)。<br/>
-                        <span className="text-white">若招攬到重複武將，將自動轉化為「將魂」提升星級。</span><br/>
-                        星級提升能巨幅強化其「每月軍功被動」與「攻城戰力乘區」。
+                        消耗 300 軍功招募將領。獲得重複武將將轉化為「將魂」升星。<br/>
+                        <span className="text-green-400 font-bold mt-1 inline-block">【V4機能】點擊麾下將領，將觸發專屬營地對話，嚴格審視您的紀律。</span>
                       </p>
                     </div>
                     
@@ -1033,7 +1148,7 @@
                         const officer = OFFICERS.find(o => o.id === id);
                         if(!officer) return null;
                         return (
-                          <div key={id} className={`bg-[#0a0705] border p-2 flex flex-col items-center relative overflow-hidden ${officer.border}`}>
+                          <div key={id} onClick={() => setActiveOfficerDialogue(officer)} className={`bg-[#0a0705] border p-2 flex flex-col items-center relative overflow-hidden cursor-pointer hover:scale-105 transition-transform ${officer.border}`}>
                             <div className={`absolute top-0 right-0 px-1.5 py-0.5 text-[8px] font-black whitespace-nowrap ${officer.bg} ${officer.color} border-b border-l ${officer.border}`}>
                               {officer.faction}
                             </div>
@@ -1041,9 +1156,9 @@
                               {level} 星
                             </div>
                             <div className={`text-xs md:text-sm font-bold mt-5 mb-1 tracking-widest whitespace-nowrap ${officer.color}`}>{officer.name}</div>
-                            <div className="text-[9px] text-[#a3947c] whitespace-nowrap">{officer.type} <span className="text-white font-mono">{officer.stat}</span></div>
-                            <div className="w-full border-t border-[#2a1a15] mt-1 pt-1 text-center text-green-500 font-mono text-[9px] whitespace-nowrap">
-                              軍功 +{((officer.stat/100) * (1 + (level-1)*0.2)).toFixed(2)}
+                            
+                            <div className="w-full border-t border-[#2a1a15] mt-1 pt-1 text-center text-[#8c7e6a] text-[8px] whitespace-nowrap flex items-center justify-center gap-1 hover:text-[#d4af37]">
+                              <ICONS.Message className="w-3 h-3" /> 點擊交談
                             </div>
                           </div>
                         );
@@ -1051,6 +1166,31 @@
                     }
                   </div>
                 </div>
+              )}
+
+              {/* V4 武將對話 Modal */}
+              {activeOfficerDialogue && (
+                  <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm" onClick={() => setActiveOfficerDialogue(null)}>
+                     <div className={`border-2 ${activeOfficerDialogue.border} bg-[#0a0705] p-6 max-w-sm w-full relative shadow-[0_0_30px_rgba(0,0,0,0.8)] animate-[slideUp_0.2s_ease-out]`} onClick={e => e.stopPropagation()}>
+                         <div className="flex justify-between items-start mb-4 border-b border-[#3e2723] pb-2">
+                             <div>
+                                 <div className={`text-xs ${activeOfficerDialogue.color} tracking-widest mb-1`}>{activeOfficerDialogue.faction}軍將領</div>
+                                 <h3 className={`text-2xl font-black ${activeOfficerDialogue.color} tracking-widest`}>{activeOfficerDialogue.name}</h3>
+                             </div>
+                             <div className="text-right">
+                                 <div className="text-[9px] text-[#8c7e6a]">星級被動加成</div>
+                                 <div className="text-green-400 font-mono text-xs">+ {((activeOfficerDialogue.stat/100) * (1 + (officerStats.roster[activeOfficerDialogue.id]-1)*0.2)).toFixed(2)}</div>
+                             </div>
+                         </div>
+                         <div className="bg-[#1a1410] border border-[#3e2723] p-4 text-sm leading-relaxed text-[#e3dac9] italic relative">
+                             <span className="absolute top-2 left-2 text-3xl text-[#4a3525] opacity-50 font-serif leading-none">"</span>
+                             <span className="relative z-10 pl-4 block">{getOfficerDialogue(activeOfficerDialogue)}</span>
+                         </div>
+                         <button onClick={() => setActiveOfficerDialogue(null)} className="mt-5 w-full py-2 bg-[#1c1814] text-[#8c7e6a] border border-[#3e2723] hover:text-white transition-colors text-xs tracking-widest">
+                             結束交談
+                         </button>
+                     </div>
+                  </div>
               )}
 
               {/* 抽卡結果 Modal */}
