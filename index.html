@@ -23,7 +23,7 @@
     
     /* 古風字體與排版 */
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap');
-    body { font-family: 'Noto Serif TC', serif; background-color: #0c0906; margin: 0; padding: 0; overflow: hidden; touch-action: none; }
+    body { font-family: 'Noto Serif TC', serif; background-color: #0c0906; margin: 0; padding: 0; overflow: hidden; }
     
     /* 古代州域文字樣式 */
     .map-region-text {
@@ -232,7 +232,7 @@
       const [investPlan, setInvestPlan] = useState({ amount: 10000, repayAmount: 0, target: 'btc' });
       const [activeTab, setActiveTab] = useState('map');
       const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
-      const [syncStatus, setSyncStatus] = useState('實體隔離中');
+      const [syncStatus, setSyncStatus] = useState('推進中');
       
       // 攻城系統狀態
       const [siegeMode, setSiegeMode] = useState(false);
@@ -346,7 +346,7 @@
         setGameState(newState);
         localStorage.setItem('wealth_game_save_v3', JSON.stringify(newState));
         setSyncStatus('已儲存本機');
-        setTimeout(() => setSyncStatus('實體隔離中'), 2000);
+        setTimeout(() => setSyncStatus('推進中'), 2000);
       };
 
       // 城池動態失守系統
@@ -564,84 +564,88 @@
       const occupiedCount = occupiedProvinces.length;
 
       return (
-        <div className="fixed inset-0 w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col selection:bg-[#4a3525] selection:text-white">
+        <div className="h-[100dvh] w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
           
           {/* Notifications */}
           {toastMessage && (
-            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out] w-[90%] max-w-sm">
-              <div className={`px-4 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center justify-center text-center
-                ${toastMessage.type === 'error' ? 'bg-[#3b0f0f]/95 text-red-300 border-red-800' : 
-                  toastMessage.type === 'success' ? 'bg-[#0f291e]/95 text-green-300 border-green-800' : 
-                  toastMessage.type === 'warn' ? 'bg-[#3b2d0f]/95 text-yellow-300 border-yellow-800' : 
-                  'bg-[#0f172a]/95 text-blue-300 border-blue-800'}`}
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
+              <div className={`px-6 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center gap-2 whitespace-nowrap
+                ${toastMessage.type === 'error' ? 'bg-[#3b0f0f]/90 text-red-300 border-red-800' : 
+                  toastMessage.type === 'success' ? 'bg-[#0f291e]/90 text-green-300 border-green-800' : 
+                  toastMessage.type === 'warn' ? 'bg-[#3b2d0f]/90 text-yellow-300 border-yellow-800' : 
+                  'bg-[#0f172a]/90 text-blue-300 border-blue-800'}`}
               >
                 {toastMessage.msg}
               </div>
             </div>
           )}
 
-          {/* Header */}
-          <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl w-full">
-            <div className="flex justify-between items-center px-3 py-2 w-full">
+          {/* Header - Fixed Flex Collapse Bug */}
+          <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl relative">
+            <div className="flex justify-between items-center px-2 md:px-4 py-2 md:py-3 relative z-10 gap-1">
               
-              {/* Left Side */}
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 shrink-0 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
-                  <span className="text-base font-black text-[#e3dac9] leading-none mb-0.5">魏</span>
-                  <span className="text-[8px] text-[#d4af37] bg-[#2a2218] px-1 border border-[#4a3525] rounded-sm">{playerTitle}</span>
+              {/* Left Side Container */}
+              <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
+                <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
+                  <span className="text-base md:text-lg font-black text-[#e3dac9] leading-none mb-1">魏</span>
+                  <span className="text-[8px] md:text-[9px] text-[#d4af37] bg-[#2a2218] px-1 border border-[#4a3525] rounded-sm whitespace-nowrap">{playerTitle}</span>
                 </div>
-                
-                <div className="flex flex-col justify-center">
-                  <h1 className="font-bold text-base tracking-widest text-[#d4af37] drop-shadow-md flex items-center gap-1.5">
-                    <span>霸業烽火</span>
-                    <span className="hidden sm:flex text-[9px] px-1.5 py-0.5 rounded-sm border font-mono tracking-normal shrink-0 border-green-500 text-green-400 bg-green-900/30">
+                <div className="flex flex-col min-w-0 shrink-0">
+                  <h1 className="font-bold text-base md:text-xl tracking-widest text-[#d4af37] drop-shadow-md flex items-center gap-2 whitespace-nowrap">
+                    霸業烽火
+                    <span className={`hidden sm:inline-block text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-sm border font-mono tracking-normal whitespace-nowrap
+                      ${weather.trend === 'bull' ? 'border-green-500 text-green-400 bg-green-900/30' : 
+                        weather.trend === 'bear' ? 'border-red-500 text-red-400 bg-red-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>
                       天象: {weather.desc}
                     </span>
                   </h1>
-                  <div className="text-[9px] text-[#8c7e6a] flex items-center gap-1.5 mt-0.5 font-mono">
-                    <span>建安{jianAnYear}年{currentRealMonth}月</span>
-                    <span className="sm:hidden text-[8px] px-1.5 py-0.5 rounded-sm border shrink-0 border-green-500 text-green-400 bg-green-900/30">
+                  <div className="text-[8px] md:text-[10px] text-[#8c7e6a] flex items-center gap-1 md:gap-1.5 mt-1 font-mono whitespace-nowrap">
+                    <span className="whitespace-nowrap">建安{jianAnYear}年{currentRealMonth}月</span>
+                    <span className={`sm:hidden text-[8px] px-1 py-0.5 rounded-sm border whitespace-nowrap
+                      ${weather.trend === 'bull' ? 'border-green-500 text-green-400 bg-green-900/30' : 
+                        weather.trend === 'bear' ? 'border-red-500 text-red-400 bg-red-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>
                       天象: {weather.desc}
                     </span>
+                    <span className={`text-[8px] md:text-[9px] px-1.5 py-0.5 rounded-sm border whitespace-nowrap ${syncStatus.includes('已儲存') ? 'border-green-500 text-green-400 bg-green-900/30' : 'border-[#4a3525] text-[#8c7e6a]'}`}>{syncStatus}</span>
                   </div>
                 </div>
               </div>
               
-              {/* Right Side */}
-              <div className="flex flex-col items-end justify-center shrink-0">
-                <div className="text-[9px] text-[#a3947c] tracking-widest mb-0.5">總兵力</div>
-                <div className={`text-lg font-bold font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
-                  {(stats.netWorth / 10000).toFixed(0)} <span className="text-[9px] text-[#d4af37] font-serif">萬</span>
+              {/* Right Side Container */}
+              <div className="text-right flex flex-col items-end justify-center shrink-0 ml-1">
+                <div className="text-[9px] md:text-[10px] text-[#a3947c] tracking-widest mb-0.5 whitespace-nowrap">總兵力</div>
+                <div className={`text-lg md:text-2xl font-bold font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] whitespace-nowrap ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
+                  {(stats.netWorth / 10000).toFixed(0)} <span className="text-[9px] md:text-xs text-[#d4af37] font-serif">萬</span>
                 </div>
               </div>
             </div>
             
             {/* Sub-header Asset Bar */}
-            <div className="flex px-3 py-1.5 gap-2 overflow-x-auto scrollbar-hide text-[10px] font-mono bg-[#0a0705] border-t border-[#2a1a15] shadow-inner w-full">
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0">
+            <div className="flex px-2 md:px-4 py-1.5 md:py-2 gap-2 md:gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide text-[10px] md:text-[11px] font-mono bg-[#0a0705] border-t border-[#2a1a15] relative z-10 shadow-inner">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
                 <span className="text-[#a3947c] font-serif">軍功</span> <span className="text-[#ffd700] font-bold">{merit.toFixed(1)}</span>
               </div>
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
                 <span className="text-[#a3947c] font-serif">糧草</span> <span className="text-[#4ade80]">{(stats.cash / 10000).toFixed(2)}w</span>
               </div>
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
                 <span className="text-[#a3947c] font-serif">騎兵</span> <span className="text-[#60a5fa]">{(stats.crypto / 10000).toFixed(2)}w</span>
               </div>
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0">
-                <span className="text-[#a3947c] font-serif">步弓兵</span> <span className="text-[#c084fc]">{(stats.trad / 10000).toFixed(2)}w</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
+                <span className="text-[#a3947c] font-serif">步弩兵</span> <span className="text-[#c084fc]">{(stats.trad / 10000).toFixed(2)}w</span>
               </div>
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-[#3b0f0f]/80 border border-red-900 shrink-0">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#3b0f0f]/80 border border-red-900 shrink-0 whitespace-nowrap">
                 <span className="text-red-300 font-serif">傭兵(信貸)</span> <span className="text-red-400 font-bold">-{(stats.debt / 10000).toFixed(2)}w</span>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 min-h-0 overflow-y-auto relative bg-[#0c1014] scrollbar-hide w-full">
-            <div className="relative w-full h-full flex flex-col">
+          <main className="flex-1 overflow-y-auto relative bg-[#0c1014] scrollbar-hide">
+            <div className="relative z-10 w-full h-full flex flex-col">
               
               {/* ================= MAP TAB ================= */}
               {activeTab === 'map' && (
-                <div className="flex flex-col h-full w-full relative">
+                <div className="flex flex-col h-full relative">
                   
                   {/* 縮放面板 */}
                   <div className="absolute top-4 right-4 z-[60] flex flex-col gap-2">
@@ -650,7 +654,7 @@
                     <button onClick={() => setMapZoom(z => Math.max(z - 0.25, 0.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">-</button>
                   </div>
 
-                  <div className="flex-1 min-h-0 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
+                  <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
                     <div className="relative origin-top-left transition-transform duration-300" style={{ transform: `scale(${mapZoom})`, width: '1600px', height: '1200px' }}>
                       
                       {/* SVG 水系與版圖 */}
@@ -724,24 +728,24 @@
                   </div>
 
                   {/* 底部面板：城池資訊與攻城系統 */}
-                  <div className="h-64 bg-[#1a1410] border-t-2 border-[#b8860b] p-4 flex flex-col relative shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.8)] z-20 w-full overflow-hidden">
+                  <div className="h-64 bg-[#1a1410] border-t-2 border-[#b8860b] p-4 flex flex-col relative shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.8)] z-20">
                     {!siegeMode && !combatResult ? (
                       <>
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h2 className="text-[#d4af37] text-lg font-black tracking-widest flex items-center gap-2">
+                            <h2 className="text-[#d4af37] text-lg md:text-xl font-black tracking-widest flex items-center gap-2 whitespace-nowrap">
                               {selectedProvince.name}
-                              <span className={`text-[9px] px-1.5 py-0.5 border rounded-sm font-bold shrink-0
+                              <span className={`text-[9px] px-1.5 py-0.5 border rounded-sm font-bold whitespace-nowrap
                                 ${selectedProvince.isConquered ? 'text-yellow-300 border-yellow-500 bg-yellow-900' : 
                                   selectedProvince.isReqMet ? 'text-blue-300 border-blue-500 bg-blue-900' : 'text-gray-400 border-gray-600'}`}>
-                                {selectedProvince.isConquered ? '已佔據 (守成中)' : selectedProvince.isReqMet ? '獲得攻城權' : '糧草不足'}
+                                {selectedProvince.isConquered ? '已佔據 (守成中)' : selectedProvince.isReqMet ? '獲得攻城權' : '糧草不足未解鎖'}
                               </span>
                             </h2>
-                            <p className="text-[10px] text-[#a3947c] mt-1">{selectedProvince.title} | 守軍戰力：<span className="text-red-400 font-mono font-bold">{selectedProvince.def}</span></p>
+                            <p className="text-[10px] md:text-xs text-[#a3947c] mt-1 whitespace-nowrap">{selectedProvince.title} | 守軍戰力：<span className="text-red-400 font-mono font-bold">{selectedProvince.def}</span></p>
                           </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-[10px] text-[#8c7e6a] tracking-widest">霸業版圖</div>
-                            <div className="font-mono text-[#e3dac9] text-base text-yellow-400">{occupiedCount}<span className="text-[#8c7e6a] text-xs">/{PROVINCES.length}</span></div>
+                          <div className="text-right shrink-0 ml-2">
+                            <div className="text-[10px] text-[#8c7e6a] tracking-widest whitespace-nowrap">霸業版圖</div>
+                            <div className="font-mono text-[#e3dac9] text-base md:text-lg text-yellow-400 whitespace-nowrap">{occupiedCount}<span className="text-[#8c7e6a] text-xs">/{PROVINCES.length}</span></div>
                           </div>
                         </div>
                         
@@ -759,14 +763,14 @@
                               
                               return (
                                 <li key={k} className="flex flex-col">
-                                  <div className="flex justify-between mb-1 text-[10px] font-bold text-[#e3dac9]">
+                                  <div className="flex justify-between mb-1 text-[10px] md:text-xs font-bold text-[#e3dac9] whitespace-nowrap">
                                     <span>{selectedProvince.targetLabel}</span>
                                     <span className={isMet ? 'text-green-400' : 'text-red-400'}>{isMet ? '達成' : '未滿'}</span>
                                   </div>
                                   <div className="w-full bg-[#0a0705] h-1.5 rounded-full overflow-hidden border border-[#3e2723]">
                                     <div className={`h-full transition-all duration-1000 ${isMet ? 'bg-green-500' : 'bg-red-800'}`} style={{ width: `${progress}%` }}></div>
                                   </div>
-                                  <div className="flex justify-between mt-1 text-[#8c7e6a] text-[9px] font-mono">
+                                  <div className="flex justify-between mt-1 text-[#8c7e6a] text-[9px] font-mono whitespace-nowrap">
                                     <span>{current.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
                                     <span>/ {targetVal.toLocaleString()}</span>
                                   </div>
@@ -778,38 +782,38 @@
 
                         {selectedProvince.isReqMet && !selectedProvince.isConquered && (
                           <button onClick={() => { setSiegeMode(true); setSiegeGenerals([]); }} 
-                            className="w-full py-3 mt-3 bg-[#3b0f0f] text-red-100 border border-red-600 font-black tracking-widest text-sm rounded-sm hover:bg-[#5c0000] active:scale-95 animate-pulse-red">
+                            className="w-full py-3 mt-3 bg-[#3b0f0f] text-red-100 border border-red-600 font-black tracking-widest text-sm md:text-base rounded-sm hover:bg-[#5c0000] active:scale-95 animate-pulse-red whitespace-nowrap">
                             點將攻城 (發起戰力檢定)
                           </button>
                         )}
                       </>
                     ) : combatResult ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-center animate-[stampIn_0.5s_forwards]">
-                        <h2 className={`text-2xl font-black mb-3 ${combatResult.success ? 'text-yellow-400' : 'text-red-500'}`}>
+                        <h2 className={`text-2xl md:text-3xl font-black mb-3 whitespace-nowrap ${combatResult.success ? 'text-yellow-400' : 'text-red-500'}`}>
                           {combatResult.success ? '大 獲 全 勝' : '折 戟 沉 沙'}
                         </h2>
-                        <p className="text-xs text-[#e3dac9] mb-5 bg-[#0a0705] p-3 border border-[#3e2723] leading-relaxed w-full">{combatResult.logMsg}</p>
-                        <button onClick={() => setCombatResult(null)} className="px-10 py-2.5 bg-[#1c1814] border border-[#d4af37] text-[#d4af37] font-bold rounded-sm tracking-widest hover:bg-[#2a2218] active:scale-95">確認戰果</button>
+                        <p className="text-xs md:text-sm text-[#e3dac9] mb-5 bg-[#0a0705] p-4 border border-[#3e2723] leading-relaxed w-full max-w-md">{combatResult.logMsg}</p>
+                        <button onClick={() => setCombatResult(null)} className="px-10 py-2.5 bg-[#1c1814] border border-[#d4af37] text-[#d4af37] font-bold rounded-sm tracking-widest hover:bg-[#2a2218] active:scale-95 whitespace-nowrap">確認戰果</button>
                       </div>
                     ) : (
                       <div className="flex flex-col h-full animate-[slideUp_0.3s]">
                         <div className="flex justify-between items-center mb-2">
-                          <h3 className="text-[#d4af37] font-bold tracking-widest flex items-center gap-2"><ICONS.Users className="w-4 h-4"/> 點將出征 (最多3名)</h3>
-                          <button onClick={() => setSiegeMode(false)} className="text-[10px] text-[#8c7e6a] border border-[#4a3525] px-3 py-1 hover:bg-[#2a1a15]">取消出征</button>
+                          <h3 className="text-[#d4af37] font-bold tracking-widest flex items-center gap-2 whitespace-nowrap"><ICONS.Users className="w-4 h-4"/> 點將出征 (最多3名)</h3>
+                          <button onClick={() => setSiegeMode(false)} className="text-[10px] text-[#8c7e6a] border border-[#4a3525] px-3 py-1 hover:bg-[#2a1a15] whitespace-nowrap">取消出征</button>
                         </div>
                         
-                        <div className="flex-1 min-h-0 overflow-y-auto mb-3 border border-[#3e2723] p-2 bg-[#0a0705] grid grid-cols-4 gap-2 scrollbar-hide">
+                        <div className="flex-1 overflow-y-auto mb-3 border border-[#3e2723] p-2 bg-[#0a0705] grid grid-cols-4 md:grid-cols-6 gap-2 scrollbar-hide">
                           {Object.keys(officerStats.roster).length === 0 ? <p className="text-xs text-gray-500 col-span-full text-center mt-4">尚無將領，僅憑基礎兵力出戰</p> : 
                             Object.entries(officerStats.roster).map(([idStr, level]) => {
                               const id = parseInt(idStr);
                               const off = OFFICERS.find(o => o.id === id);
                               const isSelected = siegeGenerals.includes(id);
                               return (
-                                <div key={id} onClick={() => toggleSiegeGeneral(id)} className={`relative border p-1 text-center cursor-pointer transition-all select-none
+                                <div key={id} onClick={() => toggleSiegeGeneral(id)} className={`relative border p-1 md:p-2 text-center cursor-pointer transition-all select-none
                                   ${isSelected ? 'border-red-500 bg-red-900/30' : 'border-[#3e2723] bg-[#1a1410] hover:border-gray-500'}`}>
-                                  <div className="text-[9px] text-yellow-400 absolute top-0 left-0 bg-black/80 px-1 font-bold">{level}星</div>
-                                  <div className={`text-[10px] font-bold mt-3 ${off.color}`}>{off.name}</div>
-                                  <div className="text-[8px] text-gray-400">{off.type} {off.stat}</div>
+                                  <div className="text-[9px] text-yellow-400 absolute top-0 left-0 bg-black/80 px-1 font-bold whitespace-nowrap">{level}星</div>
+                                  <div className={`text-[10px] md:text-xs font-bold mt-3 whitespace-nowrap ${off.color}`}>{off.name}</div>
+                                  <div className="text-[8px] text-gray-400 whitespace-nowrap">{off.type} {off.stat}</div>
                                   {isSelected && <div className="absolute inset-0 border-2 border-red-500 pointer-events-none"></div>}
                                 </div>
                               )
@@ -818,11 +822,11 @@
                         </div>
 
                         <div className="flex items-center justify-between bg-[#0a0705] border border-[#2a1a15] p-2">
-                          <div className="text-[10px] text-[#a3947c] leading-tight flex-1">
+                          <div className="text-[10px] md:text-xs text-[#a3947c] leading-tight flex-1 whitespace-nowrap">
                             基礎戰力: <span className="text-white font-mono">{Math.max(1, stats.netWorth/10000).toFixed(0)}</span><br/>
-                            將領/天象: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' ? 'text-green-400' : 'text-gray-500'}>已計算</span>
+                            將領/天象加成: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' ? 'text-green-400' : 'text-gray-500'}>已計算</span>
                           </div>
-                          <button onClick={executeSiege} className={`px-6 py-2 font-black tracking-widest rounded-sm text-sm shrink-0 transition-all
+                          <button onClick={executeSiege} className={`px-6 py-2 md:py-3 font-black tracking-widest rounded-sm text-sm shrink-0 transition-all whitespace-nowrap
                             ${siegeGenerals.length > 0 ? 'bg-red-800 text-white border border-red-500 animate-pulse-red active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border border-[#3e2723]'}`}>
                             全軍出擊
                           </button>
@@ -838,7 +842,7 @@
                 <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-6 h-full overflow-y-auto w-full">
                   <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
                     <div className="absolute top-0 left-0 w-1 h-full bg-[#b8860b]"></div>
-                    <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-4 tracking-widest flex items-center gap-2">
+                    <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-4 tracking-widest flex items-center gap-2 whitespace-nowrap">
                       <ICONS.Tent className="w-5 h-5"/> 頒布徵兵令 (閒錢定投)
                     </h2>
                     
@@ -851,7 +855,7 @@
                       
                       <div className="flex flex-col gap-3">
                         <div>
-                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest">調度糧草 (投入額 TWD)</label>
+                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest whitespace-nowrap">調度糧草 (投入額 TWD)</label>
                           <input type="number" 
                             value={investPlan.amount === 0 ? '' : investPlan.amount}
                             onChange={(e) => setInvestPlan({...investPlan, amount: parseFloat(e.target.value) || 0})}
@@ -859,7 +863,7 @@
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest">訓練精兵 (標的)</label>
+                          <label className="text-[10px] md:text-xs text-[#8c7e6a] mb-1 block tracking-widest whitespace-nowrap">訓練精兵 (標的)</label>
                           <select 
                             value={investPlan.target}
                             onChange={(e) => setInvestPlan({...investPlan, target: e.target.value})}
@@ -871,7 +875,7 @@
                           </select>
                         </div>
                         <div className="mt-2 border-t border-[#3e2723] pt-3">
-                          <label className="text-[10px] md:text-xs text-red-400/80 mb-1 block tracking-widest">遣散傭兵 (償還信貸額 TWD)</label>
+                          <label className="text-[10px] md:text-xs text-red-400/80 mb-1 block tracking-widest whitespace-nowrap">遣散傭兵 (償還信貸額 TWD)</label>
                           <input type="number" 
                             value={investPlan.repayAmount === 0 ? '' : investPlan.repayAmount}
                             onChange={(e) => setInvestPlan({...investPlan, repayAmount: parseFloat(e.target.value) || 0})}
@@ -884,7 +888,7 @@
 
                     <button 
                       onClick={handlePayday} disabled={!canInvestThisMonth}
-                      className={`w-full py-3 md:py-4 font-black text-base md:text-lg border rounded-sm transition-all tracking-widest relative overflow-hidden
+                      className={`w-full py-3 md:py-4 font-black text-base md:text-lg border rounded-sm transition-all tracking-widest relative overflow-hidden whitespace-nowrap
                         ${canInvestThisMonth 
                           ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000] active:scale-95 shadow-[0_0_10px_rgba(139,0,0,0.5)]' 
                           : 'bg-[#1c1814] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
@@ -893,18 +897,18 @@
                     </button>
                     
                     <div className="mt-3 flex justify-between items-center text-[10px] md:text-xs bg-[#0a0705] p-2 border border-[#2a1a15]">
-                      <span className="text-[#a3947c]">武將被動加成: <span className="text-green-400">+{officerStats.passiveBuff.toFixed(2)}</span></span>
-                      <span className="text-[#a3947c]">羈絆軍功加成: <span className="text-yellow-400">+{bondPaydayBuff}</span></span>
+                      <span className="text-[#a3947c] whitespace-nowrap">武將被動加成: <span className="text-green-400">+{officerStats.passiveBuff.toFixed(2)}</span></span>
+                      <span className="text-[#a3947c] whitespace-nowrap">羈絆軍功加成: <span className="text-yellow-400">+{bondPaydayBuff}</span></span>
                     </div>
                   </div>
 
                   <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex justify-between items-center">
                     <div>
-                      <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1">日常巡視 (雙防禦)</h3>
-                      <p className="text-[10px] text-[#8c7e6a]">檢閱預備金 20萬 & 娛樂流動金 5萬</p>
+                      <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 whitespace-nowrap">日常巡視 (雙防禦)</h3>
+                      <p className="text-[10px] text-[#8c7e6a] whitespace-nowrap">檢閱BND預備金 20萬 & 娛樂流動金 5萬</p>
                     </div>
                     <button onClick={executeRoutineTask} disabled={!canDoRoutineThisMonth}
-                      className={`px-4 py-2 text-xs md:text-sm font-bold border rounded-sm tracking-widest shrink-0 ml-2
+                      className={`px-4 py-2 text-xs md:text-sm font-bold border rounded-sm tracking-widest whitespace-nowrap shrink-0 ml-2
                         ${canDoRoutineThisMonth ? 'bg-[#0f291e] text-green-400 border-green-700 hover:bg-[#14532d] active:scale-95' : 'bg-[#0a0705] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
                     >
                       {canDoRoutineThisMonth ? `檢閱領賞 (+${30 + bondRoutineBuff})` : '已巡視'}
@@ -912,15 +916,15 @@
                   </div>
 
                   <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex-1 min-h-[200px] flex flex-col">
-                    <h3 className="text-[#d4af37] text-sm md:text-base font-bold mb-3 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest shrink-0">
+                    <h3 className="text-[#d4af37] text-sm md:text-base font-bold mb-3 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest shrink-0 whitespace-nowrap">
                       <ICONS.Scroll className="w-4 h-4"/> 烽火紀年錄
                     </h3>
                     <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-2">
-                      {logs.length === 0 ? <p className="text-[#5c4033] text-center mt-6 text-xs">尚無戰事紀錄...</p> : 
+                      {logs.length === 0 ? <p className="text-[#5c4033] text-center mt-6 text-xs whitespace-nowrap">尚無戰事紀錄...</p> : 
                         logs.map((log, i) => (
                           <div key={i} className="flex gap-2 py-2 border-b border-[#2a1a15] items-start text-[10px] md:text-xs">
-                            <span className="text-[#8c7e6a] shrink-0 font-mono pt-0.5">[{log.date.slice(4)}]</span>
-                            <span className={`shrink-0 rounded-sm px-1.5 py-0.5 border font-bold
+                            <span className="text-[#8c7e6a] shrink-0 font-mono pt-0.5 whitespace-nowrap">[{log.date.slice(4)}]</span>
+                            <span className={`shrink-0 rounded-sm px-1.5 py-0.5 border font-bold whitespace-nowrap
                               ${log.type === '軍令' ? 'bg-[#3b0f0f] text-red-400 border-red-800' : 
                                 log.type === '征戰' ? 'bg-purple-900 text-purple-300 border-purple-700' :
                                 log.type === '內政' ? 'bg-[#0f291e] text-green-400 border-green-800' : 
@@ -944,21 +948,21 @@
                   
                   <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="relative z-10 text-center md:text-left flex-1">
-                      <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest">
+                      <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest whitespace-nowrap">
                         <ICONS.Users className="w-5 h-5"/> 招賢館 (無盡將魂)
                       </h2>
                       <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
-                        設宴招攬天下群雄 (每次 <span className="text-yellow-400 font-bold">300 軍功</span>)。<br/>
+                        設宴招攬天下群雄 (每次 <span className="text-yellow-400 font-bold whitespace-nowrap">300 軍功</span>)。<br/>
                         <span className="text-white">若招攬到重複武將，將自動轉化為「將魂」提升星級。</span><br/>
                         星級提升能巨幅強化其「每月軍功被動」與「攻城戰力乘區」。
                       </p>
                     </div>
                     
                     <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0">
-                      <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1">軍功庫存</div>
-                      <div className="text-2xl font-bold text-yellow-400 font-mono mb-3">{merit.toFixed(0)}</div>
+                      <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">軍功庫存</div>
+                      <div className="text-2xl font-bold text-yellow-400 font-mono mb-3 whitespace-nowrap">{merit.toFixed(0)}</div>
                       <button onClick={drawOfficer} disabled={merit < 300}
-                        className={`w-full py-2.5 font-bold text-sm md:text-base border rounded-sm transition-all tracking-widest
+                        className={`w-full py-2.5 font-bold text-sm md:text-base border rounded-sm transition-all tracking-widest whitespace-nowrap
                           ${merit >= 300 ? 'bg-[#2a2218] text-[#d4af37] border-[#b8860b] hover:bg-[#3a2f22] active:scale-95 shadow-[0_0_10px_rgba(184,134,11,0.2)]' : 'bg-[#110a05] border-[#2a1a15] text-[#5c4033] cursor-not-allowed'}`}
                       >
                         設宴招賢 (300)
@@ -967,7 +971,7 @@
                   </div>
 
                   <div className="mb-6">
-                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest border-l-4 border-[#b8860b] pl-2 mb-3 flex items-center gap-2">
+                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest border-l-4 border-[#b8860b] pl-2 mb-3 flex items-center gap-2 whitespace-nowrap">
                       <ICONS.Link className="w-4 h-4"/> 英雄羈絆
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -977,15 +981,15 @@
                         return (
                           <div key={bond.id} className={`p-3 border rounded-sm relative overflow-hidden transition-colors
                             ${isActive ? 'bg-[#2a2218] border-[#d4af37]' : 'bg-[#0a0705] border-[#2a1a15]'}`}>
-                            {isActive && <div className="absolute right-[-20px] top-[10px] transform rotate-45 bg-[#b8860b] text-black text-[9px] font-bold py-0.5 w-24 text-center shadow-lg">已解鎖</div>}
-                            <h4 className={`font-bold text-sm mb-1 tracking-widest ${isActive ? 'text-[#d4af37]' : 'text-[#8c7e6a]'}`}>{bond.name}</h4>
+                            {isActive && <div className="absolute right-[-20px] top-[10px] transform rotate-45 bg-[#b8860b] text-black text-[9px] font-bold py-0.5 w-24 text-center shadow-lg whitespace-nowrap">已解鎖</div>}
+                            <h4 className={`font-bold text-sm mb-1 tracking-widest whitespace-nowrap ${isActive ? 'text-[#d4af37]' : 'text-[#8c7e6a]'}`}>{bond.name}</h4>
                             <p className={`text-[10px] ${isActive ? 'text-[#e3dac9]' : 'text-[#5c4033]'}`}>{bond.desc}</p>
                             <div className="flex gap-1 mt-2 flex-wrap">
                               {bond.req.map(reqId => {
                                 const isOwned = uniqueOwned.includes(reqId);
                                 const off = OFFICERS.find(o => o.id === reqId);
                                 return (
-                                  <span key={reqId} className={`text-[9px] px-1 py-0.5 border rounded-sm
+                                  <span key={reqId} className={`text-[9px] px-1 py-0.5 border rounded-sm whitespace-nowrap
                                     ${isOwned ? `border-gray-500 text-gray-300 bg-gray-800` : 'border-[#2a1a15] text-[#4a3525]'}`}>
                                     {off?.name || '?'}
                                   </span>
@@ -999,27 +1003,27 @@
                   </div>
                   
                   <div className="flex justify-between items-end mb-3 border-b border-[#3e2723] pb-2 px-1">
-                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest">麾下名將 (陣容星級)</h3>
-                    <span className="text-[10px] md:text-xs text-[#8c7e6a] font-mono">圖鑑解鎖: {Object.keys(officerStats.roster).length} / {OFFICERS.length}</span>
+                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest whitespace-nowrap">麾下名將 (陣容星級)</h3>
+                    <span className="text-[10px] md:text-xs text-[#8c7e6a] font-mono whitespace-nowrap">圖鑑解鎖: {Object.keys(officerStats.roster).length} / {OFFICERS.length}</span>
                   </div>
                   
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-3">
-                    {Object.keys(officerStats.roster).length === 0 ? <div className="col-span-full py-10 text-center text-[#5c4033] text-xs">尚無將領，大營空虛。</div> : 
+                    {Object.keys(officerStats.roster).length === 0 ? <div className="col-span-full py-10 text-center text-[#5c4033] text-xs whitespace-nowrap">尚無將領，大營空虛。</div> : 
                       Object.entries(officerStats.roster).reverse().map(([idStr, level]) => {
                         const id = parseInt(idStr);
                         const officer = OFFICERS.find(o => o.id === id);
                         if(!officer) return null;
                         return (
                           <div key={id} className={`bg-[#0a0705] border p-2 flex flex-col items-center relative overflow-hidden ${officer.border}`}>
-                            <div className={`absolute top-0 right-0 px-1.5 py-0.5 text-[8px] font-black ${officer.bg} ${officer.color} border-b border-l ${officer.border}`}>
+                            <div className={`absolute top-0 right-0 px-1.5 py-0.5 text-[8px] font-black whitespace-nowrap ${officer.bg} ${officer.color} border-b border-l ${officer.border}`}>
                               {officer.faction}
                             </div>
-                            <div className="absolute top-0 left-0 bg-yellow-600/90 text-black px-1.5 py-0.5 text-[9px] font-black border-b border-r border-yellow-400">
+                            <div className="absolute top-0 left-0 bg-yellow-600/90 text-black px-1.5 py-0.5 text-[9px] font-black border-b border-r border-yellow-400 whitespace-nowrap">
                               {level} 星
                             </div>
-                            <div className={`text-xs md:text-sm font-bold mt-5 mb-1 tracking-widest ${officer.color}`}>{officer.name}</div>
-                            <div className="text-[9px] text-[#a3947c]">{officer.type} <span className="text-white font-mono">{officer.stat}</span></div>
-                            <div className="w-full border-t border-[#2a1a15] mt-1 pt-1 text-center text-green-500 font-mono text-[9px]">
+                            <div className={`text-xs md:text-sm font-bold mt-5 mb-1 tracking-widest whitespace-nowrap ${officer.color}`}>{officer.name}</div>
+                            <div className="text-[9px] text-[#a3947c] whitespace-nowrap">{officer.type} <span className="text-white font-mono">{officer.stat}</span></div>
+                            <div className="w-full border-t border-[#2a1a15] mt-1 pt-1 text-center text-green-500 font-mono text-[9px] whitespace-nowrap">
                               軍功 +{((officer.stat/100) * (1 + (level-1)*0.2)).toFixed(2)}
                             </div>
                           </div>
@@ -1040,23 +1044,23 @@
                     </div>
                     <div className="relative z-10 flex flex-col items-center p-8">
                       {gachaResult.isDupe && (
-                        <div className="text-yellow-400 font-black text-sm mb-3 animate-bounce tracking-widest border border-yellow-400 px-3 py-1 bg-yellow-900/50 shadow-[0_0_15px_rgba(234,179,8,0.5)]">
+                        <div className="text-yellow-400 font-black text-sm mb-3 animate-bounce tracking-widest border border-yellow-400 px-3 py-1 bg-yellow-900/50 shadow-[0_0_15px_rgba(234,179,8,0.5)] whitespace-nowrap">
                           ✨ 獲得將魂！星級提升 ✨
                         </div>
                       )}
-                      <div className={`text-xs tracking-widest mb-4 font-bold border ${gachaResult.border} px-3 py-1 bg-black/50 ${gachaResult.color}`}>
+                      <div className={`text-xs tracking-widest mb-4 font-bold border ${gachaResult.border} px-3 py-1 bg-black/50 whitespace-nowrap ${gachaResult.color}`}>
                         【 {gachaResult.faction}軍將領 】
                       </div>
-                      <h3 className={`text-4xl font-black mb-8 tracking-widest ${gachaResult.color} drop-shadow-lg`}>
+                      <h3 className={`text-4xl font-black mb-8 tracking-widest whitespace-nowrap ${gachaResult.color} drop-shadow-lg`}>
                         {gachaResult.name}
                       </h3>
                       <div className="w-full bg-[#0a0705]/80 border border-[#3e2723] p-4 mb-4 backdrop-blur-sm">
-                        <div className="flex justify-between items-center mb-2">
+                        <div className="flex justify-between items-center mb-2 whitespace-nowrap">
                           <span className="text-[#a3947c] text-sm">定位能力</span>
                           <span className="text-[#e3dac9] font-bold">{gachaResult.type} <span className={gachaResult.color}>{gachaResult.stat}</span></span>
                         </div>
                       </div>
-                      <p className="text-[#8c7e6a] text-xs mt-2 animate-pulse">點擊任意處收入麾下</p>
+                      <p className="text-[#8c7e6a] text-xs mt-2 animate-pulse whitespace-nowrap">點擊任意處收入麾下</p>
                     </div>
                   </div>
                 </div>
@@ -1067,12 +1071,12 @@
                 <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
                   
                   <div className="bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 mb-5 shadow-lg">
-                    <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-2 flex items-center gap-2 tracking-widest">
+                    <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-2 flex items-center gap-2 tracking-widest whitespace-nowrap">
                       <ICONS.Scroll className="w-5 h-5"/> 兵力編制 (手動校準)
                     </h2>
                     <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
                       將軍，請在此登記載路兵馬的數量。<br/>
-                      <span className="text-red-400">注意：</span> 步弓兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
+                      <span className="text-red-400">注意：</span> 步弩兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
                     </p>
                   </div>
                   
@@ -1080,7 +1084,7 @@
                     {Object.keys(DEFAULT_GAME_STATE.assets).map(key => (
                       <div key={key} className={`bg-[#1a1410] border p-3 transition-colors relative 
                         ${key === 'debt' ? 'border-red-900 focus-within:border-red-500' : 'border-[#4a3525] focus-within:border-[#d4af37]'}`}>
-                        <label className="text-[10px] md:text-xs font-bold tracking-widest text-[#a3947c] mb-2 flex justify-between border-b border-[#3e2723] pb-1 uppercase">
+                        <label className="text-[10px] md:text-xs font-bold tracking-widest text-[#a3947c] mb-2 flex justify-between border-b border-[#3e2723] pb-1 uppercase whitespace-nowrap">
                           <span className={key === 'debt' ? 'text-red-400' : ''}>{
                             key === 'twd' ? '活存現金' : key === 'emergency' ? 'BND預備金' : key === 'entertainment' ? '娛樂金' :
                             key === 'btc' ? 'BTC (顆數)' : key === 'eth' ? 'ETH (顆數)' : key === 'ada' ? 'ADA (顆數)' :
@@ -1104,7 +1108,7 @@
 
                   <div className="mt-8 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
                     <div className="absolute top-0 left-0 w-1 h-full bg-gray-500"></div>
-                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest">
+                    <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest whitespace-nowrap">
                       兵符閣 (存檔管理)
                     </h3>
                     <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
@@ -1112,10 +1116,10 @@
                       若移防至新設備，可持舊兵符匯入，延續霸業。舊版兵符匯入後將自動相容新版天象與攻城機制。
                     </p>
                     <div className="flex gap-3">
-                      <button onClick={handleExport} className="flex-1 py-3 bg-[#2a2218] text-[#d4af37] border border-[#b8860b] rounded-sm font-bold tracking-widest hover:bg-[#3a2f22] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all">
+                      <button onClick={handleExport} className="flex-1 py-3 bg-[#2a2218] text-[#d4af37] border border-[#b8860b] rounded-sm font-bold tracking-widest hover:bg-[#3a2f22] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all whitespace-nowrap">
                         <ICONS.Download className="w-4 h-4" /> 匯出兵符
                       </button>
-                      <button onClick={() => fileInputRef.current.click()} className="flex-1 py-3 bg-[#0a0705] text-[#a3947c] border border-[#4a3525] rounded-sm font-bold tracking-widest hover:bg-[#1a1410] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all">
+                      <button onClick={() => fileInputRef.current.click()} className="flex-1 py-3 bg-[#0a0705] text-[#a3947c] border border-[#4a3525] rounded-sm font-bold tracking-widest hover:bg-[#1a1410] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all whitespace-nowrap">
                         <ICONS.Upload className="w-4 h-4" /> 匯入兵符
                       </button>
                       <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} className="hidden" />
@@ -1127,7 +1131,7 @@
             </div>
           </main>
 
-          <nav className="bg-[#1a1410] border-t border-[#3e2723] flex justify-around items-center shrink-0 h-16 pb-safe z-40 relative shadow-[0_-5px_15px_rgba(0,0,0,0.5)] w-full">
+          <nav className="bg-[#1a1410] border-t border-[#3e2723] flex justify-around items-center shrink-0 h-16 pb-safe z-40 relative shadow-[0_-5px_15px_rgba(0,0,0,0.5)]">
             {[
               { id: 'map', label: '大勢', icon: ICONS.Map },
               { id: 'command', label: '軍令', icon: ICONS.Tent },
@@ -1140,7 +1144,7 @@
               >
                 {activeTab === tab.id && <div className="absolute top-0 w-8 h-0.5 bg-[#d4af37]"></div>}
                 <div className={`w-5 h-5 mb-1 ${activeTab === tab.id ? 'animate-bounce' : ''}`} style={{animationDuration: '2s'}}><tab.icon className="w-full h-full" /></div>
-                <span className="text-[10px] font-bold tracking-widest">{tab.label}</span>
+                <span className="text-[10px] font-bold tracking-widest whitespace-nowrap">{tab.label}</span>
               </button>
             ))}
           </nav>
