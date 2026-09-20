@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="google" content="notranslate" />
-  <title>戰略圖 - 富霸天下</title>
+  <title>戰略圖 - 富霸天下 (山海神獸篇)</title>
 
   <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -65,7 +65,7 @@
       lastRoutineMonth: "", 
       dailyTaskDate: "", 
       dailyTaskCount: 0,  
-      totalTasksDone: 0, // 底層擴充：總日常習慣修行次數
+      totalTasksDone: 0, 
       lastCrisisMonth: "",
       logs: []
     };
@@ -107,45 +107,48 @@
     ];
 
     const PROVINCES = [
-      { id: 'wancheng', name: '宛城', title: '築牆積糧', targetLabel: '雙防禦滿血', req: { emergency: 200000, entertainment: 50000 }, def: 30, x: 48, y: 55 },
-      { id: 'xuchang', name: '許昌', title: '百廢待興', targetLabel: '債務清零', req: { debt: 0 }, def: 50, x: 55, y: 48 },
-      { id: 'xiangyang', name: '襄陽', title: '主力成型', targetLabel: '虎豹騎 3 萬', req: { btc: 0.3 }, def: 120, x: 52, y: 65 },
-      { id: 'xinye', name: '新野', title: '火燒新野', targetLabel: '虎豹騎 10 萬', req: { btc: 1 }, def: 350, x: 52, y: 58 },
-      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '虎豹騎 20 萬', req: { btc: 2 }, def: 800, x: 45, y: 45 },
-      { id: 'guandu', name: '官渡', title: '鼎足三分', targetLabel: '虎豹騎 30 萬', req: { btc: 3 }, def: 1500, x: 58, y: 38 },
-      { id: 'chengdu', name: '成都', title: '西蜀天險', targetLabel: '元戎弩 200 萬', req: { qqq: 2000000 }, def: 250, x: 22, y: 68 },
-      { id: 'zhitong', name: '梓潼', title: '劍閣天險', targetLabel: '元戎弩 500 萬', req: { qqq: 5000000 }, def: 600, x: 25, y: 55 },
-      { id: 'baidi', name: '白帝城', title: '白帝託孤', targetLabel: '元戎弩 1000 萬', req: { qqq: 10000000 }, def: 1500, x: 35, y: 60 },
-      { id: 'changan', name: '長安', title: '關中霸主', targetLabel: '重步兵 200 萬', req: { voo: 2000000 }, def: 250, x: 40, y: 45 },
-      { id: 'tianshui', name: '天水', title: '收伏姜維', targetLabel: '重步兵 500 萬', req: { voo: 5000000 }, def: 600, x: 28, y: 40 },
-      { id: 'wuwei', name: '武威', title: '絲路霸主', targetLabel: '重步兵 1000 萬', req: { voo: 10000000 }, def: 1500, x: 18, y: 28 },
-      { id: 'jiangling', name: '江陵', title: '草創之初', targetLabel: '兵力 100 萬', req: { netWorth: 1000000 }, def: 80, x: 46, y: 72 },
-      { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '兵力 300 萬', req: { netWorth: 3000000 }, def: 280, x: 56, y: 70 },
-      { id: 'hanzhong', name: '漢中', title: '中原逐鹿', targetLabel: '兵力 1000 萬', req: { netWorth: 10000000 }, def: 950, x: 30, y: 50 },
-      { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '兵力 3000 萬', req: { netWorth: 30000000 }, def: 2800, x: 76, y: 62 },
-      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 5000 萬', req: { netWorth: 50000000 }, def: 4800, x: 68, y: 55 },
-      { id: 'ye', name: '鄴城', title: '河北霸主', targetLabel: '兵力 8000 萬', req: { netWorth: 80000000 }, def: 8500, x: 60, y: 32 },
-      { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '兵力 1 億', req: { netWorth: 100000000 }, def: 12000, x: 75, y: 15 },
-      { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '募兵 1 次', req: { investCount: 1 }, def: 10, x: 60, y: 45 },
-      { id: 'chaisang', name: '柴桑', title: '移鎮南疆', targetLabel: '募兵 12 次', req: { investCount: 12 }, def: 80, x: 65, y: 75 },
-      { id: 'xiapi', name: '下邳', title: '堅持一載', targetLabel: '募兵 24 次', req: { investCount: 24 }, def: 200, x: 72, y: 42 },
-      { id: 'xuzhou', name: '徐州', title: '持之以恆', targetLabel: '募兵 36 次', req: { investCount: 36 }, def: 350, x: 80, y: 45 },
-      { id: 'puyang', name: '濮陽', title: '三年有成', targetLabel: '募兵 48 次', req: { investCount: 48 }, def: 550, x: 65, y: 38 },
-      { id: 'beihai', name: '北海', title: '聲名遠播', targetLabel: '募兵 60 次', req: { investCount: 60 }, def: 800, x: 82, y: 35 },
-      { id: 'pingyuan', name: '平原', title: '半璧江山', targetLabel: '募兵 66 次', req: { investCount: 66 }, def: 1100, x: 70, y: 28 },
-      { id: 'jinyang', name: '晉陽', title: '威鎮北疆', targetLabel: '募兵 72 次', req: { investCount: 72 }, def: 1500, x: 48, y: 22 },
-      { id: 'jicheng', name: '薊城', title: '七年之癢', targetLabel: '募兵 84 次', req: { investCount: 84 }, def: 2000, x: 65, y: 18 },
-      { id: 'xiangping', name: '襄平', title: '十年磨劍', targetLabel: '募兵 120 次', req: { investCount: 120 }, def: 3500, x: 88, y: 10 },
-      { id: 'changsha', name: '長沙', title: '荊南四郡', targetLabel: '募兵 144 次', req: { investCount: 144 }, def: 5000, x: 55, y: 80 },
-      { id: 'guiyang', name: '桂陽', title: '南征北討', targetLabel: '募兵 160 次', req: { investCount: 160 }, def: 6500, x: 50, y: 88 },
-      { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '募兵 180 次', req: { investCount: 180 }, def: 8500, x: 18, y: 85 },
-      { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '募兵 200 次', req: { investCount: 200 }, def: 11000, x: 88, y: 72 },
-      { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, def: 15000, x: 32, y: 92 },
+      { id: 'wancheng', name: '宛城', title: '築牆積糧', targetLabel: '雙防禦滿血', req: { emergency: 200000, entertainment: 50000 }, def: 30, x: 48, y: 55, type: 'castle' },
+      { id: 'xuchang', name: '許昌', title: '百廢待興', targetLabel: '債務清零', req: { debt: 0 }, def: 50, x: 55, y: 48, type: 'castle' },
+      { id: 'xiangyang', name: '襄陽', title: '主力成型', targetLabel: '虎豹騎 3 萬', req: { btc: 0.3 }, def: 120, x: 52, y: 65, type: 'castle' },
+      { id: 'xinye', name: '新野', title: '火燒新野', targetLabel: '虎豹騎 10 萬', req: { btc: 1 }, def: 350, x: 52, y: 58, type: 'castle' },
+      { id: 'luoyang', name: '洛陽', title: '天下歸心', targetLabel: '虎豹騎 20 萬', req: { btc: 2 }, def: 800, x: 45, y: 45, type: 'castle' },
+      { id: 'guandu', name: '官渡', title: '鼎足三分', targetLabel: '虎豹騎 30 萬', req: { btc: 3 }, def: 1500, x: 58, y: 38, type: 'castle' },
+      { id: 'chengdu', name: '成都', title: '西蜀天險', targetLabel: '元戎弩 200 萬', req: { qqq: 2000000 }, def: 250, x: 22, y: 68, type: 'castle' },
+      { id: 'zhitong', name: '梓潼', title: '劍閣天險', targetLabel: '元戎弩 500 萬', req: { qqq: 5000000 }, def: 600, x: 25, y: 55, type: 'castle' },
+      { id: 'baidi', name: '白帝城', title: '白帝託孤', targetLabel: '元戎弩 1000 萬', req: { qqq: 10000000 }, def: 1500, x: 35, y: 60, type: 'castle' },
+      { id: 'changan', name: '長安', title: '關中霸主', targetLabel: '重步兵 200 萬', req: { voo: 2000000 }, def: 250, x: 40, y: 45, type: 'castle' },
+      { id: 'tianshui', name: '天水', title: '收伏姜維', targetLabel: '重步兵 500 萬', req: { voo: 5000000 }, def: 600, x: 28, y: 40, type: 'castle' },
+      { id: 'wuwei', name: '武威', title: '絲路霸主', targetLabel: '重步兵 1000 萬', req: { voo: 10000000 }, def: 1500, x: 18, y: 28, type: 'castle' },
+      { id: 'jiangling', name: '江陵', title: '草創之初', targetLabel: '兵力 100 萬', req: { netWorth: 1000000 }, def: 80, x: 46, y: 72, type: 'castle' },
+      { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '兵力 300 萬', req: { netWorth: 3000000 }, def: 280, x: 56, y: 70, type: 'castle' },
+      { id: 'hanzhong', name: '漢中', title: '中原逐鹿', targetLabel: '兵力 1000 萬', req: { netWorth: 10000000 }, def: 950, x: 30, y: 50, type: 'castle' },
+      { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '兵力 3000 萬', req: { netWorth: 30000000 }, def: 2800, x: 76, y: 62, type: 'castle' },
+      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 5000 萬', req: { netWorth: 50000000 }, def: 4800, x: 68, y: 55, type: 'castle' },
+      { id: 'ye', name: '鄴城', title: '河北霸主', targetLabel: '兵力 8000 萬', req: { netWorth: 80000000 }, def: 8500, x: 60, y: 32, type: 'castle' },
+      { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '兵力 1 億', req: { netWorth: 100000000 }, def: 12000, x: 75, y: 15, type: 'castle' },
+      { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '募兵 1 次', req: { investCount: 1 }, def: 10, x: 60, y: 45, type: 'castle' },
+      { id: 'chaisang', name: '柴桑', title: '移鎮南疆', targetLabel: '募兵 12 次', req: { investCount: 12 }, def: 80, x: 65, y: 75, type: 'castle' },
+      { id: 'xiapi', name: '下邳', title: '堅持一載', targetLabel: '募兵 24 次', req: { investCount: 24 }, def: 200, x: 72, y: 42, type: 'castle' },
+      { id: 'xuzhou', name: '徐州', title: '持之以恆', targetLabel: '募兵 36 次', req: { investCount: 36 }, def: 350, x: 80, y: 45, type: 'castle' },
+      { id: 'puyang', name: '濮陽', title: '三年有成', targetLabel: '募兵 48 次', req: { investCount: 48 }, def: 550, x: 65, y: 38, type: 'castle' },
+      { id: 'beihai', name: '北海', title: '聲名遠播', targetLabel: '募兵 60 次', req: { investCount: 60 }, def: 800, x: 82, y: 35, type: 'castle' },
+      { id: 'pingyuan', name: '平原', title: '半璧江山', targetLabel: '募兵 66 次', req: { investCount: 66 }, def: 1100, x: 70, y: 28, type: 'castle' },
+      { id: 'jinyang', name: '晉陽', title: '威鎮北疆', targetLabel: '募兵 72 次', req: { investCount: 72 }, def: 1500, x: 48, y: 22, type: 'castle' },
+      { id: 'jicheng', name: '薊城', title: '七年之癢', targetLabel: '募兵 84 次', req: { investCount: 84 }, def: 2000, x: 65, y: 18, type: 'castle' },
+      { id: 'xiangping', name: '襄平', title: '十年磨劍', targetLabel: '募兵 120 次', req: { investCount: 120 }, def: 3500, x: 88, y: 10, type: 'castle' },
+      { id: 'changsha', name: '長沙', title: '荊南四郡', targetLabel: '募兵 144 次', req: { investCount: 144 }, def: 5000, x: 55, y: 80, type: 'castle' },
+      { id: 'guiyang', name: '桂陽', title: '南征北討', targetLabel: '募兵 160 次', req: { investCount: 160 }, def: 6500, x: 50, y: 88, type: 'castle' },
+      { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '募兵 180 次', req: { investCount: 180 }, def: 8500, x: 18, y: 85, type: 'castle' },
+      { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '募兵 200 次', req: { investCount: 200 }, def: 11000, x: 88, y: 72, type: 'castle' },
+      { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, def: 15000, x: 32, y: 92, type: 'castle' },
       
-      // === 新增：日常修行解鎖隱藏城池 ===
-      { id: 'langya', name: '琅琊書院', title: '百日築基', targetLabel: '修行 360 次', req: { totalTasksDone: 360 }, def: 1500, x: 25, y: 35 },
-      { id: 'shuijing', name: '水鏡山莊', title: '千錘百鍊', targetLabel: '修行 720 次', req: { totalTasksDone: 720 }, def: 3500, x: 55, y: 25 },
-      { id: 'guigu', name: '鬼谷深淵', title: '萬法歸一', targetLabel: '修行 3600 次', req: { totalTasksDone: 3600 }, def: 12000, x: 85, y: 65 }
+      // === V6新增：無盡修行解鎖，攻克可獲得對應神獸/頭目加入陣容 ===
+      { id: 'heifeng', name: '黑風山寨', title: '百日築基', targetLabel: '修行 360 次', req: { totalTasksDone: 360 }, def: 1500, x: 15, y: 80, type: 'camp', rewardId: 201 },
+      { id: 'qingqiu', name: '青丘狐洞', title: '幻境迷蹤', targetLabel: '修行 720 次', req: { totalTasksDone: 720 }, def: 3500, x: 85, y: 25, type: 'cave', rewardId: 202 },
+      { id: 'qiongqi', name: '窮奇巢穴', title: '極惡之淵', targetLabel: '修行 3600 次', req: { totalTasksDone: 3600 }, def: 15000, x: 10, y: 15, type: 'cave', rewardId: 203 },
+      { id: 'taowu', name: '檮杌魔窟', title: '頑固不化', targetLabel: '修行 7200 次', req: { totalTasksDone: 7200 }, def: 30000, x: 92, y: 90, type: 'cave', rewardId: 204 },
+      { id: 'taotie', name: '饕餮深淵', title: '無盡吞噬', targetLabel: '修行 18000 次', req: { totalTasksDone: 18000 }, def: 80000, x: 80, y: 10, type: 'cave', rewardId: 205 },
+      { id: 'hundun', name: '混沌神域', title: '萬法歸一', targetLabel: '修行 36000 次', req: { totalTasksDone: 36000 }, def: 200000, x: 50, y: 5, type: 'cave', rewardId: 206 }
     ];
 
     const RAW_OFFICERS = [
@@ -182,7 +185,15 @@
       { id: 94, name: '紀靈', stat: 83, type: '武力' }, { id: 95, name: '張魯', stat: 75, type: '政治' }, { id: 96, name: '韓遂', stat: 78, type: '統帥' },
       { id: 97, name: '蔡文姬', stat: 85, type: '魅力' }, { id: 98, name: '李儒', stat: 93, type: '智力' }, { id: 99, name: '張任', stat: 85, type: '武力' }, { id: 100, name: '皇甫嵩', stat: 88, type: '統帥' },
       { id: 101, name: '太座', stat: 85, type: '魅力' }, { id: 102, name: '肉球', stat: 3, type: '智力' }, { id: 103, name: '華雄', stat: 88, type: '武力' }, { id: 104, name: '相國蕭何', stat: 120, type: '政治' },
-      { id: 105, name: '西楚霸王', stat: 105, type: '武力' }, { id: 106, name: '兵仙韓信', stat: 100, type: '統帥' }, { id: 107, name: '謀聖張良', stat: 100, type: '智力' }, { id: 108, name: '絕代虞姬', stat: 100, type: '魅力'}
+      { id: 105, name: '西楚霸王', stat: 105, type: '武力' }, { id: 106, name: '兵仙韓信', stat: 100, type: '統帥' }, { id: 107, name: '謀聖張良', stat: 100, type: '智力' }, { id: 108, name: '絕代虞姬', stat: 100, type: '魅力'},
+      
+      // === V6新增：山海神獸與頭目陣列 ===
+      { id: 201, name: '黑風大王', stat: 88, type: '武力' },
+      { id: 202, name: '九尾妖狐', stat: 96, type: '智力' },
+      { id: 203, name: '凶獸窮奇', stat: 105, type: '武力' },
+      { id: 204, name: '凶獸檮杌', stat: 110, type: '統帥' },
+      { id: 205, name: '凶獸饕餮', stat: 115, type: '武力' },
+      { id: 206, name: '混沌神獸', stat: 120, type: '統帥' }
     ];
 
     const OFFICERS = RAW_OFFICERS.map(o => {
@@ -190,9 +201,8 @@
       if (o.id <= 25) { faction = '魏'; color = 'text-blue-300'; bg = 'bg-blue-950/60'; border = 'border-blue-700'; }
       else if (o.id <= 50) { faction = '蜀'; color = 'text-green-300'; bg = 'bg-green-950/60'; border = 'border-green-700'; }
       else if (o.id <= 75) { faction = '吳'; color = 'text-red-300'; bg = 'bg-red-950/60'; border = 'border-red-700'; }
-      else if (o.id > 100 && o.id !== 103) { 
-        faction = '神'; color = 'text-yellow-300'; bg = 'bg-yellow-900/60'; border = 'border-yellow-400'; 
-      }
+      else if (o.id >= 200) { faction = '妖'; color = 'text-fuchsia-400'; bg = 'bg-fuchsia-950/60'; border = 'border-fuchsia-600'; } // V6 神獸妖族
+      else if (o.id > 100 && o.id !== 103) { faction = '神'; color = 'text-yellow-300'; bg = 'bg-yellow-900/60'; border = 'border-yellow-400'; }
       return { ...o, faction, color, bg, border };
     });
 
@@ -216,6 +226,8 @@
 
     const ICONS = {
       Castle: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M4 21h16v-6h-2v4H6v-4H4v6zm14-10V5l-6 3-6-3v6l6 3 6-3z"/></svg>,
+      Camp: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2 21h20L12 3zm0 5l5 11h-2l-1.36-3H10.36L9 19H7l5-11z"/></svg>,
+      Cave: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M22 20L12 3 2 20h20zM12 11a4 4 0 00-4 4v3h8v-3a4 4 0 00-4-4z"/></svg>,
       Sword: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5m-3.5-3.5 4-4L22 4V1h-3l-4.5 4.5"/></svg>,
       Scroll: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="10" x2="16" y1="6" y2="6"/><line x1="10" x2="16" y1="10" y2="10"/></svg>,
       Map: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6z"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>,
@@ -223,7 +235,6 @@
       Users: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
       Download: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
       Upload: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
-      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>,
       Message: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
     };
 
@@ -282,7 +293,6 @@
               else if (btcChange <= -2) setWeather({ trend: 'bear', change: btcChange, desc: '天狗食月 (戰力-10%)' });
               else setWeather({ trend: 'neutral', change: btcChange, desc: '風平浪靜' });
 
-              // 熊市危機觸發條件：BTC 24小時內跌幅超過 25% (嚴格校準)
               if (btcChange <= -25 && gameState.lastCrisisMonth !== currentMonthString) {
                   setCrisisEvent({
                       title: '🚨 異族入侵 / 史詩級熊市警報 🚨',
@@ -341,7 +351,7 @@
             if (key === 'netWorth') current = stats.netWorth;
             else if (key === 'investCount') current = investCount;
             else if (key === 'debt') current = displayAssets.debt;
-            else if (key === 'totalTasksDone') current = totalTasksDone || 0; // 完整接入日常修行次數檢定
+            else if (key === 'totalTasksDone') current = totalTasksDone || 0; 
             else current = displayAssets[key] || 0;
 
             if (key === 'debt') { if (current > reqVal) isReqMet = false; }
@@ -428,7 +438,7 @@
           }
 
           newState.dailyTaskCount += 1;
-          newState.totalTasksDone = (newState.totalTasksDone || 0) + 1; // 總次數完美累加
+          newState.totalTasksDone = (newState.totalTasksDone || 0) + 1;
           newState.merit += meritReward;
           addLog(newState, '微內政', `執行【${taskName}】，微幅提升軍心，軍功 +${meritReward}。`);
           saveGameState(newState);
@@ -436,7 +446,7 @@
       };
 
       // ----------------------------------------------------------------------
-      // 動態對話引擎 - 正向、理財、家庭、自我提升 (純淨擴增版)
+      // 動態對話引擎 - 擴增山海神獸專屬對話池
       // ----------------------------------------------------------------------
       const getOfficerDialogue = (officer) => {
           const { emergency, entertainment, btc, debt } = displayAssets;
@@ -449,53 +459,53 @@
 
           if (officer.id === 101) { // 太座
               if(isHighDebt) pool.push(`信貸還有 ${(debt/10000).toFixed(0)} 萬，給我把皮繃緊一點，發薪水記得優先處理掉，無債一身輕最舒服了！`);
-              if(isLowEmergency) pool.push("老公！緊急預備金不夠了，這個月暫停定投，先補滿現金防禦！");
+              if(isLowEmergency) pool.push("老公！緊急預備金不夠了，這個月暫停買幣，先補滿防禦！");
               pool.push("老公，我們一起看書準備巡官考試吧！投資自己的大腦是穩賺不賠的。");
-              pool.push("不管大盤怎麼震，家裡的伙食費跟咪波的奶粉錢絕對要優先保留喔！");
+              pool.push("不管大盤怎麼震，家裡的伙食費跟咪波的奶粉錢絕對要優先保留喔！(微笑)");
               pool.push("與其看盤焦慮，不如陪咪波玩一下吧，家人的陪伴才是最珍貴的財富。");
               pool.push("買房不用急著跟別人比，我們有自己的 2047 退休計畫，按表操課就好！");
-              pool.push("看到新聞說暴跌？沒事，先把冷錢包收好，不要被市場雜音干擾。");
+              pool.push("看到新聞說暴跌？沒事，先把 Ledger 冷錢包收好，不要被市場雜音干擾。");
               pool.push("只要你不開槓桿亂玩，我們一家三口穩穩的就很幸福了。");
               pool.push("遇到想亂花錢的時候，記得先啟動『24小時冷靜期』，忍一下就過去了！");
               pool.push("投資是為了讓生活更好，如果每天盯盤睡不好，那就本末倒置了。");
-              pool.push("今天去散散步吧？健康是一切的根本，沒有好身體怎麼享受退休生活呢。");
+              pool.push("今天去散散步吧？健康是一切的根本，沒有好身體怎麼享受未來的退休生活呢。");
           } 
           else if (officer.id === 27) { // 諸葛亮
-              if(isSafe) pool.push("主公深謀遠慮，預備金如銅牆鐵壁。天下大變亦不足懼！");
-              if(isLowEmergency) pool.push("主公！預備金已見底，若天災降臨，我軍將陷絕境，請速速回防現金流！");
-              pool.push("投資如用兵，未算勝先算敗。主公切記，『緊急預備金』乃立於不敗之基。");
+              if(isSafe) pool.push("主公深謀遠慮，二十萬預備金如銅牆鐵壁，五萬娛樂金安撫軍心。天下大變亦不足懼！");
+              if(isLowEmergency) pool.push("主公！預備金已見底，若此時天災降臨，我軍將死無葬身之地，請速速回防現金流！");
+              pool.push("投資如用兵，未算勝先算敗。主公切記，『緊急預備金』方為立於不敗之地的根本。");
               pool.push("大盤震盪，正如隆中對所言，我們需靜待天時，按紀律定投即可。");
-              pool.push("亮夜觀天象，市場貪婪之氣漸起。切勿盲目追高，當留存現金待時機。");
-              pool.push("主公若能每月堅守紀律，定投不輟，則財務自由之霸業可成！");
+              pool.push("兵法云：先為不可勝，以待敵之可勝。主公的雙防禦底線，便是這『不可勝』之基。");
+              pool.push("亮夜觀天象，市場貪婪之氣漸起。主公切勿盲目追高，當留存現金以待時機。");
+              pool.push("主公若能每月堅守紀律，定投不輟，則 2030 年財務自由之霸業可成！");
               pool.push("理財首重保本，切勿輕信市場上的流言與短線暴利之說。");
-              pool.push("夫君子之行，靜以修身，儉以養德。主公當遠離雜音，閱讀提升智慧。");
+              pool.push("夫君子之行，靜以修身，儉以養德。主公當遠離市場雜音，持續閱讀提升智慧。");
               pool.push("時間是主公最好的盟友。持之以恆，複利的陣法將無人能破。");
-              pool.push("遇劇烈波動，請主公靜坐沉思，切莫在恐慌中做出決策。");
-              pool.push("兵法云：先為不可勝，以待敵之可勝。主公的雙防禦，便是這『不可勝』。");
+              pool.push("遇到劇烈波動，請主公靜坐沉思，切莫在恐慌中做出決策。");
               pool.push("只要大本營後勤無恙，前線縱有小挫，亦能重整旗鼓。");
           } 
           else if (officer.id === 3) { // 郭嘉
-              if(isWhale) pool.push("兵貴神速！主公重倉主力，魄力驚人！只要咬牙拿住，2030年必能橫掃天下！");
-              if(emergency > 500000) pool.push("主公，後勤現金堆積如山，防禦既已穩固，該出手時就出手！");
-              pool.push("別人恐懼我貪婪！確認基本面無虞，大跌正是分批建倉的絕佳時機！");
-              pool.push("高報酬必伴隨高波動，主公若想彎道超車，就得習慣市場的顛簸。");
+              if(isWhale) pool.push("兵貴神速！主公重倉虎豹騎 (BTC)，魄力驚人！只要咬牙拿住，2030年必能橫掃天下！");
+              if(emergency > 500000) pool.push("主公，後勤糧草(現金)堆積如山，防禦既已穩固，該出手時就出手啊！");
+              pool.push("別人恐懼我貪婪！只要確認基本面無虞，大跌正是分批建倉的絕佳時機！");
+              pool.push("高報酬必伴隨高波動，主公若想彎道超車，就得習慣並接納市場的顛簸。");
               pool.push("大盤跌了？這不過是洗盤，將那些心志不堅、動搖戰略的人洗出去罷了！");
               pool.push("主公，數位資產的長期爆發力極強，只要撐過寒冬，必有豐碩回報。");
-              pool.push("兵無常勢，市場瞬息萬變，但『逢低買進、長期持有』的底層邏輯從未改變。");
-              pool.push("與其買房背負三十年重擔，不如將閒置資金集中於高潛力的未來樞紐！");
-              pool.push("只要『雙防禦』完好無缺，前線精銳就該放手去衝，不必畏首畏尾！");
+              pool.push("兵無常勢，水無常形。市場瞬息萬變，但『逢低買進、長期持有』的底層邏輯從未改變。");
+              pool.push("與其買房背負三十年重擔，不如將閒置資金集中於高潛力的數位金庫！");
+              pool.push("只要主公的『雙防禦』完好無缺，前線的虎豹騎就該放手去衝，不必畏首畏尾！");
               pool.push("投資就像用計，看準了長期趨勢就不要猶豫，堅持到底就是勝利！");
               pool.push("不要害怕波動，波動不是風險，盲目跟風才是最大的風險！");
           } 
           else if (officer.id === 2) { // 司馬懿
-              if(isHighDebt) pool.push("主公若有『傭兵 (信貸)』在身，如履薄冰。請務必優先清償，避免反噬！");
+              if(isHighDebt) pool.push("主公若有『傭兵 (信貸)』在身，如履薄冰。請務必優先清償，避免兵變反噬！");
               if(debt === 0) pool.push("無債一身輕。主公不假外求，穩紮穩打，此乃長久之霸道。");
               pool.push("時間，是我們最可怕的武器。只要活得夠久，天下自然是我們的。");
-              pool.push("投資比的不是誰一次賺得多，而是誰能活到最後。熬過漫長寒冬便有春天。");
-              pool.push("讓他們去短線廝殺吧！我們只需冷眼旁觀，耐心持有優質資產。");
+              pool.push("投資比的不是誰一次賺得多，而是誰能活到最後。熬過漫長寒冬，便能迎來春天。");
+              pool.push("讓他們去短線廝殺吧！我們只需冷眼旁觀，耐心持有優質資產到 2030 年。");
               pool.push("主公，切莫與同儕攀比。他們看似風光，實則槓桿極高，大廈將傾只在旦夕。");
               pool.push("忍耐，是投資中最難，也最重要的一環。不動如山，方能制勝。");
-              pool.push("不要被市場的雜音迷惑了雙眼，堅守主公的金庫物理隔離防禦！");
+              pool.push("不要被市場的雜音迷惑了雙眼，堅守主公的『雙金庫物理隔離』防禦！");
               pool.push("買房焦慮大可不必。只要我們將核心資產緊緊握住，讓其自我成長，何愁未來？");
               pool.push("真正的贏家，往往是那些在極度無聊中，依然堅持執行紀律的人。");
           } 
@@ -510,19 +520,30 @@
               pool.push("主公的 2047 退休戰略極佳！『靠自己最好』，豈能將命運交給他人！");
               pool.push("這點波動就怕了？孤當年宛城大敗也未曾皺眉，給我死死拿住籌碼！");
               pool.push("資產若未能提供長期爆發力，就無情轉換！孤絕不留無用之兵！");
-              pool.push("投資理財，當有雄才大略，不拘泥於一城一地之得失，放眼十年之後！");
+              pool.push("投資理財，當有雄才大略，不拘泥於一城一地之得失，放眼十年、二十年之後！");
           }
           else if (officer.id === 26) { // 劉備
-              pool.push("備深知只要『大本營』安穩，何處不能重新再起？");
-              pool.push("投資理財，當以耐心為本，切莫貪圖暴利，傷了家庭和氣與身心健康。");
+              pool.push("備雖曾顛沛流離，但深知只要『大本營』安穩，何處不能重新再起？");
+              pool.push("投資理財，當以仁德與耐心為本，切莫貪圖暴利，傷了家庭和氣與身心健康。");
               pool.push("主公欲調往南部鄉下，備深感贊同。遠離都市喧囂，方能好好陪伴家人成長。");
-              pool.push("只要我們一步一腳印，每月定投優質大盤，終能光復大業！");
+              pool.push("只要我們一步一腳印，每月定投優質大盤 (VOO)，終能光復大業！");
               pool.push("莫以善小而不為，莫以錢少而不存。微量但持續的紀律，亦是霸業的基石。");
-              pool.push("面對市場誘惑，主公務必堅守『24 小時冷靜期』，切勿因一時衝動重蹈覆轍。");
+              pool.push("面對市場誘惑，主公務必堅守『24 小時冷靜期』，切勿因一時衝動重蹈夷陵之敗。");
               pool.push("備有一言：靠人人老，靠山山倒，主公的戰略信仰，實乃亂世真理！");
               pool.push("那些釣魚影片與恐慌新聞，皆是亂世妖言，主公切莫輕信，堅守本心。");
               pool.push("願主公與夫人順利考取巡官，投資自己的大腦與能力，才是最穩賺不賠的生意！");
-              pool.push("留得青山在，不怕沒柴燒。做好資金控管與風險隔離，永遠讓自己有從容的餘裕。");
+              pool.push("留得青山在，不怕沒柴燒。做好資金控管與風險隔離，永遠讓自己有從容應對的餘裕。");
+          }
+
+          // V6 擴充：妖族/凶獸專屬對話池
+          if (officer.faction === '妖') {
+              pool.push("吼... 主公那數以萬計的日常修行，連吾等上古凶獸都感到戰慄！");
+              pool.push("只要主公持續鍛鍊，吾等便為你撕碎市場上所有的恐慌與猶豫！");
+              pool.push("吾乃萬物之惡，今日卻被主公那枯燥無比的定投耐心給徹底懾服了。");
+              pool.push("吞噬！把那些短線客的籌碼、市場的恐懼，通通吞噬殆盡吧！");
+              pool.push("想要駕馭吾等神獸之力，主公的大本營與雙防禦必須永遠保持滿血！");
+              pool.push("桀桀桀... 人類的貪婪真是美味，但主公您的冷靜，卻像深淵一樣深不可測。");
+              pool.push("不要停下修行的腳步！每一次的校場操練，都在強化吾等的殺戮之力！");
           }
 
           // 通用職階對話池
@@ -644,7 +665,9 @@
         let newState = JSON.parse(JSON.stringify(gameState));
         newState.merit -= 300; 
         
-        const drawn = OFFICERS[Math.floor(Math.random() * OFFICERS.length)];
+        // 排除掉妖獸族 (ID >= 200)，他們必須透過攻打巢穴獲得
+        const drawPool = OFFICERS.filter(o => o.id < 200);
+        const drawn = drawPool[Math.floor(Math.random() * drawPool.length)];
         const isDupe = newState.ownedOfficers.includes(drawn.id);
         newState.ownedOfficers.push(drawn.id); 
         
@@ -695,6 +718,21 @@
           const rewardMerit = 200 + Math.floor(defense * 0.3); 
           newState.merit += rewardMerit;
           logMsg = `【大捷】我軍以 ${totalAttack} 戰力擊破 ${prov.name} 守軍(${defense})，斬獲軍功 ${rewardMerit}！`;
+
+          // V6 判斷是否為神獸巢穴/山寨，並發放特殊武將獎勵
+          if (prov.rewardId) {
+             if (!newState.ownedOfficers.includes(prov.rewardId)) {
+                 newState.ownedOfficers.push(prov.rewardId);
+                 const rewardOfficer = OFFICERS.find(o => o.id === prov.rewardId);
+                 logMsg += ` 順利收服【${rewardOfficer.name}】加入大營！`;
+                 setTimeout(() => showToast(`🎊 成功收服史詩妖獸：${rewardOfficer.name}！`, 'success'), 1000);
+             } else {
+                 newState.ownedOfficers.push(prov.rewardId); // 給予將魂升星
+                 const rewardOfficer = OFFICERS.find(o => o.id === prov.rewardId);
+                 logMsg += ` 再次鎮壓，獲得【${rewardOfficer.name}】將魂，星級提升！`;
+             }
+          }
+
         } else {
           logMsg = `【惜敗】我軍戰力 ${totalAttack} 不敵 ${prov.name} 守軍(${defense})，鎩羽而歸。`;
         }
@@ -862,65 +900,79 @@
                 </div>
 
                 <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
-                  <div className="relative origin-top-left transition-transform duration-300" style={{ transform: `scale(${mapZoom})`, width: '1600px', height: '1200px' }}>
+                  {/* V6: 地圖擴充至 2400x1800 以容納更多特殊野外區 */}
+                  <div className="relative origin-top-left transition-transform duration-300" style={{ transform: `scale(${mapZoom})`, width: '2400px', height: '1800px' }}>
                     <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
                       <rect width="100%" height="100%" fill="#13181f" opacity="0.9"/>
                       <ellipse cx="70%" cy="25%" rx="35%" ry="25%" fill="#1e3a8a" opacity="0.1" filter="blur(80px)" />
                       <ellipse cx="25%" cy="60%" rx="20%" ry="35%" fill="#14532d" opacity="0.1" filter="blur(80px)" />
                       <ellipse cx="75%" cy="65%" rx="30%" ry="25%" fill="#7f1d1d" opacity="0.1" filter="blur(80px)" />
                       <ellipse cx="50%" cy="50%" rx="20%" ry="20%" fill="#b45309" opacity="0.08" filter="blur(60px)" />
-                      <path d="M 0 650 Q 300 750 600 680 T 1100 600 T 1600 650" fill="none" stroke="#0ea5e9" strokeWidth="12" opacity="0.3" strokeLinecap="round" />
-                      <path d="M 0 650 Q 300 750 600 680 T 1100 600 T 1600 650" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
-                      <path d="M 100 400 Q 300 200 600 350 T 1000 280 T 1600 300" fill="none" stroke="#0284c7" strokeWidth="10" opacity="0.3" strokeLinecap="round" />
-                      <path d="M 100 400 Q 300 200 600 350 T 1000 280 T 1600 300" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
-                      <path d="M 250 450 Q 400 480 500 420" fill="none" stroke="#3f3f46" strokeWidth="25" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
-                      <path d="M 500 150 Q 550 250 500 350" fill="none" stroke="#3f3f46" strokeWidth="20" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
-                      <text x="700" y="150" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">幽州</text>
-                      <text x="650" y="300" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">冀州</text>
-                      <text x="450" y="200" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">并州</text>
-                      <text x="850" y="320" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">青州</text>
-                      <text x="650" y="420" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">兗州</text>
-                      <text x="820" y="450" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">徐州</text>
-                      <text x="680" y="520" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">豫州</text>
-                      <text x="450" y="420" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">司隸</text>
-                      <text x="200" y="300" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">涼州</text>
-                      <text x="200" y="650" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">益州</text>
-                      <text x="550" y="680" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">荊州</text>
-                      <text x="800" y="650" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">揚州</text>
-                      <text x="450" y="900" fill="#a3947c" fontSize="48" opacity="0.1" className="map-region-text">交州</text>
+                      
+                      {/* V6: 河流路徑隨地圖等比例延伸 */}
+                      <path d="M 0 975 Q 450 1125 900 1020 T 1650 900 T 2400 975" fill="none" stroke="#0ea5e9" strokeWidth="12" opacity="0.3" strokeLinecap="round" />
+                      <path d="M 0 975 Q 450 1125 900 1020 T 1650 900 T 2400 975" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
+                      <path d="M 150 600 Q 450 300 900 525 T 1500 420 T 2400 450" fill="none" stroke="#0284c7" strokeWidth="10" opacity="0.3" strokeLinecap="round" />
+                      <path d="M 150 600 Q 450 300 900 525 T 1500 420 T 2400 450" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
+                      <path d="M 375 675 Q 600 720 750 630" fill="none" stroke="#3f3f46" strokeWidth="25" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
+                      <path d="M 750 225 Q 825 375 750 525" fill="none" stroke="#3f3f46" strokeWidth="20" strokeLinecap="round" opacity="0.4" filter="blur(4px)" />
+
+                      <text x="1050" y="225" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">幽州</text>
+                      <text x="975" y="450" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">冀州</text>
+                      <text x="675" y="300" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">并州</text>
+                      <text x="1275" y="480" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">青州</text>
+                      <text x="975" y="630" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">兗州</text>
+                      <text x="1230" y="675" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">徐州</text>
+                      <text x="1020" y="780" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">豫州</text>
+                      <text x="675" y="630" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">司隸</text>
+                      <text x="300" y="450" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">涼州</text>
+                      <text x="300" y="975" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">益州</text>
+                      <text x="825" y="1020" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">荊州</text>
+                      <text x="1200" y="975" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">揚州</text>
+                      <text x="675" y="1350" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">交州</text>
                     </svg>
                     <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px' }}></div>
 
-                    {provincesState.map(prov => (
-                      <div key={prov.id}
-                        className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer flex flex-col items-center group z-10"
-                        style={{ left: `${prov.x}%`, top: `${prov.y}%` }}
-                        onClick={() => { setSelectedProvinceId(prov.id); setSiegeMode(false); setCombatResult(null); }}
-                      >
-                        <div className={`relative w-12 h-12 flex items-center justify-center transition-all duration-300
-                          ${selectedProvinceId === prov.id ? 'scale-125 z-20' : 'hover:scale-110'}
-                          ${prov.isConquered ? 'text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 
-                            prov.isReqMet ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'text-gray-600'}`}
+                    {provincesState.map(prov => {
+                      // V6: 圖示選擇器
+                      const IconComponent = prov.type === 'cave' ? ICONS.Cave : prov.type === 'camp' ? ICONS.Camp : ICONS.Castle;
+                      let iconColor = 'text-gray-600';
+                      if (prov.isConquered) iconColor = 'text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]';
+                      else if (prov.isReqMet) {
+                         if (prov.type === 'cave') iconColor = 'text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.8)]';
+                         else if (prov.type === 'camp') iconColor = 'text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]';
+                         else iconColor = 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]';
+                      }
+
+                      return (
+                        <div key={prov.id}
+                          className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer flex flex-col items-center group z-10"
+                          style={{ left: `${prov.x}%`, top: `${prov.y}%` }}
+                          onClick={() => { setSelectedProvinceId(prov.id); setSiegeMode(false); setCombatResult(null); }}
                         >
-                          <ICONS.Castle className="w-full h-full" />
-                          {prov.isConquered && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-600 border border-yellow-300 rounded-sm text-[9px] flex items-center justify-center font-black text-black shadow-lg">魏</div>
-                          )}
-                          {prov.isReqMet && !prov.isConquered && (
-                            <ICONS.Sword className="absolute inset-0 m-auto w-6 h-6 text-red-500 animate-pulse drop-shadow-md" />
-                          )}
-                          {selectedProvinceId === prov.id && !prov.isConquered && (
-                            <div className="absolute inset-[-8px] border border-[#d4af37] animate-ping rounded-full opacity-40 pointer-events-none"></div>
-                          )}
+                          <div className={`relative w-12 h-12 flex items-center justify-center transition-all duration-300
+                            ${selectedProvinceId === prov.id ? 'scale-125 z-20' : 'hover:scale-110'} ${iconColor}`}
+                          >
+                            <IconComponent className="w-full h-full" />
+                            {prov.isConquered && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-600 border border-yellow-300 rounded-sm text-[9px] flex items-center justify-center font-black text-black shadow-lg">魏</div>
+                            )}
+                            {prov.isReqMet && !prov.isConquered && (
+                              <ICONS.Sword className="absolute inset-0 m-auto w-6 h-6 text-red-500 animate-pulse drop-shadow-md" />
+                            )}
+                            {selectedProvinceId === prov.id && !prov.isConquered && (
+                              <div className="absolute inset-[-8px] border border-[#d4af37] animate-ping rounded-full opacity-40 pointer-events-none"></div>
+                            )}
+                          </div>
+                          <div className={`mt-1 px-2 py-0.5 text-[10px] md:text-xs font-bold border rounded-sm shadow-xl whitespace-nowrap tracking-widest backdrop-blur-sm
+                            ${selectedProvinceId === prov.id ? 'bg-[#d4af37] text-black border-white' : 
+                              prov.isConquered ? 'bg-yellow-900/90 text-yellow-200 border-yellow-500' :
+                              prov.isReqMet ? 'bg-blue-900/90 border-blue-500 text-blue-200' : 'bg-[#1a1111]/90 border-red-900/50 text-gray-400'}`}>
+                            {prov.name}
+                          </div>
                         </div>
-                        <div className={`mt-1 px-2 py-0.5 text-[10px] md:text-xs font-bold border rounded-sm shadow-xl whitespace-nowrap tracking-widest backdrop-blur-sm
-                          ${selectedProvinceId === prov.id ? 'bg-[#d4af37] text-black border-white' : 
-                            prov.isConquered ? 'bg-yellow-900/90 text-yellow-200 border-yellow-500' :
-                            prov.isReqMet ? 'bg-blue-900/90 border-blue-500 text-blue-200' : 'bg-[#1a1111]/90 border-red-900/50 text-gray-400'}`}>
-                          {prov.name}
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
 
