@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="google" content="notranslate" />
-  <title>戰略圖 - 富霸天下 (山海神獸篇)</title>
+  <title>戰略圖 - 富霸天下 </title>
 
   <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -142,13 +142,13 @@
       { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '募兵 200 次', req: { investCount: 200 }, def: 11000, x: 88, y: 72, type: 'castle' },
       { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, def: 15000, x: 32, y: 92, type: 'castle' },
       
-      // === V6新增：無盡修行解鎖，攻克可獲得對應神獸/頭目加入陣容 ===
-      { id: 'heifeng', name: '黑風山寨', title: '百日築基', targetLabel: '修行 360 次', req: { totalTasksDone: 360 }, def: 1500, x: 15, y: 80, type: 'camp', rewardId: 201 },
-      { id: 'qingqiu', name: '青丘狐洞', title: '幻境迷蹤', targetLabel: '修行 720 次', req: { totalTasksDone: 720 }, def: 3500, x: 85, y: 25, type: 'cave', rewardId: 202 },
-      { id: 'qiongqi', name: '窮奇巢穴', title: '極惡之淵', targetLabel: '修行 3600 次', req: { totalTasksDone: 3600 }, def: 15000, x: 10, y: 15, type: 'cave', rewardId: 203 },
-      { id: 'taowu', name: '檮杌魔窟', title: '頑固不化', targetLabel: '修行 7200 次', req: { totalTasksDone: 7200 }, def: 30000, x: 92, y: 90, type: 'cave', rewardId: 204 },
-      { id: 'taotie', name: '饕餮深淵', title: '無盡吞噬', targetLabel: '修行 18000 次', req: { totalTasksDone: 18000 }, def: 80000, x: 80, y: 10, type: 'cave', rewardId: 205 },
-      { id: 'hundun', name: '混沌神域', title: '萬法歸一', targetLabel: '修行 36000 次', req: { totalTasksDone: 36000 }, def: 200000, x: 50, y: 5, type: 'cave', rewardId: 206 }
+      // === V6新增與優化：無盡修行解鎖大幅下修門檻以防止死鎖 ===
+      { id: 'heifeng', name: '黑風山寨', title: '百日築基', targetLabel: '修行 36 次', req: { totalTasksDone: 36 }, def: 1500, x: 15, y: 80, type: 'camp', rewardId: 201 },
+      { id: 'qingqiu', name: '青丘狐洞', title: '幻境迷蹤', targetLabel: '修行 72 次', req: { totalTasksDone: 72 }, def: 3500, x: 85, y: 25, type: 'cave', rewardId: 202 },
+      { id: 'qiongqi', name: '窮奇巢穴', title: '極惡之淵', targetLabel: '修行 360 次', req: { totalTasksDone: 360 }, def: 15000, x: 10, y: 15, type: 'cave', rewardId: 203 },
+      { id: 'taowu', name: '檮杌魔窟', title: '頑固不化', targetLabel: '修行 720 次', req: { totalTasksDone: 720 }, def: 30000, x: 92, y: 90, type: 'cave', rewardId: 204 },
+      { id: 'taotie', name: '饕餮深淵', title: '無盡吞噬', targetLabel: '修行 1800 次', req: { totalTasksDone: 1800 }, def: 80000, x: 80, y: 10, type: 'cave', rewardId: 205 },
+      { id: 'hundun', name: '混沌神域', title: '萬法歸一', targetLabel: '修行 3600 次', req: { totalTasksDone: 3600 }, def: 200000, x: 50, y: 5, type: 'cave', rewardId: 206 }
     ];
 
     const RAW_OFFICERS = [
@@ -627,7 +627,8 @@
         newState.lastInvestMonth = currentMonthString;
         
         const ev = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
-        let gainedMerit = 50 + officerStats.passiveBuff + bondPaydayBuff + ev.merit; 
+        // 【修改點】軍令基礎軍功由 50 提升至 300
+        let gainedMerit = 300 + officerStats.passiveBuff + bondPaydayBuff + ev.merit; 
         newState.merit += gainedMerit;
         
         const displayAdded = target === 'btc' ? addedAmount.toFixed(6) : addedAmount.toLocaleString();
@@ -659,12 +660,13 @@
       };
 
       const drawOfficer = () => {
-        if (merit < 300) {
-          showToast("軍功不足 300，無法設宴招賢！", 'warn');
+        // 【修改點】招賢成本由 300 下調至 100
+        if (merit < 100) {
+          showToast("軍功不足 100，無法設宴招賢！", 'warn');
           return;
         }
         let newState = JSON.parse(JSON.stringify(gameState));
-        newState.merit -= 300; 
+        newState.merit -= 100; 
         
         // 排除掉妖獸族 (ID >= 200)，他們必須透過攻打巢穴獲得
         const drawPool = OFFICERS.filter(o => o.id < 200);
@@ -673,7 +675,7 @@
         newState.ownedOfficers.push(drawn.id); 
         
         if (isDupe) addLog(newState, '招賢', `獲得將魂！名將【${drawn.name}】星級提升，戰力大增！`);
-        else addLog(newState, '招賢', `耗費 300 軍功，登庸名將【${drawn.name}】！`);
+        else addLog(newState, '招賢', `耗費 100 軍功，登庸名將【${drawn.name}】！`);
         
         saveGameState(newState);
         setGachaResult({ ...drawn, isDupe });
@@ -1155,21 +1157,21 @@
                 <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
                   <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 tracking-widest flex items-center gap-2">日常內政 (修身齊家)</h3>
                   <p className="text-[10px] text-[#8c7e6a] mb-3">
-                    不耗費糧草，每日限制執行 3 次，微幅提升軍功 (+2)。<br/>
+                    不耗費糧草，每日限制執行 3 次，微幅提升軍功 (+10)。<br/>
                     今日已執行：<span className="text-white font-bold">{dailyTaskDate === todayString ? dailyTaskCount : 0} / 3</span>
                     <span className="ml-3 text-yellow-400">累計修行：{totalTasksDone || 0} 次</span>
                   </p>
                   
                   <div className="grid grid-cols-3 gap-2">
-                      <button onClick={() => handleDailyTask('研讀兵法', 2)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-blue-500 hover:bg-[#0a1128] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                      <button onClick={() => handleDailyTask('研讀兵法', 10)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-blue-500 hover:bg-[#0a1128] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
                           <span className="text-blue-400 text-xs font-bold tracking-widest whitespace-nowrap">研讀兵法</span>
                           <span className="text-[9px] text-gray-500">(知識提升)</span>
                       </button>
-                      <button onClick={() => handleDailyTask('巡視營帳', 2)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-green-500 hover:bg-[#0a1a0f] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                      <button onClick={() => handleDailyTask('巡視營帳', 10)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-green-500 hover:bg-[#0a1a0f] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
                           <span className="text-green-400 text-xs font-bold tracking-widest whitespace-nowrap">巡視營帳</span>
                           <span className="text-[9px] text-gray-500">(整理家務)</span>
                       </button>
-                      <button onClick={() => handleDailyTask('校場操練', 2)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-red-500 hover:bg-[#2a0808] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                      <button onClick={() => handleDailyTask('校場操練', 10)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-red-500 hover:bg-[#2a0808] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
                           <span className="text-red-400 text-xs font-bold tracking-widest whitespace-nowrap">校場操練</span>
                           <span className="text-[9px] text-gray-500">(運動鍛鍊)</span>
                       </button>
@@ -1226,7 +1228,7 @@
                       <ICONS.Users className="w-5 h-5"/> 招賢館 (動態將營)
                     </h2>
                     <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
-                      消耗 300 軍功設宴招募將領。獲得重複武將將轉化為「將魂」升級星數。<br/>
+                      消耗 100 軍功設宴招募將領。獲得重複武將將轉化為「將魂」升級星數。<br/>
                       <span className="text-green-400 font-bold mt-1 inline-block">點擊麾下將領可與其交談，將領將根據主公目前的財務與紀律狀況給予專屬建言。</span>
                     </p>
                   </div>
@@ -1234,11 +1236,11 @@
                   <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0">
                     <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">軍功庫存</div>
                     <div className="text-2xl font-bold text-yellow-400 font-mono mb-3 whitespace-nowrap">{merit.toFixed(0)}</div>
-                    <button onClick={drawOfficer} disabled={merit < 300}
+                    <button onClick={drawOfficer} disabled={merit < 100}
                       className={`w-full py-2.5 font-bold text-sm md:text-base border rounded-sm transition-all tracking-widest whitespace-nowrap
-                        ${merit >= 300 ? 'bg-[#2a2218] text-[#d4af37] border-[#b8860b] hover:bg-[#3a2f22] active:scale-95 shadow-[0_0_10px_rgba(184,134,11,0.2)]' : 'bg-[#110a05] border-[#2a1a15] text-[#5c4033] cursor-not-allowed'}`}
+                        ${merit >= 100 ? 'bg-[#2a2218] text-[#d4af37] border-[#b8860b] hover:bg-[#3a2f22] active:scale-95 shadow-[0_0_10px_rgba(184,134,11,0.2)]' : 'bg-[#110a05] border-[#2a1a15] text-[#5c4033] cursor-not-allowed'}`}
                     >
-                      設宴招賢 (300)
+                      設宴招賢 (100)
                     </button>
                   </div>
                 </div>
