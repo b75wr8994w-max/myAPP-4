@@ -349,7 +349,6 @@
         let finalBossHp = parsed.bossHp !== undefined ? parsed.bossHp : 500000;
         let oldMaxHp = 50000 + (parsed.bossKills || 0) * 10000;
         
-        // 如果這個存檔還沒經過 50 萬血量升級，且它當前血量小於等於舊的最高血量上限
         if (saved && finalBossHp <= oldMaxHp && !parsed.bossHpMigratedTo50w) {
             finalBossHp = finalBossHp * 10;
         }
@@ -858,7 +857,7 @@
              newState.merit += bm.rewardMerit;
          }
          
-         newState.activeBlackMarket = null; // 交易完成即離去
+         newState.activeBlackMarket = null; 
          addLog(newState, '奇遇', `與黑市商人交易成功，各取所需！`);
          saveGameState(newState);
          showToast("交易成功！商人隱入塵煙中...", "success");
@@ -1117,11 +1116,11 @@
          if (type === 'merit') {
            if (newState.merit < 100) return showToast("軍功不足！", "error");
            newState.merit -= 100;
-           dmg = 200 + Math.floor(Math.random() * 300); // 校正：軍功打 200~500
+           dmg = 1500 + Math.floor(Math.random() * 1000); // 1500 ~ 2500
          } else if (type === 'task') {
            if ((newState.monthlyTaskCount || 0) < 5) return showToast("本月修行次數不足 5 次！", "error");
            newState.monthlyTaskCount -= 5;
-           dmg = 1000 + Math.floor(Math.random() * 1501); // 校正：精確控制為 1000~2500
+           dmg = 4000 + Math.floor(Math.random() * 2000); // 4000 ~ 6000
          }
 
          newState.bossHp = Math.max(0, (newState.bossHp || 500000) - dmg);
@@ -1276,7 +1275,7 @@
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto relative bg-[#0c1014] scrollbar-hide flex flex-col">
+          <main className="flex-1 overflow-hidden relative bg-[#0c1014] flex flex-col">
             
             {/* ====== 雲遊黑市 UI 覆蓋層 (全局可見於特定 Tab) ====== */}
             {activeBlackMarket && (activeTab === 'forge' || activeTab === 'tavern' || activeTab === 'command') && (
@@ -1296,7 +1295,7 @@
 
             {/* 1. MAP TAB */}
             {activeTab === 'map' && (
-              <div className="flex flex-col flex-1 relative">
+              <div className="flex flex-col h-full w-full relative">
                 <div className="absolute top-4 right-4 z-[60] flex flex-col gap-2">
                   <button onClick={() => setMapZoom(z => Math.min(z + 0.25, 2.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">+</button>
                   <button onClick={() => setMapZoom(1)} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#8c7e6a] rounded-sm font-bold text-xs shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">重置</button>
@@ -1322,9 +1321,9 @@
                    </div>
                 </div>
 
-                <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
-                  <div className="fixed inset-0 pointer-events-none opacity-[0.06] z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px', backgroundRepeat: 'repeat' }}></div>
-
+                <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]"
+                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-opacity='0.06' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px', backgroundRepeat: 'repeat' }}>
+                  
                   <div className="relative origin-top-left transition-transform duration-300 z-10" style={{ transform: `scale(${mapZoom})`, width: '2400px', height: '1800px' }}>
                     <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
                       <rect width="100%" height="100%" fill="#13181f" opacity="0.9"/>
@@ -1891,7 +1890,7 @@
                   </div>
                   <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0 shadow-inner">
                     <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">當前持有素材</div>
-                    <div className="text-3xl font-black text-[#e3dac9] font-mono whitespace-nowrap drop-shadow-md"><AnimatedNumber value={materials || 0} /></div>
+                    <div className="text-3xl font-black text-[#e3dac9] font-mono whitespace-nowrap drop-shadow-md"><AnimatedNumber value={materials || 0} formatter={fmtInt} /></div>
                   </div>
                 </div>
 
