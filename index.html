@@ -154,10 +154,10 @@
       { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, def: 15000, x: 32, y: 92, type: 'castle' },
       { id: 'heifeng', name: '黑風山寨', title: '百日築基', targetLabel: '修行 360 次', req: { totalTasksDone: 360 }, def: 1500, x: 15, y: 80, type: 'camp', rewardId: 201 },
       { id: 'qingqiu', name: '青丘狐洞', title: '幻境迷蹤', targetLabel: '修行 720 次', req: { totalTasksDone: 720 }, def: 3500, x: 85, y: 25, type: 'cave', rewardId: 202 },
-      { id: 'qiongqi', name: '窮奇巢穴', title: '極惡之淵', targetLabel: '修行 1200 次', req: { totalTasksDone: 1200 }, def: 15000, x: 10, y: 15, type: 'cave', rewardId: 203 },
-      { id: 'taowu', name: '檮杌魔窟', title: '頑固不化', targetLabel: '修行 1800 次', req: { totalTasksDone: 1800 }, def: 30000, x: 92, y: 90, type: 'cave', rewardId: 204 },
-      { id: 'taotie', name: '饕餮深淵', title: '無盡吞噬', targetLabel: '修行 3600 次', req: { totalTasksDone: 3600 }, def: 80000, x: 80, y: 10, type: 'cave', rewardId: 205 },
-      { id: 'hundun', name: '混沌神域', title: '萬法歸一', targetLabel: '修行 5400 次', req: { totalTasksDone: 5400 }, def: 200000, x: 50, y: 5, type: 'cave', rewardId: 206 }
+      { id: 'qiongqi', name: '窮奇巢穴', title: '極惡之淵', targetLabel: '修行 3600 次', req: { totalTasksDone: 3600 }, def: 15000, x: 10, y: 15, type: 'cave', rewardId: 203 },
+      { id: 'taowu', name: '檮杌魔窟', title: '頑固不化', targetLabel: '修行 7200 次', req: { totalTasksDone: 7200 }, def: 30000, x: 92, y: 90, type: 'cave', rewardId: 204 },
+      { id: 'taotie', name: '饕餮深淵', title: '無盡吞噬', targetLabel: '修行 18000 次', req: { totalTasksDone: 18000 }, def: 80000, x: 80, y: 10, type: 'cave', rewardId: 205 },
+      { id: 'hundun', name: '混沌神域', title: '萬法歸一', targetLabel: '修行 36000 次', req: { totalTasksDone: 36000 }, def: 200000, x: 50, y: 5, type: 'divine', rewardId: 206 }
     ];
 
     const RAW_OFFICERS = [
@@ -296,6 +296,7 @@
       Castle: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M4 21h16v-6h-2v4H6v-4H4v6zm14-10V5l-6 3-6-3v6l6 3 6-3z"/></svg>,
       Camp: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2 21h20L12 3zm0 5l5 11h-2l-1.36-3H10.36L9 19H7l5-11z"/></svg>,
       Cave: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M22 20L12 3 2 20h20zM12 11a4 4 0 00-4 4v3h8v-3a4 4 0 00-4-4z"/></svg>,
+      Divine: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.5-6.3-4.8-6.3 4.8 2.3-7.5-6-4.6h7.6z"/></svg>,
       Sword: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5m-3.5-3.5 4-4L22 4V1h-3l-4.5 4.5"/></svg>,
       Scroll: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="10" x2="16" y1="6" y2="6"/><line x1="10" x2="16" y1="10" y2="10"/></svg>,
       Map: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6z"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>,
@@ -312,7 +313,7 @@
 
     function App() {
       const [gameState, setGameState] = useState(() => {
-        const saved = localStorage.getItem('wealth_game_save_final');
+        const saved = localStorage.getItem('wealth_game_save_final') || localStorage.getItem('wealth_game_save_v5') || localStorage.getItem('wealth_game_save_v4') || localStorage.getItem('wealth_game_save_v3');
         let parsed = saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
         return { 
           ...DEFAULT_GAME_STATE, 
@@ -580,7 +581,7 @@
               if(isHighDebt) pool.push(`信貸還有 ${(debt/10000).toFixed(0)} 萬，給我把皮繃緊一點，發薪水記得優先處理掉，無債一身輕最舒服了！`);
               if(isLowEmergency) pool.push("老公！緊急預備金不夠了，這個月暫停買幣，先補滿防禦！");
               pool.push("老公，我們一起看書準備巡官考試吧！投資自己的大腦是穩賺不賠的。");
-              pool.push("不管大盤怎麼震，家裡的伙食費跟咪波的奶粉錢絕對要優先保留喔！");
+              pool.push("不管大盤怎麼震，家裡的伙食費跟咪波的奶粉錢絕對要優先保留喔！(微笑)");
               pool.push("與其看盤焦慮，不如陪咪波玩一下吧，家人的陪伴才是最珍貴的財富。");
               pool.push("買房不用急著跟別人比，我們有自己的 2047 退休計畫，按表操課就好！");
               pool.push("看到新聞說暴跌？沒事，先把 Ledger 冷錢包收好，不要被市場雜音干擾。");
@@ -643,7 +644,7 @@
           }
           else if (officer.id === 26) { // 劉備
               pool.push("備雖曾顛沛流離，但深知只要『大本營』安穩，何處不能重新再起？");
-              pool.push("投資理財，當以仁德與耐心為本，切莫貪圖暴利，傷了家庭和氣與身心健康。");
+              pool.push("投資理財，當以耐心為本，切莫貪圖暴利，傷了家庭和氣與身心健康。");
               pool.push("主公欲調往南部鄉下，備深感贊同。遠離都市喧囂，方能好好陪伴家人成長。");
               pool.push("只要我們一步一腳印，每月定投優質大盤 (VOO)，終能光復大業！");
               pool.push("莫以善小而不為，莫以錢少而不存。微量但持續的紀律，亦是霸業的基石。");
@@ -903,7 +904,6 @@
 
         const equipMultiplier = (equipments || []).length * 0.05;
 
-        // 神器共鳴加成
         let synergyMultiplier = 0;
         SYNERGIES.forEach(syn => {
            if (syn.req.every(reqId => (equipments || []).includes(reqId))) {
@@ -911,7 +911,6 @@
            }
         });
 
-        // 國策加成
         const hasNoDebtPolicy = (policies || []).includes('p_nodebt');
         const policyPowerBuff = (hasNoDebtPolicy && displayAssets.debt === 0) ? 0.1 : 0;
 
@@ -981,7 +980,6 @@
         }
       };
 
-      // 國策解鎖
       const handleUnlockPolicy = (policy) => {
          if ((policies || []).includes(policy.id)) return;
          if (policy.reqDebtZero && displayAssets.debt > 0) return showToast("信貸尚未歸零，無法解鎖！", "error");
@@ -995,7 +993,6 @@
          showToast(`成功解鎖國策：${policy.name}`, "success");
       };
 
-      // 世界 Boss 攻擊
       const handleAttackBoss = (type) => {
          let newState = JSON.parse(JSON.stringify(gameState));
          let dmg = 0;
@@ -1064,7 +1061,6 @@
       const canDoRoutineThisMonth = lastRoutineMonth !== currentMonthString;
       const occupiedCount = occupiedProvinces.length;
 
-      // 大本營視覺化階級
       const baseLevel = displayAssets.emergency >= 200000 ? 3 : (displayAssets.emergency >= 50000 ? 2 : 1);
       const baseInfo = baseLevel === 3 ? { icon: '🏰', text: '堅固石城', desc: '銅牆鐵壁，固若金湯' } :
                        baseLevel === 2 ? { icon: '🛖', text: '木造營寨', desc: '初具規模，可擋流寇' } :
@@ -1073,7 +1069,6 @@
       return (
         <div className="h-[100dvh] w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
           
-          {/* 熊市危機強制遮罩攔截 */}
           {crisisEvent && (
              <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md">
                  <div className="bg-[#1a0505] border-2 border-red-600 p-6 md:p-10 max-w-lg w-full text-center shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-[stampIn_0.5s_forwards]">
@@ -1093,7 +1088,6 @@
              </div>
           )}
 
-          {/* Notifications */}
           {toastMessage && (
             <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
               <div className={`px-6 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center gap-2 whitespace-nowrap
@@ -1167,7 +1161,6 @@
                   <button onClick={() => setMapZoom(z => Math.max(z - 0.25, 0.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">-</button>
                 </div>
 
-                {/* 視覺化大本營 UI (隨預備金改變) */}
                 <div className="absolute top-4 left-4 z-[60] bg-[#1a1410]/90 border border-[#d4af37] p-3 rounded-sm shadow-2xl backdrop-blur-md flex flex-col items-start gap-2 animate-[slideUp_0.3s_ease-out]">
                    <div className="flex items-center gap-3">
                        <div className="text-3xl drop-shadow-md">{baseInfo.icon}</div>
@@ -1220,12 +1213,13 @@
                     <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px' }}></div>
 
                     {provincesState.map(prov => {
-                      const IconComponent = prov.type === 'cave' ? ICONS.Cave : prov.type === 'camp' ? ICONS.Camp : ICONS.Castle;
+                      const IconComponent = prov.type === 'cave' ? ICONS.Cave : prov.type === 'camp' ? ICONS.Camp : prov.type === 'divine' ? ICONS.Divine : ICONS.Castle;
                       let iconColor = 'text-gray-600';
                       if (prov.isConquered) iconColor = 'text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]';
                       else if (prov.isReqMet) {
                          if (prov.type === 'cave') iconColor = 'text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.8)]';
                          else if (prov.type === 'camp') iconColor = 'text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]';
+                         else if (prov.type === 'divine') iconColor = 'text-yellow-300 drop-shadow-[0_0_15px_rgba(253,224,71,1)] animate-pulse';
                          else iconColor = 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]';
                       }
 
@@ -1274,7 +1268,7 @@
                               {selectedProvince?.isConquered ? '已佔據 (守成中)' : selectedProvince?.isReqMet ? '獲得攻城權' : '條件未滿'}
                             </span>
                           </h2>
-                          <p className="text-[10px] md:text-xs text-[#a3947c] mt-1 whitespace-nowrap">{selectedProvince?.title} | 守軍戰力：<span className="text-red-400 font-mono font-bold">{selectedProvince?.def}</span></p>
+                          <p className="text-[10px] md:text-xs text-[#a3947c] mt-1 whitespace-nowrap">{selectedProvince?.title} | 守軍戰力：<span className="text-red-400 font-mono font-bold">{selectedProvince?.def.toLocaleString()}</span></p>
                         </div>
                         <div className="text-right shrink-0 ml-2">
                           <div className="text-[10px] text-[#8c7e6a] tracking-widest whitespace-nowrap">霸業版圖</div>
@@ -1375,7 +1369,7 @@
             {activeTab === 'command' && (
               <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-6 h-full overflow-y-auto w-full">
                 
-                {/* 史詩世界 Boss 討伐戰 (新增) */}
+                {/* 史詩世界 Boss 討伐戰 */}
                 <div className="bg-[#1a0505] border-2 border-red-800 p-5 shadow-[0_0_20px_rgba(153,27,27,0.3)] relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                      <ICONS.Flame className="w-32 h-32 text-red-500 animate-pulse" />
@@ -1540,7 +1534,7 @@
               </div>
             )}
 
-            {/* 3. POLICY TAB (新增：國策與成就) */}
+            {/* 3. POLICY TAB */}
             {activeTab === 'policy' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
                 <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
@@ -1731,7 +1725,7 @@
                   </div>
                 </div>
 
-                {/* 神器共鳴 (新增) */}
+                {/* 神器共鳴 */}
                 <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest border-l-4 border-red-800 pl-2 mb-3 flex items-center gap-2 whitespace-nowrap">
                     神器套裝共鳴 (Synergy)
                 </h3>
