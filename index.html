@@ -48,6 +48,12 @@
     @keyframes pulse-red { 0%, 100% { filter: drop-shadow(0 0 5px rgba(239,68,68,0.5)); } 50% { filter: drop-shadow(0 0 15px rgba(239,68,68,1)); } }
     @keyframes siren { 0%, 100% { background-color: rgba(69, 10, 10, 0.9); } 50% { background-color: rgba(153, 27, 27, 0.9); } }
     @keyframes boss-shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+    
+    /* 新增：浮動傷害數字動畫 */
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1.5); }
+      100% { opacity: 0; transform: translateY(-50px) scale(1); }
+    }
   </style>
 </head>
 <body>
@@ -55,6 +61,28 @@
 
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
+
+    // ====== React Component: 滾動數字 (Animated Counter) ======
+    const AnimatedNumber = ({ value, formatter }) => {
+      const [displayValue, setDisplayValue] = useState(value);
+      useEffect(() => {
+        let start = displayValue;
+        let end = value;
+        if (start === end) return;
+        let startTime = null;
+        const duration = 800; // 動畫持續 0.8 秒
+        const animate = (timestamp) => {
+          if (!startTime) startTime = timestamp;
+          const progress = Math.min((timestamp - startTime) / duration, 1);
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          setDisplayValue(start + (end - start) * easeOut);
+          if (progress < 1) requestAnimationFrame(animate);
+          else setDisplayValue(end);
+        };
+        requestAnimationFrame(animate);
+      }, [value]);
+      return <>{formatter ? formatter(displayValue) : Math.floor(displayValue)}</>;
+    };
 
     const DEFAULT_GAME_STATE = {
       assets: { twd: 0, emergency: 0, entertainment: 0, btc: 1.5432, eth: 32, ada: 75000, qqq: 0, voo: 0, debt: 2800000 },
@@ -77,8 +105,9 @@
       bossKills: 0,
       monthlyTaskCount: 0,
       monthlyTaskMonth: "",
-      mainOfficerId: null, // 新增：大營主將系統
-      officerExps: {}      // 新增：武將個別羈絆經驗值
+      mainOfficerId: null, 
+      officerExps: {},
+      activeBlackMarket: null // 雲遊黑市狀態
     };
 
     const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
@@ -327,7 +356,8 @@
           monthlyTaskCount: parsed.monthlyTaskCount || 0,
           monthlyTaskMonth: parsed.monthlyTaskMonth || "",
           mainOfficerId: parsed.mainOfficerId || null,
-          officerExps: parsed.officerExps || {}
+          officerExps: parsed.officerExps || {},
+          activeBlackMarket: parsed.activeBlackMarket || null
         };
       });
       
@@ -351,6 +381,18 @@
       const [toastMessage, setToastMessage] = useState(null);
       const [localAssets, setLocalAssets] = useState(null);
       const [mapZoom, setMapZoom] = useState(1);
+
+      // 新增：浮動文字狀態
+      const [floatingTexts, setFloatingTexts] = useState([]);
+
+      const addFloatingText = (text, type = 'dmg') => {
+        const id = Date.now() + Math.random();
+        const offsetLeft = Math.floor(Math.random() * 60) - 30; // -30px ~ 30px
+        setFloatingTexts(prev => [...prev, { id, text, type, offsetLeft }]);
+        setTimeout(() => {
+          setFloatingTexts(prev => prev.filter(t => t.id !== id));
+        }, 1000);
+      };
 
       const fileInputRef = useRef(null);
 
@@ -391,7 +433,7 @@
         fetchPricesAndWeather();
       }, [gameState.lastCrisisMonth, currentMonthString]);
 
-      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, totalTasksDone, logs, materials, equipments, policies, achievements, bossHp, bossKills, monthlyTaskCount, monthlyTaskMonth, mainOfficerId, officerExps } = gameState;
+      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, totalTasksDone, logs, materials, equipments, policies, achievements, bossHp, bossKills, monthlyTaskCount, monthlyTaskMonth, mainOfficerId, officerExps, activeBlackMarket } = gameState;
       const displayAssets = localAssets || assets;
 
       const stats = useMemo(() => {
@@ -762,6 +804,20 @@
         let gainedMerit = Math.floor((300 + officerStats.passiveBuff + bondPaydayBuff + baseEvent.merit) * (hasFamilyPolicy ? 1.2 : 1));
         
         newState.merit += gainedMerit;
+
+        // 【隨機機制】25% 機率觸發雲遊黑市
+        if (Math.random() <= 0.25) {
+            const types = ['buy_mat', 'sell_mat'];
+            const t = types[Math.floor(Math.random() * types.length)];
+            if (t === 'buy_mat') {
+                newState.activeBlackMarket = { type: 'buy_mat', desc: '以 100 軍功兌換 5 個鍛造素材', costMerit: 100, rewardMat: 5 };
+            } else {
+                newState.activeBlackMarket = { type: 'sell_mat', desc: '以 3 個素材兌換 150 軍功', costMat: 3, rewardMerit: 150 };
+            }
+            setTimeout(() => showToast("📢 探子回報：大營外來了一位雲遊商人！", "warn"), 2000);
+        } else {
+            newState.activeBlackMarket = null;
+        }
         
         const displayAdded = target === 'btc' ? addedAmount.toFixed(6) : addedAmount.toLocaleString();
         let logMsg = `徵兵令下：壯大 ${target.toUpperCase()} 營 ${displayAdded} 兵力。`;
@@ -773,6 +829,27 @@
         
         const interactiveEvent = INTERACTIVE_EVENTS[Math.floor(Math.random() * INTERACTIVE_EVENTS.length)];
         setActiveEncounter({ baseEvent, interactiveEvent });
+      };
+
+      const handleBlackMarketTrade = () => {
+         let newState = JSON.parse(JSON.stringify(gameState));
+         const bm = newState.activeBlackMarket;
+         if(!bm) return;
+
+         if (bm.type === 'buy_mat') {
+             if (newState.merit < bm.costMerit) return showToast("軍功不足，商人搖頭拒絕。", "error");
+             newState.merit -= bm.costMerit;
+             newState.materials = (newState.materials || 0) + bm.rewardMat;
+         } else {
+             if ((newState.materials || 0) < bm.costMat) return showToast("素材不足，商人搖頭拒絕。", "error");
+             newState.materials -= bm.costMat;
+             newState.merit += bm.rewardMerit;
+         }
+         
+         newState.activeBlackMarket = null; // 交易完成即離去
+         addLog(newState, '奇遇', `與黑市商人交易成功，各取所需！`);
+         saveGameState(newState);
+         showToast("交易成功！商人隱入塵煙中...", "success");
       };
 
       const handleEncounterOption = (actionId) => {
@@ -850,11 +927,23 @@
             return;
         }
         let newState = JSON.parse(JSON.stringify(gameState));
-        newState.materials -= finalCost;
+        let logMsg = `巧匠成功打造神兵【${item.name}】！全軍戰力永久提升 ${(item.bonus * 100)}%。`;
+
+        // 【隨機機制】15% 機率觸發神工鍛造
+        if (Math.random() <= 0.15) {
+            const refund = Math.ceil(finalCost / 2);
+            newState.materials -= (finalCost - refund);
+            newState.merit += 100;
+            logMsg = `【神工暴擊】打造出完美無瑕的【${item.name}】！節省了 ${refund} 素材並獲賞 100 軍功！`;
+            showToast("✨ 觸發神工鍛造暴擊！", "success");
+        } else {
+            newState.materials -= finalCost;
+            showToast(`成功鍛造 ${item.name}！`, "success");
+        }
+
         newState.equipments = [...(newState.equipments || []), item.id];
-        addLog(newState, '鍛造', `巧匠成功打造神兵【${item.name}】！全軍戰力永久提升 ${(item.bonus * 100)}%。`);
+        addLog(newState, '鍛造', logMsg);
         saveGameState(newState);
-        showToast(`成功鍛造 ${item.name}！`, "success");
       };
 
       const executeRoutineTask = () => {
@@ -1016,15 +1105,18 @@
          if (type === 'merit') {
            if (newState.merit < 100) return showToast("軍功不足！", "error");
            newState.merit -= 100;
-           dmg = 500 + Math.floor(Math.random() * 500); // 500 ~ 1000
+           dmg = 1500 + Math.floor(Math.random() * 1000); // 1500 ~ 2500
          } else if (type === 'task') {
            if ((newState.monthlyTaskCount || 0) < 5) return showToast("本月修行次數不足 5 次！", "error");
            newState.monthlyTaskCount -= 5;
-           dmg = 1000 + Math.floor(Math.random() * 1501); // 1000 ~ 2500
+           dmg = 4000 + Math.floor(Math.random() * 2000); // 4000 ~ 6000
          }
 
          newState.bossHp = Math.max(0, (newState.bossHp || 500000) - dmg);
-         const BOSS_MAX_HP = 500000 + ((newState.bossKills || 0) * 100000);
+         const currentMaxHp = 500000 + ((newState.bossKills || 0) * 100000);
+         
+         // 觸發浮動傷害數字
+         addFloatingText(`-${dmg}`);
          
          if (newState.bossHp === 0) {
             const mats = 10 + Math.floor(Math.random() * 6);
@@ -1036,7 +1128,6 @@
             showToast("🎉 擊殺世界 Boss！獲得大量獎勵！", "success");
          } else {
             addLog(newState, '討伐', `對世界 Boss 造成 ${dmg} 點實質傷害！`);
-            showToast(`⚔️ 造成 ${dmg} 點傷害！`, "success");
          }
          saveGameState(newState);
       };
@@ -1063,7 +1154,7 @@
           try {
             let importedState = JSON.parse(e.target.result);
             if (importedState && importedState.assets && importedState.merit !== undefined) {
-              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState, occupiedProvinces: importedState.occupiedProvinces || [], materials: importedState.materials || 0, equipments: importedState.equipments || [], policies: importedState.policies || [], achievements: importedState.achievements || [], bossHp: importedState.bossHp !== undefined ? importedState.bossHp : 500000, bossKills: importedState.bossKills || 0, mainOfficerId: importedState.mainOfficerId || null, officerExps: importedState.officerExps || {} }); 
+              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState, occupiedProvinces: importedState.occupiedProvinces || [], materials: importedState.materials || 0, equipments: importedState.equipments || [], policies: importedState.policies || [], achievements: importedState.achievements || [], bossHp: importedState.bossHp !== undefined ? importedState.bossHp : 500000, bossKills: importedState.bossKills || 0, mainOfficerId: importedState.mainOfficerId || null, officerExps: importedState.officerExps || {}, activeBlackMarket: importedState.activeBlackMarket || null }); 
               showToast("兵符匯入成功，天下大勢已更新！", "success");
             } else {
               showToast("兵符格式錯誤，無法解讀！", "error");
@@ -1073,6 +1164,10 @@
         reader.readAsText(file);
         event.target.value = null; 
       };
+
+      // 格式化輔助函數，給予 AnimatedNumber 使用
+      const fmtDecimal = (num) => num.toFixed(2);
+      const fmtInt = (num) => Math.floor(num).toLocaleString();
 
       const selectedProvince = provincesState.find(p => p.id === selectedProvinceId);
       const canInvestThisMonth = lastInvestMonth !== currentMonthString;
@@ -1145,35 +1240,51 @@
               <div className="text-right flex flex-col items-end justify-center shrink-0 ml-1">
                 <div className="text-[9px] md:text-[10px] text-[#a3947c] tracking-widest mb-0.5 whitespace-nowrap">總兵力</div>
                 <div className={`text-lg md:text-2xl font-bold font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] whitespace-nowrap ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
-                  {(stats.netWorth / 10000).toFixed(0)} <span className="text-[9px] md:text-xs text-[#d4af37] font-serif">萬</span>
+                  <AnimatedNumber value={stats.netWorth / 10000} formatter={fmtInt} /> <span className="text-[9px] md:text-xs text-[#d4af37] font-serif">萬</span>
                 </div>
               </div>
             </div>
             
             <div className="flex px-2 md:px-4 py-1.5 md:py-2 gap-2 md:gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide text-[10px] md:text-[11px] font-mono bg-[#0a0705] border-t border-[#2a1a15] relative z-10 shadow-inner">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
-                <span className="text-[#a3947c] font-serif">軍功</span> <span className="text-[#ffd700] font-bold">{merit.toFixed(1)}</span>
+                <span className="text-[#a3947c] font-serif">軍功</span> <span className="text-[#ffd700] font-bold"><AnimatedNumber value={merit} formatter={(n) => n.toFixed(1)} /></span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
-                <span className="text-[#a3947c] font-serif">糧草</span> <span className="text-[#4ade80]">{(stats.cash / 10000).toFixed(2)}w</span>
+                <span className="text-[#a3947c] font-serif">糧草</span> <span className="text-[#4ade80]"><AnimatedNumber value={stats.cash / 10000} formatter={fmtDecimal} />w</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
-                <span className="text-[#a3947c] font-serif">騎兵</span> <span className="text-[#60a5fa]">{(stats.crypto / 10000).toFixed(2)}w</span>
+                <span className="text-[#a3947c] font-serif">騎兵</span> <span className="text-[#60a5fa]"><AnimatedNumber value={stats.crypto / 10000} formatter={fmtDecimal} />w</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
-                <span className="text-[#a3947c] font-serif">步弩兵</span> <span className="text-[#c084fc]">{(stats.trad / 10000).toFixed(2)}w</span>
+                <span className="text-[#a3947c] font-serif">步弩兵</span> <span className="text-[#c084fc]"><AnimatedNumber value={stats.trad / 10000} formatter={fmtDecimal} />w</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#3b0f0f]/80 border border-red-900 shrink-0 whitespace-nowrap">
-                <span className="text-red-300 font-serif">傭兵(信貸)</span> <span className="text-red-400 font-bold">-{(stats.debt / 10000).toFixed(2)}w</span>
+                <span className="text-red-300 font-serif">傭兵(信貸)</span> <span className="text-red-400 font-bold">-<AnimatedNumber value={stats.debt / 10000} formatter={fmtDecimal} />w</span>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto relative bg-[#0c1014] scrollbar-hide">
+          <main className="flex-1 overflow-y-auto relative bg-[#0c1014] scrollbar-hide flex flex-col">
             
+            {/* ====== 雲遊黑市 UI 覆蓋層 (全局可見於特定 Tab) ====== */}
+            {activeBlackMarket && (activeTab === 'forge' || activeTab === 'tavern' || activeTab === 'command') && (
+               <div className="mx-auto mt-4 z-[80] bg-[#1a0f0f] border-2 border-fuchsia-800 p-3 rounded-sm shadow-[0_0_20px_rgba(134,25,143,0.6)] animate-[slideUp_0.5s] flex items-center justify-between w-[90%] max-w-md backdrop-blur-md shrink-0">
+                  <div className="flex items-center gap-3">
+                     <span className="text-2xl drop-shadow-md">👺</span>
+                     <div className="flex flex-col">
+                        <span className="text-fuchsia-400 font-black text-xs md:text-sm tracking-widest">雲遊黑市商人 (本月限定)</span>
+                        <span className="text-[#e3dac9] text-[9px] md:text-xs mt-0.5">{activeBlackMarket.desc}</span>
+                     </div>
+                  </div>
+                  <button onClick={handleBlackMarketTrade} className="bg-fuchsia-900 text-fuchsia-200 border border-fuchsia-400 px-4 py-2 text-xs font-bold shrink-0 hover:bg-fuchsia-700 active:scale-95 transition-all rounded-sm tracking-widest shadow-md">
+                     交易
+                  </button>
+               </div>
+            )}
+
             {/* 1. MAP TAB */}
             {activeTab === 'map' && (
-              <div className="flex flex-col h-full relative">
+              <div className="flex flex-col flex-1 relative">
                 <div className="absolute top-4 right-4 z-[60] flex flex-col gap-2">
                   <button onClick={() => setMapZoom(z => Math.min(z + 0.25, 2.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">+</button>
                   <button onClick={() => setMapZoom(1)} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#8c7e6a] rounded-sm font-bold text-xs shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">重置</button>
@@ -1388,10 +1499,19 @@
 
             {/* 2. COMMAND TAB */}
             {activeTab === 'command' && (
-              <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-6 h-full overflow-y-auto w-full">
+              <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-6 h-full overflow-y-auto w-full relative">
                 
-                {/* 修復：加入 shrink-0 與 min-h-[220px]，防止手機 Flexbox 擠壓 */}
+                {/* 史詩世界 Boss 討伐戰 (加入 shrink-0 防止手機 Flexbox 擠壓) */}
                 <div className="bg-[#1a0505] border-2 border-red-800 p-5 shadow-[0_0_20px_rgba(153,27,27,0.3)] relative overflow-hidden shrink-0 min-h-[220px]">
+                  
+                  {/* 動態浮動傷害數字渲染區 */}
+                  {floatingTexts.map(ft => (
+                    <div key={ft.id} className="absolute z-50 text-red-400 font-black text-2xl font-mono drop-shadow-[0_0_5px_rgba(255,0,0,1)] pointer-events-none animate-[floatUp_1s_forwards]"
+                         style={{ left: `calc(50% + ${ft.offsetLeft}px)`, top: '40%' }}>
+                      {ft.text}
+                    </div>
+                  ))}
+
                   <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                      <ICONS.Flame className="w-32 h-32 text-red-500 animate-pulse" />
                   </div>
@@ -1405,7 +1525,7 @@
                   <div className="mb-4 relative z-10">
                     <div className="flex justify-between text-xs font-bold text-red-200 mb-1 font-mono tracking-widest">
                        <span>{BOSS_NAMES[bossKills % 3]} HP</span>
-                       <span>{bossHp} / {currentBossMaxHp}</span>
+                       <span><AnimatedNumber value={bossHp} formatter={fmtInt} /> / {currentBossMaxHp.toLocaleString()}</span>
                     </div>
                     <div className="w-full h-3 bg-black border border-red-900 rounded-sm overflow-hidden">
                        <div className="h-full bg-gradient-to-r from-red-800 to-red-500 transition-all duration-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]" 
@@ -1501,7 +1621,7 @@
                      return (
                         <div className="mb-3 bg-[#0a0705] border border-[#3e2723] p-2 flex justify-between items-center text-[10px] md:text-xs">
                             <span className={`font-bold ${off.color}`}>⚔️ 主將：{off.name} (Lv.{level})</span>
-                            <span className="text-[#a3947c]">羈絆: {exp} | 戰力加成: <span className="text-green-400">+{level}%</span></span>
+                            <span className="text-[#a3947c]">羈絆: <AnimatedNumber value={exp} formatter={fmtInt} /> | 戰力加成: <span className="text-green-400">+{level}%</span></span>
                         </div>
                      )
                   })() : (
@@ -1588,7 +1708,7 @@
                   </div>
                   <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0 shadow-inner">
                     <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">當前軍功</div>
-                    <div className="text-3xl font-black text-yellow-400 font-mono whitespace-nowrap drop-shadow-md">{merit.toFixed(0)}</div>
+                    <div className="text-3xl font-black text-yellow-400 font-mono whitespace-nowrap drop-shadow-md"><AnimatedNumber value={merit} formatter={fmtInt} /></div>
                   </div>
                 </div>
 
@@ -1670,7 +1790,7 @@
                   
                   <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0">
                     <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">軍功庫存</div>
-                    <div className="text-2xl font-bold text-yellow-400 font-mono mb-3 whitespace-nowrap">{merit.toFixed(0)}</div>
+                    <div className="text-2xl font-bold text-yellow-400 font-mono mb-3 whitespace-nowrap"><AnimatedNumber value={merit} formatter={fmtInt} /></div>
                     <button onClick={drawOfficer} disabled={merit < 100}
                       className={`w-full py-2.5 font-bold text-sm md:text-base border rounded-sm transition-all tracking-widest whitespace-nowrap
                         ${merit >= 100 ? 'bg-[#2a2218] text-[#d4af37] border-[#b8860b] hover:bg-[#3a2f22] active:scale-95 shadow-[0_0_10px_rgba(184,134,11,0.2)]' : 'bg-[#110a05] border-[#2a1a15] text-[#5c4033] cursor-not-allowed'}`}
@@ -1760,7 +1880,7 @@
                   </div>
                   <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0 shadow-inner">
                     <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">當前持有素材</div>
-                    <div className="text-3xl font-black text-[#e3dac9] font-mono whitespace-nowrap drop-shadow-md">{materials || 0}</div>
+                    <div className="text-3xl font-black text-[#e3dac9] font-mono whitespace-nowrap drop-shadow-md"><AnimatedNumber value={materials || 0} /></div>
                   </div>
                 </div>
 
@@ -2008,7 +2128,7 @@
             {/* 抽卡結果 Modal */}
             {gachaResult && (
               <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4" onClick={() => setGachaResult(null)}>
-                <div className={`border-2 ${gachaResult.border} ${gachaResult.bg} w-full max-w-xs relative shadow-2xl animate-[stampIn_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]`}>
+                <div className={`border-2 ${gachaResult.border} ${gachaResult.bg} w-full max-w-xs relative shadow-[0_0_50px_rgba(255,255,255,0.2)] animate-[stampIn_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]`}>
                   <div className="absolute inset-0 bg-[#0c0906] opacity-80 pointer-events-none mix-blend-multiply"></div>
                   <div className={`absolute inset-0 flex items-center justify-center text-9xl font-black opacity-10 select-none pointer-events-none ${gachaResult.color}`}>
                     {gachaResult.faction}
