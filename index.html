@@ -71,13 +71,14 @@
       logs: [],
       materials: 0, 
       equipments: [],
-      // ====== 新增的 5 大系統狀態 (具備向後相容性) ======
       policies: [],
       achievements: [],
-      bossHp: 50000,
+      bossHp: 500000,
       bossKills: 0,
       monthlyTaskCount: 0,
-      monthlyTaskMonth: ""
+      monthlyTaskMonth: "",
+      mainOfficerId: null, // 新增：大營主將系統
+      officerExps: {}      // 新增：武將個別羈絆經驗值
     };
 
     const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
@@ -238,7 +239,6 @@
       }
     ];
 
-    // ====== 新增的五大擴充系統資料 ======
     const POLICIES = [
       { id: 'p_cooldown', name: '24小時冷靜法案', desc: '解鎖後，杜絕消費衝動，所有神兵鍛造素材需求永久降低 10%。', cost: 500, reqDebtZero: false },
       { id: 'p_nodebt', name: '無債一身輕', desc: '剝除同儕與買房焦慮。僅能在信貸為 0 時頒布，全軍戰力永久 +10%。', cost: 1000, reqDebtZero: true },
@@ -263,7 +263,6 @@
     
     const BOSS_NAMES = ['通膨巨魔', '消費惡魔', 'FOMO 夢魘'];
 
-    // ====== 既有邏輯處理 ======
     const OFFICERS = RAW_OFFICERS.map(o => {
       let faction = '群'; let color = 'text-gray-300'; let bg = 'bg-gray-900'; let border = 'border-gray-600';
       if (o.id <= 25) { faction = '魏'; color = 'text-blue-300'; bg = 'bg-blue-950/60'; border = 'border-blue-700'; }
@@ -323,10 +322,12 @@
           equipments: parsed.equipments || [],
           policies: parsed.policies || [],
           achievements: parsed.achievements || [],
-          bossHp: parsed.bossHp !== undefined ? parsed.bossHp : 50000,
+          bossHp: parsed.bossHp !== undefined ? parsed.bossHp : 500000,
           bossKills: parsed.bossKills || 0,
           monthlyTaskCount: parsed.monthlyTaskCount || 0,
-          monthlyTaskMonth: parsed.monthlyTaskMonth || ""
+          monthlyTaskMonth: parsed.monthlyTaskMonth || "",
+          mainOfficerId: parsed.mainOfficerId || null,
+          officerExps: parsed.officerExps || {}
         };
       });
       
@@ -390,7 +391,7 @@
         fetchPricesAndWeather();
       }, [gameState.lastCrisisMonth, currentMonthString]);
 
-      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, totalTasksDone, logs, materials, equipments, policies, achievements, bossHp, bossKills, monthlyTaskCount, monthlyTaskMonth } = gameState;
+      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, totalTasksDone, logs, materials, equipments, policies, achievements, bossHp, bossKills, monthlyTaskCount, monthlyTaskMonth, mainOfficerId, officerExps } = gameState;
       const displayAssets = localAssets || assets;
 
       const stats = useMemo(() => {
@@ -563,6 +564,19 @@
             materialMsg = `，並意外尋獲 ${mats} 個鍛造素材！`;
           }
 
+          // 主將升級判定
+          if (newState.mainOfficerId) {
+            if(!newState.officerExps) newState.officerExps = {};
+            const oldExp = newState.officerExps[newState.mainOfficerId] || 0;
+            newState.officerExps[newState.mainOfficerId] = oldExp + 1;
+            
+            const oldLevel = Math.floor(oldExp / 10);
+            const newLevel = Math.floor((oldExp + 1) / 10);
+            if (newLevel > oldLevel) {
+                setTimeout(() => showToast(`【主將升級】Lv.${newLevel}！全軍戰力加成提升！`, 'success'), 1200);
+            }
+          }
+
           addLog(newState, '微內政', `執行【${taskName}】，微幅提升軍心，軍功 +${meritReward}${materialMsg}`);
           saveGameState(newState);
           showToast(`【${taskName}】完成，軍功 +${meritReward}${materialMsg}`, 'success');
@@ -601,8 +615,7 @@
               pool.push("理財首重保本，切勿輕信市場上的流言與短線暴利之說。");
               pool.push("夫君子之行，靜以修身，儉以養德。主公當遠離市場雜音，持續閱讀提升智慧。");
               pool.push("時間是主公最好的盟友。持之以恆，複利的陣法將無人能破。");
-              pool.push("遇到劇烈波動，請主公靜坐沉思，切莫在恐慌中做出決策。");
-              pool.push("只要大本營後勤無恙，前線縱有小挫，亦能重整旗鼓。");
+              pool.push("每一次的深呼吸，都是為了將來的爆發！主公，保持紀律！");
           } 
           else if (officer.id === 3) { // 郭嘉
               if(isWhale) pool.push("兵貴神速！主公重倉虎豹騎 (BTC)，魄力驚人！只要咬牙拿住，2030年必能橫掃天下！");
@@ -640,7 +653,7 @@
               pool.push("主公的 2047 退休戰略極佳！『靠自己最好』，豈能將命運交給他人！");
               pool.push("這點波動就怕了？孤當年宛城大敗也未曾皺眉，給我死死拿住籌碼！");
               pool.push("資產若未能提供長期爆發力，就無情轉換！孤絕不留無用之兵！");
-              pool.push("投資理財，當有雄才大略，不拘泥於一城一地之得失，放眼十年、二十年之後！");
+              pool.push("莫要被眼前的挫折遮蔽了雙眼，我們的目標是星辰大海與2047的自由！");
           }
           else if (officer.id === 26) { // 劉備
               pool.push("備雖曾顛沛流離，但深知只要『大本營』安穩，何處不能重新再起？");
@@ -652,7 +665,7 @@
               pool.push("備有一言：靠人人老，靠山山倒，主公的戰略信仰，實乃亂世真理！");
               pool.push("那些釣魚影片與恐慌新聞，皆是亂世妖言，主公切莫輕信，堅守本心。");
               pool.push("願主公與夫人順利考取巡官，投資自己的大腦與能力，才是最穩賺不賠的生意！");
-              pool.push("留得青山在，不怕沒柴燒。做好資金控管與風險隔離，永遠讓自己有從容應對的餘裕。");
+              pool.push("主公，讀書與陪伴家人，才是這亂世中最值得的投資。");
           }
 
           if (officer.faction === '妖') {
@@ -686,7 +699,7 @@
                   pool.push("複利，乃是這世上最可怕的陣法。只要時間夠久，其威力無人能擋。");
                   pool.push("主公，切勿被那些釣魚標題與恐慌新聞亂了陣腳，保持獨立思考至關重要。");
                   pool.push("智者千慮，必有一失。所以我們才需要『緊急預備金』來防範未然。");
-                  pool.push("那些花俏的短線指標都是障眼法。專注資產基本面，方是長久之正道。");
+                  pool.push("投資如逆水行舟，不進則退。每日的微小進步，終將匯聚成江海！");
                   pool.push("主公的實體冷錢包隔離協議，真乃神來之筆，確保資產滴水不漏！");
               } else if (officer.type === '統帥') {
                   pool.push("主公，為將者當有紀律。每月定投如排兵布陣，不可因一時恐慌而亂了陣腳！");
@@ -698,7 +711,7 @@
                   pool.push("穩固後方大本營(家庭與健康)，前線將士方能毫無後顧之憂地為您征戰！");
                   pool.push("只要我們按部就班執行計畫，這史詩版圖的霸業遲早是我們的！");
                   pool.push("不論外頭風浪多大，只要主公軍旗不倒、現金流不斷，我軍便不會潰散！");
-                  pool.push("巡視營寨(整理房間)看似小事，實則是維持軍心士氣、理清思緒的關鍵！");
+                  pool.push("比起帳面上的數字，主公強健的體魄與豐富的學識，才是任何人都搶不走的財富。");
               } else { // 政治/魅力/仁德
                   pool.push("主公，積少成多，聚沙成塔。穩健理財，方能長久恩澤家庭。");
                   pool.push("治大國若烹小鮮。理財也需細火慢燉，急功近利只會將大好局勢燒焦。");
@@ -913,6 +926,10 @@
 
         const hasNoDebtPolicy = (policies || []).includes('p_nodebt');
         const policyPowerBuff = (hasNoDebtPolicy && displayAssets.debt === 0) ? 0.1 : 0;
+        
+        // 主將加成結算
+        const mainOffExp = (officerExps || {})[mainOfficerId] || 0;
+        const mainOffBuff = mainOfficerId ? Math.floor(mainOffExp / 10) * 0.01 : 0;
 
         let weatherMod = 1;
         if (weather.trend === 'bull') weatherMod = 1.2;
@@ -921,7 +938,7 @@
            weatherMod = hasDiamond ? 1.1 : 0.9;
         }
 
-        const totalAttack = Math.floor(basePower * investDisciplineBuff * (1 + generalMultiplier + equipMultiplier + synergyMultiplier + policyPowerBuff) * weatherMod);
+        const totalAttack = Math.floor(basePower * investDisciplineBuff * (1 + generalMultiplier + equipMultiplier + synergyMultiplier + policyPowerBuff + mainOffBuff) * weatherMod);
         const defense = prov.def;
         
         let newState = JSON.parse(JSON.stringify(gameState));
@@ -999,21 +1016,22 @@
          if (type === 'merit') {
            if (newState.merit < 100) return showToast("軍功不足！", "error");
            newState.merit -= 100;
-           dmg = 1500 + Math.floor(Math.random() * 1000);
+           dmg = 500 + Math.floor(Math.random() * 500); // 500 ~ 1000
          } else if (type === 'task') {
            if ((newState.monthlyTaskCount || 0) < 5) return showToast("本月修行次數不足 5 次！", "error");
            newState.monthlyTaskCount -= 5;
-           dmg = 4000 + Math.floor(Math.random() * 2000);
+           dmg = 1000 + Math.floor(Math.random() * 1501); // 1000 ~ 2500
          }
 
-         newState.bossHp = Math.max(0, (newState.bossHp || 50000) - dmg);
+         newState.bossHp = Math.max(0, (newState.bossHp || 500000) - dmg);
+         const BOSS_MAX_HP = 500000 + ((newState.bossKills || 0) * 100000);
          
          if (newState.bossHp === 0) {
             const mats = 10 + Math.floor(Math.random() * 6);
             newState.materials = (newState.materials || 0) + mats;
             newState.merit += 500;
             newState.bossKills = (newState.bossKills || 0) + 1;
-            newState.bossHp = 50000 + (newState.bossKills * 10000); 
+            newState.bossHp = 500000 + (newState.bossKills * 100000); 
             addLog(newState, '討伐', `【史詩大捷】成功討伐世界 Boss！繳獲 ${mats} 素材，500 軍功！`);
             showToast("🎉 擊殺世界 Boss！獲得大量獎勵！", "success");
          } else {
@@ -1045,7 +1063,7 @@
           try {
             let importedState = JSON.parse(e.target.result);
             if (importedState && importedState.assets && importedState.merit !== undefined) {
-              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState, occupiedProvinces: importedState.occupiedProvinces || [], materials: importedState.materials || 0, equipments: importedState.equipments || [], policies: importedState.policies || [], achievements: importedState.achievements || [], bossHp: importedState.bossHp !== undefined ? importedState.bossHp : 50000, bossKills: importedState.bossKills || 0 }); 
+              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState, occupiedProvinces: importedState.occupiedProvinces || [], materials: importedState.materials || 0, equipments: importedState.equipments || [], policies: importedState.policies || [], achievements: importedState.achievements || [], bossHp: importedState.bossHp !== undefined ? importedState.bossHp : 500000, bossKills: importedState.bossKills || 0, mainOfficerId: importedState.mainOfficerId || null, officerExps: importedState.officerExps || {} }); 
               showToast("兵符匯入成功，天下大勢已更新！", "success");
             } else {
               showToast("兵符格式錯誤，無法解讀！", "error");
@@ -1060,6 +1078,7 @@
       const canInvestThisMonth = lastInvestMonth !== currentMonthString;
       const canDoRoutineThisMonth = lastRoutineMonth !== currentMonthString;
       const occupiedCount = occupiedProvinces.length;
+      const currentBossMaxHp = 500000 + (bossKills * 100000);
 
       const baseLevel = displayAssets.emergency >= 200000 ? 3 : (displayAssets.emergency >= 50000 ? 2 : 1);
       const baseInfo = baseLevel === 3 ? { icon: '🏰', text: '堅固石城', desc: '銅牆鐵壁，固若金湯' } :
@@ -1181,7 +1200,10 @@
                 </div>
 
                 <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
-                  <div className="relative origin-top-left transition-transform duration-300" style={{ transform: `scale(${mapZoom})`, width: '2400px', height: '1800px' }}>
+                  {/* 修復：網格底圖移至外層 fixed，確保縮放時無限填滿 */}
+                  <div className="fixed inset-0 pointer-events-none opacity-[0.06] z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px', backgroundRepeat: 'repeat' }}></div>
+
+                  <div className="relative origin-top-left transition-transform duration-300 z-10" style={{ transform: `scale(${mapZoom})`, width: '2400px', height: '1800px' }}>
                     <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
                       <rect width="100%" height="100%" fill="#13181f" opacity="0.9"/>
                       <ellipse cx="70%" cy="25%" rx="35%" ry="25%" fill="#1e3a8a" opacity="0.1" filter="blur(80px)" />
@@ -1210,7 +1232,6 @@
                       <text x="1200" y="975" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">揚州</text>
                       <text x="675" y="1350" fill="#a3947c" fontSize="60" opacity="0.1" className="map-region-text">交州</text>
                     </svg>
-                    <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px' }}></div>
 
                     {provincesState.map(prov => {
                       const IconComponent = prov.type === 'cave' ? ICONS.Cave : prov.type === 'camp' ? ICONS.Camp : prov.type === 'divine' ? ICONS.Divine : ICONS.Castle;
@@ -1352,7 +1373,7 @@
                       <div className="flex items-center justify-between bg-[#0a0705] border border-[#2a1a15] p-2">
                         <div className="text-[10px] md:text-xs text-[#a3947c] leading-tight flex-1 whitespace-nowrap">
                           基礎戰力: <span className="text-white font-mono">{Math.max(1, stats.netWorth/10000).toFixed(0)}</span><br/>
-                          將領/天象/國策: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' || (policies || []).length > 0 ? 'text-green-400' : 'text-gray-500'}>已計算</span>
+                          將領/天象/國策/主將: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' || (policies || []).length > 0 || mainOfficerId ? 'text-green-400' : 'text-gray-500'}>已計算</span>
                         </div>
                         <button onClick={executeSiege} className={`px-6 py-2 md:py-3 font-black tracking-widest rounded-sm text-sm shrink-0 transition-all whitespace-nowrap
                           ${siegeGenerals.length > 0 ? 'bg-red-800 text-white border border-red-500 animate-pulse-red active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border border-[#3e2723]'}`}>
@@ -1369,8 +1390,8 @@
             {activeTab === 'command' && (
               <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-6 h-full overflow-y-auto w-full">
                 
-                {/* 史詩世界 Boss 討伐戰 */}
-                <div className="bg-[#1a0505] border-2 border-red-800 p-5 shadow-[0_0_20px_rgba(153,27,27,0.3)] relative overflow-hidden">
+                {/* 修復：加入 shrink-0 與 min-h-[220px]，防止手機 Flexbox 擠壓 */}
+                <div className="bg-[#1a0505] border-2 border-red-800 p-5 shadow-[0_0_20px_rgba(153,27,27,0.3)] relative overflow-hidden shrink-0 min-h-[220px]">
                   <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                      <ICONS.Flame className="w-32 h-32 text-red-500 animate-pulse" />
                   </div>
@@ -1384,11 +1405,11 @@
                   <div className="mb-4 relative z-10">
                     <div className="flex justify-between text-xs font-bold text-red-200 mb-1 font-mono tracking-widest">
                        <span>{BOSS_NAMES[bossKills % 3]} HP</span>
-                       <span>{bossHp} / {50000 + bossKills * 10000}</span>
+                       <span>{bossHp} / {currentBossMaxHp}</span>
                     </div>
                     <div className="w-full h-3 bg-black border border-red-900 rounded-sm overflow-hidden">
                        <div className="h-full bg-gradient-to-r from-red-800 to-red-500 transition-all duration-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]" 
-                            style={{width: `${(bossHp / (50000 + bossKills * 10000)) * 100}%`}}></div>
+                            style={{width: `${(bossHp / currentBossMaxHp) * 100}%`}}></div>
                     </div>
                   </div>
 
@@ -1471,6 +1492,24 @@
 
                 <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
                   <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 tracking-widest flex items-center gap-2">日常內政 (修身齊家)</h3>
+                  
+                  {mainOfficerId ? (() => {
+                     const exp = (officerExps || {})[mainOfficerId] || 0;
+                     const level = Math.floor(exp / 10);
+                     const off = OFFICERS.find(o => o.id === mainOfficerId);
+                     if(!off) return null;
+                     return (
+                        <div className="mb-3 bg-[#0a0705] border border-[#3e2723] p-2 flex justify-between items-center text-[10px] md:text-xs">
+                            <span className={`font-bold ${off.color}`}>⚔️ 主將：{off.name} (Lv.{level})</span>
+                            <span className="text-[#a3947c]">羈絆: {exp} | 戰力加成: <span className="text-green-400">+{level}%</span></span>
+                        </div>
+                     )
+                  })() : (
+                     <div className="mb-3 bg-[#0a0705] border border-[#3e2723] p-2 text-center text-[10px] md:text-xs text-[#8c7e6a]">
+                        尚未指派大營主將 (請至招賢館任命)
+                     </div>
+                  )}
+
                   <p className="text-[10px] text-[#8c7e6a] mb-3">
                     每日限制 3 次，微幅提升軍功。執行時有 <span className="text-yellow-400 font-bold">30% 機率獲得「鍛造素材」</span>。<br/>
                     今日已執行：<span className="text-white font-bold">{dailyTaskDate === todayString ? dailyTaskCount : 0} / 3</span>
@@ -1625,7 +1664,7 @@
                     </h2>
                     <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
                       消耗 100 軍功設宴招募將領。獲得重複武將將轉化為「將魂」升級星數。<br/>
-                      <span className="text-green-400 font-bold mt-1 inline-block">點擊麾下將領可與其交談，將領將根據主公目前的財務與紀律狀況給予專屬建言。</span>
+                      <span className="text-green-400 font-bold mt-1 inline-block">點擊麾下將領可與其交談，並可將其「設為大營主將」，陪你一同在日常修行中成長！</span>
                     </p>
                   </div>
                   
@@ -1929,13 +1968,39 @@
                                <div className="text-green-400 font-mono text-xs">+ {((activeOfficerDialogue.stat/100) * (1 + (officerStats.roster[activeOfficerDialogue.id]-1)*0.2)).toFixed(2)}</div>
                            </div>
                        </div>
+                       
                        <div className="bg-[#1a1410] border border-[#3e2723] p-4 text-sm md:text-base leading-relaxed text-[#e3dac9] italic relative shadow-inner">
                            <span className="absolute top-2 left-2 text-3xl text-[#4a3525] opacity-50 font-serif leading-none">"</span>
                            <span className="relative z-10 pl-4 block">{getOfficerDialogue(activeOfficerDialogue)}</span>
                        </div>
-                       <button onClick={() => setActiveOfficerDialogue(null)} className="mt-5 w-full py-3 font-bold bg-[#1c1814] text-[#8c7e6a] border border-[#3e2723] hover:text-white transition-colors text-xs tracking-widest">
-                           結束交談
-                       </button>
+                       
+                       <div className="mt-5 flex gap-2">
+                          {!ownedOfficers.includes(activeOfficerDialogue.id) ? (
+                              <button disabled className="w-full py-3 font-bold bg-[#110a05] text-[#5c4033] border border-[#2a1a15] text-xs tracking-widest cursor-not-allowed">
+                                  尚未登庸
+                              </button>
+                          ) : gameState.mainOfficerId === activeOfficerDialogue.id ? (
+                              <button className="w-full py-3 font-bold bg-[#2a2218] text-green-400 border border-green-800 text-xs tracking-widest cursor-default">
+                                  當前大營主將
+                              </button>
+                          ) : (
+                              <button onClick={() => {
+                                  let newState = JSON.parse(JSON.stringify(gameState));
+                                  newState.mainOfficerId = activeOfficerDialogue.id;
+                                  if(!newState.officerExps) newState.officerExps = {};
+                                  if(!newState.officerExps[activeOfficerDialogue.id]) newState.officerExps[activeOfficerDialogue.id] = 0;
+                                  addLog(newState, '內政', `任命【${activeOfficerDialogue.name}】為大營主將！`);
+                                  saveGameState(newState);
+                                  showToast(`已任命 ${activeOfficerDialogue.name} 為主將！`, 'success');
+                                  setActiveOfficerDialogue(null);
+                              }} className="w-full py-3 font-bold bg-[#3b0f0f] text-red-300 border border-red-700 hover:bg-[#5c0000] transition-colors text-xs tracking-widest active:scale-95">
+                                  設為大營主將
+                              </button>
+                          )}
+                          <button onClick={() => setActiveOfficerDialogue(null)} className="w-full py-3 font-bold bg-[#1c1814] text-[#8c7e6a] border border-[#3e2723] hover:text-white transition-colors text-xs tracking-widest">
+                              結束交談
+                          </button>
+                       </div>
                    </div>
                 </div>
             )}
