@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="google" content="notranslate" />
-  <title>戰略圖 - 富霸天下 </title>
+  <title>戰略圖 - 富霸天下</title>
 
   <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -67,7 +67,9 @@
       dailyTaskCount: 0,  
       totalTasksDone: 0, 
       lastCrisisMonth: "",
-      logs: []
+      logs: [],
+      materials: 0, // 新增：鍛造素材
+      equipments: [] // 新增：擁有裝備陣列
     };
 
     const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
@@ -123,7 +125,7 @@
       { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '兵力 300 萬', req: { netWorth: 3000000 }, def: 280, x: 56, y: 70, type: 'castle' },
       { id: 'hanzhong', name: '漢中', title: '中原逐鹿', targetLabel: '兵力 1000 萬', req: { netWorth: 10000000 }, def: 950, x: 30, y: 50, type: 'castle' },
       { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '兵力 3000 萬', req: { netWorth: 30000000 }, def: 2800, x: 76, y: 62, type: 'castle' },
-      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 5000 萬', req: { netWorth: 50000000 }, def: 4800, x: 68, y: 55, type: 'castle' },
+      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 500 萬', req: { netWorth: 50000000 }, def: 4800, x: 68, y: 55, type: 'castle' },
       { id: 'ye', name: '鄴城', title: '河北霸主', targetLabel: '兵力 8000 萬', req: { netWorth: 80000000 }, def: 8500, x: 60, y: 32, type: 'castle' },
       { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '兵力 1 億', req: { netWorth: 100000000 }, def: 12000, x: 75, y: 15, type: 'castle' },
       { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '募兵 1 次', req: { investCount: 1 }, def: 10, x: 60, y: 45, type: 'castle' },
@@ -141,8 +143,6 @@
       { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '募兵 180 次', req: { investCount: 180 }, def: 8500, x: 18, y: 85, type: 'castle' },
       { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '募兵 200 次', req: { investCount: 200 }, def: 11000, x: 88, y: 72, type: 'castle' },
       { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, def: 15000, x: 32, y: 92, type: 'castle' },
-      
-      // === V6新增與優化：無盡修行解鎖大幅下修門檻以防止死鎖 ===
       { id: 'heifeng', name: '黑風山寨', title: '百日築基', targetLabel: '修行 36 次', req: { totalTasksDone: 36 }, def: 1500, x: 15, y: 80, type: 'camp', rewardId: 201 },
       { id: 'qingqiu', name: '青丘狐洞', title: '幻境迷蹤', targetLabel: '修行 72 次', req: { totalTasksDone: 72 }, def: 3500, x: 85, y: 25, type: 'cave', rewardId: 202 },
       { id: 'qiongqi', name: '窮奇巢穴', title: '極惡之淵', targetLabel: '修行 360 次', req: { totalTasksDone: 360 }, def: 15000, x: 10, y: 15, type: 'cave', rewardId: 203 },
@@ -186,8 +186,6 @@
       { id: 97, name: '蔡文姬', stat: 85, type: '魅力' }, { id: 98, name: '李儒', stat: 93, type: '智力' }, { id: 99, name: '張任', stat: 85, type: '武力' }, { id: 100, name: '皇甫嵩', stat: 88, type: '統帥' },
       { id: 101, name: '太座', stat: 85, type: '魅力' }, { id: 102, name: '肉球', stat: 3, type: '智力' }, { id: 103, name: '華雄', stat: 88, type: '武力' }, { id: 104, name: '相國蕭何', stat: 120, type: '政治' },
       { id: 105, name: '西楚霸王', stat: 105, type: '武力' }, { id: 106, name: '兵仙韓信', stat: 100, type: '統帥' }, { id: 107, name: '謀聖張良', stat: 100, type: '智力' }, { id: 108, name: '絕代虞姬', stat: 100, type: '魅力'},
-      
-      // === V6新增：山海神獸與頭目陣列 ===
       { id: 201, name: '黑風大王', stat: 88, type: '武力' },
       { id: 202, name: '九尾妖狐', stat: 96, type: '智力' },
       { id: 203, name: '凶獸窮奇', stat: 105, type: '武力' },
@@ -196,12 +194,47 @@
       { id: 206, name: '混沌神獸', stat: 120, type: '統帥' }
     ];
 
+    const CRAFTABLE_EQUIPMENTS = [
+      { id: 'eq_glaive', name: '青龍偃月刀', desc: '關羽的專屬神兵，極大地提升了部隊的爆發力。', cost: 15, bonus: 0.05 },
+      { id: 'eq_horse', name: '赤兔馬', desc: '日行千里，渡水登山如履平地，部隊機動性大增。', cost: 15, bonus: 0.05 },
+      { id: 'eq_book', name: '孫子兵法', desc: '兵家聖典，深諳軍機變化，智謀與調度大幅提升。', cost: 10, bonus: 0.05 },
+      { id: 'eq_armor', name: '玄鐵重甲', desc: '以千年玄鐵鑄造，刀槍不入，顯著強化前排防禦。', cost: 10, bonus: 0.05 },
+      { id: 'eq_crossbow', name: '諸葛連弩', desc: '西蜀絕密兵器，能連續發射弩箭，遠程壓制力極強。', cost: 12, bonus: 0.05 }
+    ];
+
+    const INTERACTIVE_EVENTS = [
+      {
+        id: 'merchant', title: '西域商賈',
+        desc: '巡視領地時，你遇到一名兜售奇珍異寶的流浪商賈。他神秘兮兮地向你推銷一個不知裝了什麼的木箱。',
+        options: [
+          { label: '花費 50 軍功購買盲盒', actionId: 'merchant_buy' },
+          { label: '果斷離開 (無事發生)', actionId: 'leave' }
+        ]
+      },
+      {
+        id: 'chest', title: '無名寶箱',
+        desc: '部下在荒野深處發現了一個陳舊的寶箱，周圍似乎有被人刻意掩埋的痕跡。',
+        options: [
+          { label: '強行打開 (機率得素材/中陷阱)', actionId: 'chest_open' },
+          { label: '謹慎為上 (無事發生)', actionId: 'leave' }
+        ]
+      },
+      {
+        id: 'bandit', title: '山賊劫道',
+        desc: '一隊運糧車遭到小股山賊埋伏！若軍隊戰力足夠 (總兵力大於 100 萬)，可將其剿滅並繳獲物資。',
+        options: [
+          { label: '迎擊剿滅！(戰鬥檢定)', actionId: 'bandit_fight' },
+          { label: '破財消災 (扣除 10 軍功)', actionId: 'bandit_pay' }
+        ]
+      }
+    ];
+
     const OFFICERS = RAW_OFFICERS.map(o => {
       let faction = '群'; let color = 'text-gray-300'; let bg = 'bg-gray-900'; let border = 'border-gray-600';
       if (o.id <= 25) { faction = '魏'; color = 'text-blue-300'; bg = 'bg-blue-950/60'; border = 'border-blue-700'; }
       else if (o.id <= 50) { faction = '蜀'; color = 'text-green-300'; bg = 'bg-green-950/60'; border = 'border-green-700'; }
       else if (o.id <= 75) { faction = '吳'; color = 'text-red-300'; bg = 'bg-red-950/60'; border = 'border-red-700'; }
-      else if (o.id >= 200) { faction = '妖'; color = 'text-fuchsia-400'; bg = 'bg-fuchsia-950/60'; border = 'border-fuchsia-600'; } // V6 神獸妖族
+      else if (o.id >= 200) { faction = '妖'; color = 'text-fuchsia-400'; bg = 'bg-fuchsia-950/60'; border = 'border-fuchsia-600'; }
       else if (o.id > 100 && o.id !== 103) { faction = '神'; color = 'text-yellow-300'; bg = 'bg-yellow-900/60'; border = 'border-yellow-400'; }
       return { ...o, faction, color, bg, border };
     });
@@ -236,15 +269,21 @@
       Download: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
       Upload: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
       Message: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>,
-      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      Link: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+      Flame: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
     };
 
     function App() {
-      // 相容舊版存檔並注入新參數
       const [gameState, setGameState] = useState(() => {
         const saved = localStorage.getItem('wealth_game_save_final') || localStorage.getItem('wealth_game_save_v5') || localStorage.getItem('wealth_game_save_v4') || localStorage.getItem('wealth_game_save_v3');
         let parsed = saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
-        return { ...DEFAULT_GAME_STATE, ...parsed, occupiedProvinces: parsed.occupiedProvinces || [] };
+        return { 
+          ...DEFAULT_GAME_STATE, 
+          ...parsed, 
+          occupiedProvinces: parsed.occupiedProvinces || [],
+          materials: parsed.materials || 0,
+          equipments: parsed.equipments || []
+        };
       });
       
       const [prices, setPrices] = useState(FALLBACK_PRICES);
@@ -262,6 +301,8 @@
       const [gachaResult, setGachaResult] = useState(null);
       const [activeOfficerDialogue, setActiveOfficerDialogue] = useState(null);
       const [crisisEvent, setCrisisEvent] = useState(null);
+      
+      const [activeEncounter, setActiveEncounter] = useState(null); // 新增奇遇系統 Modal
 
       const [toastMessage, setToastMessage] = useState(null);
       const [localAssets, setLocalAssets] = useState(null);
@@ -306,7 +347,7 @@
         fetchPricesAndWeather();
       }, [gameState.lastCrisisMonth, currentMonthString]);
 
-      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, totalTasksDone, logs } = gameState;
+      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, totalTasksDone, logs, materials, equipments } = gameState;
       const displayAssets = localAssets || assets;
 
       const stats = useMemo(() => {
@@ -441,14 +482,19 @@
           newState.dailyTaskCount += 1;
           newState.totalTasksDone = (newState.totalTasksDone || 0) + 1;
           newState.merit += meritReward;
-          addLog(newState, '微內政', `執行【${taskName}】，微幅提升軍心，軍功 +${meritReward}。`);
+
+          let materialMsg = '';
+          if (Math.random() <= 0.3) {
+            const mats = Math.floor(Math.random() * 3) + 1;
+            newState.materials = (newState.materials || 0) + mats;
+            materialMsg = `，並意外尋獲 ${mats} 個鍛造素材！`;
+          }
+
+          addLog(newState, '微內政', `執行【${taskName}】，微幅提升軍心，軍功 +${meritReward}${materialMsg}`);
           saveGameState(newState);
-          showToast(`【${taskName}】完成，軍功 +${meritReward}`, 'success');
+          showToast(`【${taskName}】完成，軍功 +${meritReward}${materialMsg}`, 'success');
       };
 
-      // ----------------------------------------------------------------------
-      // 動態對話引擎 - 擴增山海神獸專屬對話池
-      // ----------------------------------------------------------------------
       const getOfficerDialogue = (officer) => {
           const { emergency, entertainment, btc, debt } = displayAssets;
           let pool = [];
@@ -536,7 +582,6 @@
               pool.push("留得青山在，不怕沒柴燒。做好資金控管與風險隔離，永遠讓自己有從容應對的餘裕。");
           }
 
-          // V6 擴充：妖族/凶獸專屬對話池
           if (officer.faction === '妖') {
               pool.push("吼... 主公那數以萬計的日常修行，連吾等上古凶獸都感到戰慄！");
               pool.push("只要主公持續鍛鍊，吾等便為你撕碎市場上所有的恐慌與猶豫！");
@@ -547,7 +592,6 @@
               pool.push("不要停下修行的腳步！每一次的校場操練，都在強化吾等的殺戮之力！");
           }
 
-          // 通用職階對話池
           if (pool.length === 0) {
               if (officer.type === '武力') {
                   pool.push("主公！與其盯盤焦慮，不如隨末將去校場舉鐵，鍛鍊體魄才是真財富！");
@@ -582,7 +626,7 @@
                   pool.push("只要我們按部就班執行計畫，這史詩版圖的霸業遲早是我們的！");
                   pool.push("不論外頭風浪多大，只要主公軍旗不倒、現金流不斷，我軍便不會潰散！");
                   pool.push("巡視營寨(整理房間)看似小事，實則是維持軍心士氣、理清思緒的關鍵！");
-              } else { // 政治/魅力/仁德
+              } else {
                   pool.push("主公，積少成多，聚沙成塔。穩健理財，方能長久恩澤家庭。");
                   pool.push("治大國若烹小鮮。理財也需細火慢燉，急功近利只會將大好局勢燒焦。");
                   pool.push("主公若能與夫人和睦相處、共同成長，便是這領地內最大的福氣。");
@@ -626,9 +670,8 @@
         newState.investCount += 1;
         newState.lastInvestMonth = currentMonthString;
         
-        const ev = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
-        // 【修改點】軍令基礎軍功由 50 提升至 300
-        let gainedMerit = 300 + officerStats.passiveBuff + bondPaydayBuff + ev.merit; 
+        const baseEvent = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+        let gainedMerit = 300 + officerStats.passiveBuff + bondPaydayBuff + baseEvent.merit; 
         newState.merit += gainedMerit;
         
         const displayAdded = target === 'btc' ? addedAmount.toFixed(6) : addedAmount.toLocaleString();
@@ -638,7 +681,89 @@
 
         addLog(newState, '軍令', logMsg);
         saveGameState(newState);
-        if(ev.merit !== 0) showToast(`【${ev.title}】 ${ev.msg}`, ev.type === 'good' ? 'success' : 'warn');
+        
+        // 觸發互動式 Modal
+        const interactiveEvent = INTERACTIVE_EVENTS[Math.floor(Math.random() * INTERACTIVE_EVENTS.length)];
+        setActiveEncounter({ baseEvent, interactiveEvent });
+      };
+
+      const handleEncounterOption = (actionId) => {
+        let newState = JSON.parse(JSON.stringify(gameState));
+        let msg = '';
+        let type = 'info';
+
+        switch(actionId) {
+          case 'merchant_buy':
+            if (newState.merit < 50) {
+              showToast('軍功不足 50，商賈搖著頭離開了。', 'warn');
+              setActiveEncounter(null);
+              return; 
+            }
+            newState.merit -= 50;
+            if (Math.random() < 0.7) {
+              const mats = Math.floor(Math.random() * 3) + 2;
+              newState.materials = (newState.materials || 0) + mats;
+              msg = `交易成功！你獲得了 ${mats} 個鍛造素材。`;
+              type = 'success';
+            } else {
+              msg = `上當了！箱子裡只有幾塊爛石頭。損失 50 軍功。`;
+              type = 'error';
+            }
+            break;
+          case 'chest_open':
+            if (Math.random() < 0.5) {
+              const mats = Math.floor(Math.random() * 2) + 1;
+              newState.materials = (newState.materials || 0) + mats;
+              msg = `運氣不錯！你在寶箱中找到了 ${mats} 個鍛造素材。`;
+              type = 'success';
+            } else {
+              newState.merit = Math.max(0, newState.merit - 10);
+              msg = `寶箱中竄出毒箭！軍心受挫，扣除 10 軍功。`;
+              type = 'error';
+            }
+            break;
+          case 'bandit_fight':
+            if (stats.netWorth >= 1000000) {
+              const mats = Math.floor(Math.random() * 2) + 2;
+              newState.materials = (newState.materials || 0) + mats;
+              msg = `我軍裝備精良，輕鬆剿滅山賊！繳獲 ${mats} 個鍛造素材。`;
+              type = 'success';
+            } else {
+              newState.merit = Math.max(0, newState.merit - 20);
+              msg = `我軍兵力薄弱，被山賊殺得大敗！損失 20 軍功。`;
+              type = 'error';
+            }
+            break;
+          case 'bandit_pay':
+            newState.merit = Math.max(0, newState.merit - 10);
+            msg = `你選擇破財消災，山賊拿了軍餉揚長而去。扣除 10 軍功。`;
+            type = 'warn';
+            break;
+          case 'leave':
+            msg = `你果斷轉身離開，無事發生。`;
+            type = 'info';
+            break;
+        }
+
+        if (msg) {
+          addLog(newState, '奇遇', msg);
+          showToast(msg, type);
+        }
+        saveGameState(newState);
+        setActiveEncounter(null);
+      };
+
+      const handleForge = (item) => {
+        if ((gameState.materials || 0) < item.cost) {
+            showToast("庫房素材不足！", "error");
+            return;
+        }
+        let newState = JSON.parse(JSON.stringify(gameState));
+        newState.materials -= item.cost;
+        newState.equipments = [...(newState.equipments || []), item.id];
+        addLog(newState, '鍛造', `巧匠成功打造神兵【${item.name}】！全軍戰力永久提升 ${(item.bonus * 100)}%。`);
+        saveGameState(newState);
+        showToast(`成功鍛造 ${item.name}！`, "success");
       };
 
       const executeRoutineTask = () => {
@@ -660,7 +785,6 @@
       };
 
       const drawOfficer = () => {
-        // 【修改點】招賢成本由 300 下調至 100
         if (merit < 100) {
           showToast("軍功不足 100，無法設宴招賢！", 'warn');
           return;
@@ -668,7 +792,6 @@
         let newState = JSON.parse(JSON.stringify(gameState));
         newState.merit -= 100; 
         
-        // 排除掉妖獸族 (ID >= 200)，他們必須透過攻打巢穴獲得
         const drawPool = OFFICERS.filter(o => o.id < 200);
         const drawn = drawPool[Math.floor(Math.random() * drawPool.length)];
         const isDupe = newState.ownedOfficers.includes(drawn.id);
@@ -702,11 +825,14 @@
           generalMultiplier += (off.stat / 200) * (1 + (lvl - 1) * 0.25); 
         });
 
+        // 裝備戰力加成計算 (每件+5%)
+        const equipMultiplier = (equipments || []).length * 0.05;
+
         let weatherMod = 1;
         if (weather.trend === 'bull') weatherMod = 1.2;
         if (weather.trend === 'bear') weatherMod = 0.9;
 
-        const totalAttack = Math.floor(basePower * investDisciplineBuff * (1 + generalMultiplier) * weatherMod);
+        const totalAttack = Math.floor(basePower * investDisciplineBuff * (1 + generalMultiplier + equipMultiplier) * weatherMod);
         const defense = prov.def;
         
         let newState = JSON.parse(JSON.stringify(gameState));
@@ -722,7 +848,6 @@
           newState.merit += rewardMerit;
           logMsg = `【大捷】我軍以 ${totalAttack} 戰力擊破 ${prov.name} 守軍(${defense})，斬獲軍功 ${rewardMerit}！`;
 
-          // V6 判斷是否為神獸巢穴/山寨，並發放特殊武將獎勵
           if (prov.rewardId) {
              if (!newState.ownedOfficers.includes(prov.rewardId)) {
                  newState.ownedOfficers.push(prov.rewardId);
@@ -730,7 +855,7 @@
                  logMsg += ` 順利收服【${rewardOfficer.name}】加入大營！`;
                  setTimeout(() => showToast(`🎊 成功收服史詩妖獸：${rewardOfficer.name}！`, 'success'), 1000);
              } else {
-                 newState.ownedOfficers.push(prov.rewardId); // 給予將魂升星
+                 newState.ownedOfficers.push(prov.rewardId);
                  const rewardOfficer = OFFICERS.find(o => o.id === prov.rewardId);
                  logMsg += ` 再次鎮壓，獲得【${rewardOfficer.name}】將魂，星級提升！`;
              }
@@ -788,8 +913,7 @@
           try {
             let importedState = JSON.parse(e.target.result);
             if (importedState && importedState.assets && importedState.merit !== undefined) {
-              if (!importedState.occupiedProvinces) importedState.occupiedProvinces = [];
-              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState }); 
+              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState, occupiedProvinces: importedState.occupiedProvinces || [], materials: importedState.materials || 0, equipments: importedState.equipments || [] }); 
               showToast("兵符匯入成功，天下大勢已更新！", "success");
             } else {
               showToast("兵符格式錯誤，無法解讀！", "error");
@@ -808,7 +932,6 @@
       return (
         <div className="h-[100dvh] w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
           
-          {/* 熊市危機強制遮罩攔截 */}
           {crisisEvent && (
              <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md">
                  <div className="bg-[#1a0505] border-2 border-red-600 p-6 md:p-10 max-w-lg w-full text-center shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-[stampIn_0.5s_forwards]">
@@ -828,7 +951,6 @@
              </div>
           )}
 
-          {/* Notifications */}
           {toastMessage && (
             <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
               <div className={`px-6 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center gap-2 whitespace-nowrap
@@ -842,7 +964,6 @@
             </div>
           )}
 
-          {/* Header */}
           <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl relative">
             <div className="flex justify-between items-center px-2 md:px-4 py-2 md:py-3 relative z-10 gap-1">
               <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
@@ -893,6 +1014,7 @@
           </header>
 
           <main className="flex-1 overflow-y-auto relative bg-[#0c1014] scrollbar-hide">
+            
             {/* 1. MAP TAB */}
             {activeTab === 'map' && (
               <div className="flex flex-col h-full relative">
@@ -903,7 +1025,6 @@
                 </div>
 
                 <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
-                  {/* V6: 地圖擴充至 2400x1800 以容納更多特殊野外區 */}
                   <div className="relative origin-top-left transition-transform duration-300" style={{ transform: `scale(${mapZoom})`, width: '2400px', height: '1800px' }}>
                     <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
                       <rect width="100%" height="100%" fill="#13181f" opacity="0.9"/>
@@ -912,7 +1033,6 @@
                       <ellipse cx="75%" cy="65%" rx="30%" ry="25%" fill="#7f1d1d" opacity="0.1" filter="blur(80px)" />
                       <ellipse cx="50%" cy="50%" rx="20%" ry="20%" fill="#b45309" opacity="0.08" filter="blur(60px)" />
                       
-                      {/* V6: 河流路徑隨地圖等比例延伸 */}
                       <path d="M 0 975 Q 450 1125 900 1020 T 1650 900 T 2400 975" fill="none" stroke="#0ea5e9" strokeWidth="12" opacity="0.3" strokeLinecap="round" />
                       <path d="M 0 975 Q 450 1125 900 1020 T 1650 900 T 2400 975" fill="none" stroke="#bae6fd" strokeWidth="2" opacity="0.2" className="river-anim" />
                       <path d="M 150 600 Q 450 300 900 525 T 1500 420 T 2400 450" fill="none" stroke="#0284c7" strokeWidth="10" opacity="0.3" strokeLinecap="round" />
@@ -937,7 +1057,6 @@
                     <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px' }}></div>
 
                     {provincesState.map(prov => {
-                      // V6: 圖示選擇器
                       const IconComponent = prov.type === 'cave' ? ICONS.Cave : prov.type === 'camp' ? ICONS.Camp : ICONS.Castle;
                       let iconColor = 'text-gray-600';
                       if (prov.isConquered) iconColor = 'text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]';
@@ -1076,7 +1195,7 @@
                       <div className="flex items-center justify-between bg-[#0a0705] border border-[#2a1a15] p-2">
                         <div className="text-[10px] md:text-xs text-[#a3947c] leading-tight flex-1 whitespace-nowrap">
                           基礎戰力: <span className="text-white font-mono">{Math.max(1, stats.netWorth/10000).toFixed(0)}</span><br/>
-                          將領/天象加成: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' ? 'text-green-400' : 'text-gray-500'}>已計算</span>
+                          將領/天象/裝備加成: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' || equipments.length > 0 ? 'text-green-400' : 'text-gray-500'}>已計算</span>
                         </div>
                         <button onClick={executeSiege} className={`px-6 py-2 md:py-3 font-black tracking-widest rounded-sm text-sm shrink-0 transition-all whitespace-nowrap
                           ${siegeGenerals.length > 0 ? 'bg-red-800 text-white border border-red-500 animate-pulse-red active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border border-[#3e2723]'}`}>
@@ -1157,7 +1276,7 @@
                 <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
                   <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 tracking-widest flex items-center gap-2">日常內政 (修身齊家)</h3>
                   <p className="text-[10px] text-[#8c7e6a] mb-3">
-                    不耗費糧草，每日限制執行 3 次，微幅提升軍功 (+10)。<br/>
+                    不耗費糧草，每日限制 3 次，微幅提升軍功。執行時有 <span className="text-yellow-400 font-bold">30% 機率獲得「鍛造素材」</span>。<br/>
                     今日已執行：<span className="text-white font-bold">{dailyTaskDate === todayString ? dailyTaskCount : 0} / 3</span>
                     <span className="ml-3 text-yellow-400">累計修行：{totalTasksDone || 0} 次</span>
                   </p>
@@ -1205,11 +1324,12 @@
                               log.type === '征戰' ? 'bg-purple-900 text-purple-300 border-purple-700' :
                               log.type === '內政' || log.type === '微內政' || log.type === '防禦大捷' ? 'bg-[#0f291e] text-green-400 border-green-800' : 
                               log.type === '戰報' || log.type === '城池遭劫' ? 'bg-red-950 text-red-500 border-red-700 animate-pulse' :
-                              log.type === '招賢' ? 'bg-[#3b2d0f] text-yellow-400 border-yellow-800' : 
+                              log.type === '招賢' || log.type === '鍛造' ? 'bg-[#3b2d0f] text-yellow-400 border-yellow-800' : 
+                              log.type === '奇遇' ? 'bg-blue-900 text-blue-300 border-blue-700' :
                               'bg-gray-900 text-gray-400 border-gray-700'}`}>
                             {log.type}
                           </span>
-                          <span className={`flex-1 leading-relaxed ${log.type === '戰報' || log.type === '城池遭劫' ? 'text-red-400 font-bold' : log.type === '防禦大捷' ? 'text-green-400 font-bold' : 'text-[#e3dac9]'}`}>{log.msg}</span>
+                          <span className={`flex-1 leading-relaxed ${log.type === '戰報' || log.type === '城池遭劫' ? 'text-red-400 font-bold' : log.type === '防禦大捷' || log.type === '奇遇' ? 'text-green-400 font-bold' : 'text-[#e3dac9]'}`}>{log.msg}</span>
                         </div>
                       ))
                     }
@@ -1309,7 +1429,64 @@
               </div>
             )}
 
-            {/* 4. LEDGER TAB */}
+            {/* 4. FORGE TAB (新增：裝備庫房) */}
+            {activeTab === 'forge' && (
+              <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
+                <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
+                  <div className="relative z-10 text-center md:text-left flex-1">
+                    <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest whitespace-nowrap">
+                      <ICONS.Flame className="w-5 h-5 text-red-500 animate-pulse"/> 裝備庫房 (軍備升級)
+                    </h2>
+                    <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
+                      在此消耗「鍛造素材」打造專屬神兵。素材可透過執行【日常內政】或【奇遇事件】機率獲得。<br/>
+                      <span className="text-green-400 font-bold mt-1 inline-block">每持有一件裝備，便能為大軍提供永久 +5% 的額外戰力加成。</span>
+                    </p>
+                  </div>
+                  <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0 shadow-inner">
+                    <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">當前持有素材</div>
+                    <div className="text-3xl font-black text-[#e3dac9] font-mono whitespace-nowrap drop-shadow-md">{materials || 0}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {CRAFTABLE_EQUIPMENTS.map(item => {
+                     const isOwned = (equipments || []).includes(item.id);
+                     const canAfford = (materials || 0) >= item.cost;
+                     
+                     return (
+                       <div key={item.id} className={`p-4 border rounded-sm relative flex flex-col justify-between transition-all
+                          ${isOwned ? 'bg-[#2a2218] border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.2)]' : 'bg-[#0a0705] border-[#3e2723]'}`}>
+                          {isOwned && <div className="absolute right-[-24px] top-[14px] transform rotate-45 bg-[#b8860b] text-black text-[10px] font-bold py-1 w-28 text-center shadow-lg">已裝備</div>}
+                          
+                          <div>
+                            <div className="flex justify-between items-start mb-2">
+                                <h3 className={`font-bold text-base md:text-lg tracking-widest ${isOwned ? 'text-[#d4af37]' : 'text-gray-300'}`}>{item.name}</h3>
+                                {!isOwned && <div className="text-[10px] md:text-xs font-mono text-[#a3947c] bg-[#1a1410] px-2 py-0.5 border border-[#2a1a15]">需求: {item.cost} 素材</div>}
+                            </div>
+                            <p className="text-[10px] md:text-xs text-[#8c7e6a] mb-4 leading-relaxed pr-8">{item.desc}</p>
+                          </div>
+                          
+                          <div className="flex justify-between items-center mt-2 border-t border-[#2a1a15] pt-3">
+                            <span className="text-[10px] md:text-xs font-bold text-green-400">永久戰力 +{(item.bonus * 100)}%</span>
+                            {!isOwned ? (
+                               <button onClick={() => handleForge(item)} disabled={!canAfford}
+                                 className={`px-6 py-2 font-bold text-xs tracking-widest rounded-sm transition-all border
+                                 ${canAfford ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000] active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border-[#2a1a15] cursor-not-allowed'}`}>
+                                 鍛造神兵
+                               </button>
+                            ) : (
+                               <span className="px-6 py-2 font-bold text-xs tracking-widest rounded-sm border border-[#b8860b] bg-[#1a1410] text-[#d4af37]">已鍛造</span>
+                            )}
+                          </div>
+                       </div>
+                     );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 5. LEDGER TAB */}
             {activeTab === 'ledger' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
                 
@@ -1350,6 +1527,28 @@
                 </div>
 
                 <div className="mt-8 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-[#b8860b]"></div>
+                  <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest whitespace-nowrap">
+                    <ICONS.Flame className="w-4 h-4"/> 裝備庫存 (戰力加成)
+                  </h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] md:text-xs text-[#a3947c]">當前擁有: <span className="text-white font-bold">{(equipments || []).length} / {CRAFTABLE_EQUIPMENTS.length}</span>件</span>
+                    <span className="text-[10px] md:text-xs text-[#a3947c]">總戰力加成: <span className="text-green-400 font-bold font-mono">+{((equipments || []).length * 5)}%</span></span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(equipments || []).length === 0 ? (
+                      <span className="text-xs text-[#5c4033] py-1">尚無裝備，請至「庫房」進行鍛造。</span>
+                    ) : (
+                      CRAFTABLE_EQUIPMENTS.filter(eq => (equipments || []).includes(eq.id)).map(eq => (
+                        <span key={eq.id} className="text-[10px] md:text-xs px-2 py-1 bg-[#2a2218] border border-[#d4af37] text-[#d4af37] rounded-sm whitespace-nowrap shadow-sm">
+                          {eq.name}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
                   <div className="absolute top-0 left-0 w-1 h-full bg-gray-500"></div>
                   <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest whitespace-nowrap">
                     兵符閣 (存檔管理)
@@ -1372,6 +1571,49 @@
             )}
 
             {/* ================= OUT-OF-TAB MODALS (隨時覆蓋顯示) ================= */}
+
+            {/* 奇遇事件 Modal */}
+            {activeEncounter && (
+              <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md">
+                <div className="bg-[#1a1410] border-2 border-[#d4af37] p-6 max-w-sm w-full shadow-[0_0_40px_rgba(212,175,55,0.3)] animate-[slideUp_0.3s_ease-out] relative">
+                  <div className="absolute top-0 left-0 w-full h-1.5 bg-[#b8860b]"></div>
+                  <div className="absolute bottom-0 left-0 w-full h-1.5 bg-[#b8860b]"></div>
+
+                  {/* Base Event Section (The original Toast info) */}
+                  <div className="mb-5 border-b border-[#3e2723] pb-4 text-center">
+                    <h2 className="text-[#a3947c] text-xs font-bold tracking-widest mb-2 flex justify-center items-center gap-2">
+                       <span className="w-4 h-px bg-[#4a3525]"></span> 本月軍情 <span className="w-4 h-px bg-[#4a3525]"></span>
+                    </h2>
+                    <div className={`inline-block px-3 py-1 border rounded-sm text-sm md:text-base font-bold mb-3 shadow-md
+                      ${activeEncounter.baseEvent.type === 'good' ? 'bg-[#0f291e] text-green-400 border-green-800' :
+                        activeEncounter.baseEvent.type === 'bad' ? 'bg-[#3b0f0f] text-red-400 border-red-800' :
+                        'bg-[#1c1814] text-gray-300 border-gray-600'}`}>
+                      {activeEncounter.baseEvent.title}
+                    </div>
+                    <p className="text-[#e3dac9] text-xs md:text-sm leading-relaxed">{activeEncounter.baseEvent.msg}</p>
+                  </div>
+
+                  {/* Interactive Event Section */}
+                  <div className="text-center mt-2">
+                    <h3 className="text-red-400 text-lg md:text-xl font-black tracking-widest mb-2 drop-shadow-md animate-pulse">【 突發奇遇 】</h3>
+                    <h4 className="text-[#d4af37] font-bold text-sm md:text-base mb-3">{activeEncounter.interactiveEvent.title}</h4>
+                    <p className="text-[#a3947c] text-[10px] md:text-xs leading-relaxed mb-6 bg-[#0a0705] p-3 border border-[#3e2723] text-left">
+                      {activeEncounter.interactiveEvent.desc}
+                    </p>
+
+                    <div className="flex flex-col gap-3">
+                      {activeEncounter.interactiveEvent.options.map((opt, i) => (
+                        <button key={i} onClick={() => handleEncounterOption(opt.actionId)}
+                          className={`w-full py-3 font-bold tracking-widest text-xs md:text-sm border rounded-sm transition-all active:scale-95 whitespace-nowrap
+                            ${i === 0 ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000]' : 'bg-[#1c1814] text-[#8c7e6a] border-[#3e2723] hover:text-white'}`}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 武將對話 Modal */}
             {activeOfficerDialogue && (
@@ -1436,6 +1678,7 @@
               { id: 'map', label: '大勢', icon: ICONS.Map },
               { id: 'command', label: '軍令', icon: ICONS.Tent },
               { id: 'tavern', label: '招賢', icon: ICONS.Users },
+              { id: 'forge', label: '庫房', icon: ICONS.Flame }, // 新增庫房分頁
               { id: 'ledger', label: '編制', icon: ICONS.Scroll },
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
