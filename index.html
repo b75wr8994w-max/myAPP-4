@@ -49,7 +49,7 @@
     @keyframes siren { 0%, 100% { background-color: rgba(69, 10, 10, 0.9); } 50% { background-color: rgba(153, 27, 27, 0.9); } }
     @keyframes boss-shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
     
-    /* 新增：浮動傷害數字動畫 */
+    /* 浮動傷害數字動畫 */
     @keyframes floatUp {
       0% { opacity: 1; transform: translateY(0) scale(1.5); }
       100% { opacity: 0; transform: translateY(-50px) scale(1); }
@@ -70,7 +70,7 @@
         let end = value;
         if (start === end) return;
         let startTime = null;
-        const duration = 800; // 動畫持續 0.8 秒
+        const duration = 800; 
         const animate = (timestamp) => {
           if (!startTime) startTime = timestamp;
           const progress = Math.min((timestamp - startTime) / duration, 1);
@@ -107,7 +107,8 @@
       monthlyTaskMonth: "",
       mainOfficerId: null, 
       officerExps: {},
-      activeBlackMarket: null // 雲遊黑市狀態
+      activeBlackMarket: null,
+      bossHpMigratedTo50w: true // 標記是否已升級血量
     };
 
     const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
@@ -343,6 +344,16 @@
       const [gameState, setGameState] = useState(() => {
         const saved = localStorage.getItem('wealth_game_save_final') || localStorage.getItem('wealth_game_save_v5') || localStorage.getItem('wealth_game_save_v4') || localStorage.getItem('wealth_game_save_v3');
         let parsed = saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
+        
+        // ====== 舊存檔 Boss 血量無縫升級 (5萬 -> 50萬) ======
+        let finalBossHp = parsed.bossHp !== undefined ? parsed.bossHp : 500000;
+        let oldMaxHp = 50000 + (parsed.bossKills || 0) * 10000;
+        
+        // 如果這個存檔還沒經過 50 萬血量升級，且它當前血量小於等於舊的最高血量上限
+        if (saved && finalBossHp <= oldMaxHp && !parsed.bossHpMigratedTo50w) {
+            finalBossHp = finalBossHp * 10;
+        }
+
         return { 
           ...DEFAULT_GAME_STATE, 
           ...parsed, 
@@ -351,7 +362,8 @@
           equipments: parsed.equipments || [],
           policies: parsed.policies || [],
           achievements: parsed.achievements || [],
-          bossHp: parsed.bossHp !== undefined ? parsed.bossHp : 500000,
+          bossHp: finalBossHp,
+          bossHpMigratedTo50w: true, // 標記完成升級
           bossKills: parsed.bossKills || 0,
           monthlyTaskCount: parsed.monthlyTaskCount || 0,
           monthlyTaskMonth: parsed.monthlyTaskMonth || "",
@@ -387,7 +399,7 @@
 
       const addFloatingText = (text, type = 'dmg') => {
         const id = Date.now() + Math.random();
-        const offsetLeft = Math.floor(Math.random() * 60) - 30; // -30px ~ 30px
+        const offsetLeft = Math.floor(Math.random() * 60) - 30; 
         setFloatingTexts(prev => [...prev, { id, text, type, offsetLeft }]);
         setTimeout(() => {
           setFloatingTexts(prev => prev.filter(t => t.id !== id));
@@ -1105,11 +1117,11 @@
          if (type === 'merit') {
            if (newState.merit < 100) return showToast("軍功不足！", "error");
            newState.merit -= 100;
-           dmg = 1500 + Math.floor(Math.random() * 1000); // 1500 ~ 2500
+           dmg = 200 + Math.floor(Math.random() * 300); // 校正：軍功打 200~500
          } else if (type === 'task') {
            if ((newState.monthlyTaskCount || 0) < 5) return showToast("本月修行次數不足 5 次！", "error");
            newState.monthlyTaskCount -= 5;
-           dmg = 4000 + Math.floor(Math.random() * 2000); // 4000 ~ 6000
+           dmg = 1000 + Math.floor(Math.random() * 1501); // 校正：精確控制為 1000~2500
          }
 
          newState.bossHp = Math.max(0, (newState.bossHp || 500000) - dmg);
@@ -1311,7 +1323,6 @@
                 </div>
 
                 <div className="flex-1 relative overflow-auto touch-pan-x touch-pan-y scrollbar-hide border-b border-[#3e2723] bg-[#0c1014]">
-                  {/* 修復：網格底圖移至外層 fixed，確保縮放時無限填滿 */}
                   <div className="fixed inset-0 pointer-events-none opacity-[0.06] z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='103.92' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 60 25.98 L 30 8.66 L 0 25.98 L 0 58.91 L 30 76.23 L 60 58.91 Z' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E")`, backgroundSize: '60px 103px', backgroundRepeat: 'repeat' }}></div>
 
                   <div className="relative origin-top-left transition-transform duration-300 z-10" style={{ transform: `scale(${mapZoom})`, width: '2400px', height: '1800px' }}>
