@@ -68,8 +68,8 @@
       totalTasksDone: 0, 
       lastCrisisMonth: "",
       logs: [],
-      materials: 0, // 新增：鍛造素材
-      equipments: [] // 新增：擁有裝備陣列
+      materials: 0, 
+      equipments: [] 
     };
 
     const FALLBACK_PRICES = { btc: 2050000, eth: 95000, ada: 12.5, qqq: 1, voo: 1 };
@@ -125,7 +125,7 @@
       { id: 'jiangxia', name: '江夏', title: '初具規模', targetLabel: '兵力 300 萬', req: { netWorth: 3000000 }, def: 280, x: 56, y: 70, type: 'castle' },
       { id: 'hanzhong', name: '漢中', title: '中原逐鹿', targetLabel: '兵力 1000 萬', req: { netWorth: 10000000 }, def: 950, x: 30, y: 50, type: 'castle' },
       { id: 'jianye', name: '建業', title: '江東霸業', targetLabel: '兵力 3000 萬', req: { netWorth: 30000000 }, def: 2800, x: 76, y: 62, type: 'castle' },
-      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 500 萬', req: { netWorth: 50000000 }, def: 4800, x: 68, y: 55, type: 'castle' },
+      { id: 'shouchun', name: '壽春', title: '威震華夏', targetLabel: '兵力 5000 萬', req: { netWorth: 50000000 }, def: 4800, x: 68, y: 55, type: 'castle' },
       { id: 'ye', name: '鄴城', title: '河北霸主', targetLabel: '兵力 8000 萬', req: { netWorth: 80000000 }, def: 8500, x: 60, y: 32, type: 'castle' },
       { id: 'beiping', name: '北平', title: '兵強馬壯', targetLabel: '兵力 1 億', req: { netWorth: 100000000 }, def: 12000, x: 75, y: 15, type: 'castle' },
       { id: 'chenliu', name: '陳留', title: '初次出征', targetLabel: '募兵 1 次', req: { investCount: 1 }, def: 10, x: 60, y: 45, type: 'castle' },
@@ -143,12 +143,14 @@
       { id: 'yunnan', name: '雲南', title: '南蠻平定', targetLabel: '募兵 180 次', req: { investCount: 180 }, def: 8500, x: 18, y: 85, type: 'castle' },
       { id: 'kuaiji', name: '會稽', title: '東吳水軍', targetLabel: '募兵 200 次', req: { investCount: 200 }, def: 11000, x: 88, y: 72, type: 'castle' },
       { id: 'jiaozhi', name: '交趾', title: '天涯海角', targetLabel: '募兵 240 次', req: { investCount: 240 }, def: 15000, x: 32, y: 92, type: 'castle' },
-      { id: 'heifeng', name: '黑風山寨', title: '百日築基', targetLabel: '修行 36 次', req: { totalTasksDone: 36 }, def: 1500, x: 15, y: 80, type: 'camp', rewardId: 201 },
-      { id: 'qingqiu', name: '青丘狐洞', title: '幻境迷蹤', targetLabel: '修行 72 次', req: { totalTasksDone: 72 }, def: 3500, x: 85, y: 25, type: 'cave', rewardId: 202 },
-      { id: 'qiongqi', name: '窮奇巢穴', title: '極惡之淵', targetLabel: '修行 360 次', req: { totalTasksDone: 360 }, def: 15000, x: 10, y: 15, type: 'cave', rewardId: 203 },
-      { id: 'taowu', name: '檮杌魔窟', title: '頑固不化', targetLabel: '修行 720 次', req: { totalTasksDone: 720 }, def: 30000, x: 92, y: 90, type: 'cave', rewardId: 204 },
-      { id: 'taotie', name: '饕餮深淵', title: '無盡吞噬', targetLabel: '修行 1800 次', req: { totalTasksDone: 1800 }, def: 80000, x: 80, y: 10, type: 'cave', rewardId: 205 },
-      { id: 'hundun', name: '混沌神域', title: '萬法歸一', targetLabel: '修行 3600 次', req: { totalTasksDone: 3600 }, def: 200000, x: 50, y: 5, type: 'cave', rewardId: 206 }
+      
+      // === 終極養成：無盡修行解鎖，攻克可獲得對應神獸/頭目加入陣容 ===
+      { id: 'heifeng', name: '黑風山寨', title: '百日築基', targetLabel: '修行 360 次', req: { totalTasksDone: 360 }, def: 1500, x: 15, y: 80, type: 'camp', rewardId: 201 },
+      { id: 'qingqiu', name: '青丘狐洞', title: '幻境迷蹤', targetLabel: '修行 720 次', req: { totalTasksDone: 720 }, def: 3500, x: 85, y: 25, type: 'cave', rewardId: 202 },
+      { id: 'qiongqi', name: '窮奇巢穴', title: '極惡之淵', targetLabel: '修行 1200 次', req: { totalTasksDone: 1200 }, def: 15000, x: 10, y: 15, type: 'cave', rewardId: 203 },
+      { id: 'taowu', name: '檮杌魔窟', title: '頑固不化', targetLabel: '修行 1800 次', req: { totalTasksDone: 1800 }, def: 30000, x: 92, y: 90, type: 'cave', rewardId: 204 },
+      { id: 'taotie', name: '饕餮深淵', title: '無盡吞噬', targetLabel: '修行 3600 次', req: { totalTasksDone: 3600 }, def: 80000, x: 80, y: 10, type: 'cave', rewardId: 205 },
+      { id: 'hundun', name: '混沌神域', title: '萬法歸一', targetLabel: '修行 5400 次', req: { totalTasksDone: 5400 }, def: 200000, x: 50, y: 5, type: 'cave', rewardId: 206 }
     ];
 
     const RAW_OFFICERS = [
@@ -275,7 +277,7 @@
 
     function App() {
       const [gameState, setGameState] = useState(() => {
-        const saved = localStorage.getItem('wealth_game_save_final') || localStorage.getItem('wealth_game_save_v5') || localStorage.getItem('wealth_game_save_v4') || localStorage.getItem('wealth_game_save_v3');
+        const saved = localStorage.getItem('wealth_game_save_final');
         let parsed = saved ? JSON.parse(saved) : DEFAULT_GAME_STATE;
         return { 
           ...DEFAULT_GAME_STATE, 
@@ -301,8 +303,7 @@
       const [gachaResult, setGachaResult] = useState(null);
       const [activeOfficerDialogue, setActiveOfficerDialogue] = useState(null);
       const [crisisEvent, setCrisisEvent] = useState(null);
-      
-      const [activeEncounter, setActiveEncounter] = useState(null); // 新增奇遇系統 Modal
+      const [activeEncounter, setActiveEncounter] = useState(null);
 
       const [toastMessage, setToastMessage] = useState(null);
       const [localAssets, setLocalAssets] = useState(null);
@@ -508,7 +509,7 @@
               if(isHighDebt) pool.push(`信貸還有 ${(debt/10000).toFixed(0)} 萬，給我把皮繃緊一點，發薪水記得優先處理掉，無債一身輕最舒服了！`);
               if(isLowEmergency) pool.push("老公！緊急預備金不夠了，這個月暫停買幣，先補滿防禦！");
               pool.push("老公，我們一起看書準備巡官考試吧！投資自己的大腦是穩賺不賠的。");
-              pool.push("不管大盤怎麼震，家裡的伙食費跟咪波的奶粉錢絕對要優先保留喔！(微笑)");
+              pool.push("不管大盤怎麼震，家裡的伙食費跟咪波的奶粉錢絕對要優先保留喔！");
               pool.push("與其看盤焦慮，不如陪咪波玩一下吧，家人的陪伴才是最珍貴的財富。");
               pool.push("買房不用急著跟別人比，我們有自己的 2047 退休計畫，按表操課就好！");
               pool.push("看到新聞說暴跌？沒事，先把 Ledger 冷錢包收好，不要被市場雜音干擾。");
@@ -619,14 +620,14 @@
                   pool.push("主公，為將者當有紀律。每月定投如排兵布陣，不可因一時恐慌而亂了陣腳！");
                   pool.push("三軍未動，糧草先行。緊急預備金就是我們軍隊的底氣與防線！");
                   pool.push("資產配置就像調兵遣將，高波動資產主攻，穩健資產主守，缺一不可。");
-                  pool.push("不要在乎一時的城池得失與帳面波動，我們要的是最終的天下！");
+                  pool.push("不要在乎一時的城池得失與帳面波動，我們要的是最終 2030 年的天下！");
                   pool.push("治軍嚴明，方能百戰不殆。主公堅持的財務紀律，令末將無比欽佩！");
                   pool.push("將帥無能，累死三軍。主公若隨意動用高槓桿，無異於將將士送入絕境！");
                   pool.push("穩固後方大本營(家庭與健康)，前線將士方能毫無後顧之憂地為您征戰！");
                   pool.push("只要我們按部就班執行計畫，這史詩版圖的霸業遲早是我們的！");
                   pool.push("不論外頭風浪多大，只要主公軍旗不倒、現金流不斷，我軍便不會潰散！");
                   pool.push("巡視營寨(整理房間)看似小事，實則是維持軍心士氣、理清思緒的關鍵！");
-              } else {
+              } else { // 政治/魅力/仁德
                   pool.push("主公，積少成多，聚沙成塔。穩健理財，方能長久恩澤家庭。");
                   pool.push("治大國若烹小鮮。理財也需細火慢燉，急功近利只會將大好局勢燒焦。");
                   pool.push("主公若能與夫人和睦相處、共同成長，便是這領地內最大的福氣。");
@@ -792,6 +793,7 @@
         let newState = JSON.parse(JSON.stringify(gameState));
         newState.merit -= 100; 
         
+        // 排除掉妖獸族 (ID >= 200)，他們必須透過攻打巢穴獲得
         const drawPool = OFFICERS.filter(o => o.id < 200);
         const drawn = drawPool[Math.floor(Math.random() * drawPool.length)];
         const isDupe = newState.ownedOfficers.includes(drawn.id);
@@ -848,6 +850,7 @@
           newState.merit += rewardMerit;
           logMsg = `【大捷】我軍以 ${totalAttack} 戰力擊破 ${prov.name} 守軍(${defense})，斬獲軍功 ${rewardMerit}！`;
 
+          // 神獸巢穴/山寨 獲得特殊武將獎勵
           if (prov.rewardId) {
              if (!newState.ownedOfficers.includes(prov.rewardId)) {
                  newState.ownedOfficers.push(prov.rewardId);
@@ -855,7 +858,7 @@
                  logMsg += ` 順利收服【${rewardOfficer.name}】加入大營！`;
                  setTimeout(() => showToast(`🎊 成功收服史詩妖獸：${rewardOfficer.name}！`, 'success'), 1000);
              } else {
-                 newState.ownedOfficers.push(prov.rewardId);
+                 newState.ownedOfficers.push(prov.rewardId); // 給予將魂升星
                  const rewardOfficer = OFFICERS.find(o => o.id === prov.rewardId);
                  logMsg += ` 再次鎮壓，獲得【${rewardOfficer.name}】將魂，星級提升！`;
              }
@@ -932,6 +935,7 @@
       return (
         <div className="h-[100dvh] w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
           
+          {/* 熊市危機強制遮罩攔截 */}
           {crisisEvent && (
              <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md">
                  <div className="bg-[#1a0505] border-2 border-red-600 p-6 md:p-10 max-w-lg w-full text-center shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-[stampIn_0.5s_forwards]">
@@ -951,6 +955,7 @@
              </div>
           )}
 
+          {/* Notifications */}
           {toastMessage && (
             <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
               <div className={`px-6 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center gap-2 whitespace-nowrap
@@ -967,7 +972,7 @@
           <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl relative">
             <div className="flex justify-between items-center px-2 md:px-4 py-2 md:py-3 relative z-10 gap-1">
               <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
-                <div className="w-10 h-10 md:w-12 h-12 shrink-0 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
+                <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
                   <span className="text-base md:text-lg font-black text-[#e3dac9] leading-none mb-1">魏</span>
                   <span className="text-[8px] md:text-[9px] text-[#d4af37] bg-[#2a2218] px-1 border border-[#4a3525] rounded-sm whitespace-nowrap">{playerTitle}</span>
                 </div>
@@ -1195,7 +1200,7 @@
                       <div className="flex items-center justify-between bg-[#0a0705] border border-[#2a1a15] p-2">
                         <div className="text-[10px] md:text-xs text-[#a3947c] leading-tight flex-1 whitespace-nowrap">
                           基礎戰力: <span className="text-white font-mono">{Math.max(1, stats.netWorth/10000).toFixed(0)}</span><br/>
-                          將領/天象/裝備加成: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' || equipments.length > 0 ? 'text-green-400' : 'text-gray-500'}>已計算</span>
+                          將領/天象加成: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' ? 'text-green-400' : 'text-gray-500'}>已計算</span>
                         </div>
                         <button onClick={executeSiege} className={`px-6 py-2 md:py-3 font-black tracking-widest rounded-sm text-sm shrink-0 transition-all whitespace-nowrap
                           ${siegeGenerals.length > 0 ? 'bg-red-800 text-white border border-red-500 animate-pulse-red active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border border-[#3e2723]'}`}>
@@ -1429,7 +1434,7 @@
               </div>
             )}
 
-            {/* 4. FORGE TAB (新增：裝備庫房) */}
+            {/* 4. FORGE TAB (裝備庫房) */}
             {activeTab === 'forge' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
                 <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
@@ -1579,7 +1584,6 @@
                   <div className="absolute top-0 left-0 w-full h-1.5 bg-[#b8860b]"></div>
                   <div className="absolute bottom-0 left-0 w-full h-1.5 bg-[#b8860b]"></div>
 
-                  {/* Base Event Section (The original Toast info) */}
                   <div className="mb-5 border-b border-[#3e2723] pb-4 text-center">
                     <h2 className="text-[#a3947c] text-xs font-bold tracking-widest mb-2 flex justify-center items-center gap-2">
                        <span className="w-4 h-px bg-[#4a3525]"></span> 本月軍情 <span className="w-4 h-px bg-[#4a3525]"></span>
@@ -1593,7 +1597,6 @@
                     <p className="text-[#e3dac9] text-xs md:text-sm leading-relaxed">{activeEncounter.baseEvent.msg}</p>
                   </div>
 
-                  {/* Interactive Event Section */}
                   <div className="text-center mt-2">
                     <h3 className="text-red-400 text-lg md:text-xl font-black tracking-widest mb-2 drop-shadow-md animate-pulse">【 突發奇遇 】</h3>
                     <h4 className="text-[#d4af37] font-bold text-sm md:text-base mb-3">{activeEncounter.interactiveEvent.title}</h4>
@@ -1678,7 +1681,7 @@
               { id: 'map', label: '大勢', icon: ICONS.Map },
               { id: 'command', label: '軍令', icon: ICONS.Tent },
               { id: 'tavern', label: '招賢', icon: ICONS.Users },
-              { id: 'forge', label: '庫房', icon: ICONS.Flame }, // 新增庫房分頁
+              { id: 'forge', label: '庫房', icon: ICONS.Flame }, 
               { id: 'ledger', label: '編制', icon: ICONS.Scroll },
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
