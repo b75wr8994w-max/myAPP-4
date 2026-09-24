@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="google" content="notranslate" />
-  <title>戰略圖 - 富霸天下 </title>
+  <title>戰略圖 - 富霸天下</title>
 
   <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -26,7 +26,7 @@
     
     /* 古風字體與排版 */
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap');
-    body { font-family: 'Noto Serif TC', serif; background-color: #0c0906; margin: 0; padding: 0; overflow: hidden; }
+    body { font-family: 'Noto Serif TC', serif; background-color: #050505; margin: 0; padding: 0; overflow: hidden; }
     
     /* 古代州域文字樣式 */
     .map-region-text {
@@ -63,6 +63,22 @@
       25% { transform: rotate(-3deg); }
       75% { transform: rotate(3deg); }
     }
+
+    /* SLG 專屬特效 */
+    .bg-metal-dark { background: linear-gradient(145deg, #1a1410 0%, #0a0705 100%); }
+    .text-gold { color: #d4af37; }
+    .border-gold { border-color: #d4af37; }
+    .write-vertical { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 0.3em; }
+
+    @keyframes cardReveal {
+      0% { transform: scale(0.1) rotateY(180deg); opacity: 0; filter: blur(10px); }
+      60% { transform: scale(1.1) rotateY(0deg); opacity: 1; filter: blur(0px); }
+      100% { transform: scale(1) rotateY(0deg); }
+    }
+    @keyframes cardGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(212,175,55,0.4), inset 0 0 10px rgba(212,175,55,0.4); }
+      50% { box-shadow: 0 0 50px rgba(212,175,55,0.8), inset 0 0 20px rgba(212,175,55,0.8); }
+    }
   </style>
 </head>
 <body>
@@ -98,6 +114,7 @@
       merit: 300, 
       ownedOfficers: [], 
       occupiedProvinces: [], 
+      stationedOfficers: {}, // 新增：太守駐軍狀態
       investCount: 0,
       lastInvestMonth: "",
       lastRoutineMonth: "", 
@@ -200,8 +217,10 @@
       { id: 'hundun', name: '混沌神域', title: '萬法歸一', targetLabel: '修行 5400 次', req: { totalTasksDone: 5400 }, def: 200000, x: 50, y: 5, type: 'divine', rewardId: 206 }
     ];
 
+    // ====== 加入主將技能 (如曹操、諸葛亮)，其餘保留不變 ======
     const RAW_OFFICERS = [
-      { id: 1, name: '曹操', stat: 98, type: '統帥' }, { id: 2, name: '司馬懿', stat: 99, type: '智力' }, { id: 3, name: '郭嘉', stat: 98, type: '智力' },
+      { id: 1, name: '曹操', stat: 98, type: '統帥', skillName: '魏武之強', skillDesc: '擔任主將時，日常內政軍功額外 +5%' }, 
+      { id: 2, name: '司馬懿', stat: 99, type: '智力' }, { id: 3, name: '郭嘉', stat: 98, type: '智力' },
       { id: 4, name: '荀彧', stat: 95, type: '政治' }, { id: 5, name: '張遼', stat: 92, type: '統帥' }, { id: 6, name: '夏侯惇', stat: 90, type: '武力' },
       { id: 7, name: '夏侯淵', stat: 91, type: '武力' }, { id: 8, name: '許褚', stat: 96, type: '武力' }, { id: 9, name: '典韋', stat: 95, type: '武力' },
       { id: 10, name: '徐晃', stat: 91, type: '武力' }, { id: 11, name: '張郃', stat: 90, type: '武力' }, { id: 12, name: '賈詡', stat: 97, type: '智力' },
@@ -209,7 +228,9 @@
       { id: 16, name: '樂進', stat: 85, type: '武力' }, { id: 17, name: '荀攸', stat: 94, type: '智力' }, { id: 18, name: '程昱', stat: 90, type: '智力' },
       { id: 19, name: '滿寵', stat: 84, type: '統帥' }, { id: 20, name: '龐德', stat: 94, type: '武力' }, { id: 21, name: '郝昭', stat: 89, type: '統帥' },
       { id: 22, name: '曹丕', stat: 83, type: '政治' }, { id: 23, name: '司馬師', stat: 88, type: '統帥' }, { id: 24, name: '司馬昭', stat: 87, type: '政治' }, { id: 25, name: '鄧艾', stat: 94, type: '統帥' },
-      { id: 26, name: '劉備', stat: 80, type: '仁德' }, { id: 27, name: '諸葛亮', stat: 100, type: '智力' }, { id: 28, name: '關羽', stat: 97, type: '武力' },
+      { id: 26, name: '劉備', stat: 80, type: '仁德' }, 
+      { id: 27, name: '諸葛亮', stat: 100, type: '智力', skillName: '臥龍神算', skillDesc: '擔任主將時，熊市戰力衰退減少' }, 
+      { id: 28, name: '關羽', stat: 97, type: '武力' },
       { id: 29, name: '張飛', stat: 98, type: '武力' }, { id: 30, name: '趙雲', stat: 96, type: '武力' }, { id: 31, name: '馬超', stat: 97, type: '武力' },
       { id: 32, name: '黃忠', stat: 93, type: '武力' }, { id: 33, name: '龐統', stat: 97, type: '智力' }, { id: 34, name: '姜維', stat: 90, type: '智力' },
       { id: 35, name: '魏延', stat: 92, type: '武力' }, { id: 36, name: '法正', stat: 94, type: '智力' }, { id: 37, name: '馬良', stat: 85, type: '政治' },
@@ -302,14 +323,21 @@
     
     const BOSS_NAMES = ['通膨巨魔', '消費惡魔', 'FOMO 夢魘'];
 
+    // ====== SLG 升級：為所有武將加入立繪與頭像欄位 (avatar, portrait)，以及稀有度卡框 ======
     const OFFICERS = RAW_OFFICERS.map(o => {
       let faction = '群'; let color = 'text-gray-300'; let bg = 'bg-gray-900'; let border = 'border-gray-600';
+      let rareBorder = 'border-blue-500';
+      
+      if (o.stat >= 95) rareBorder = 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.5)]';
+      else if (o.stat >= 85) rareBorder = 'border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.4)]';
+
       if (o.id <= 25) { faction = '魏'; color = 'text-blue-300'; bg = 'bg-blue-950/60'; border = 'border-blue-700'; }
       else if (o.id <= 50) { faction = '蜀'; color = 'text-green-300'; bg = 'bg-green-950/60'; border = 'border-green-700'; }
       else if (o.id <= 75) { faction = '吳'; color = 'text-red-300'; bg = 'bg-red-950/60'; border = 'border-red-700'; }
-      else if (o.id >= 200) { faction = '妖'; color = 'text-fuchsia-400'; bg = 'bg-fuchsia-950/60'; border = 'border-fuchsia-600'; }
-      else if (o.id > 100 && o.id !== 103) { faction = '神'; color = 'text-yellow-300'; bg = 'bg-yellow-900/60'; border = 'border-yellow-400'; }
-      return { ...o, faction, color, bg, border };
+      else if (o.id >= 200) { faction = '妖'; color = 'text-fuchsia-400'; bg = 'bg-fuchsia-950/60'; border = 'border-fuchsia-600'; rareBorder = 'border-fuchsia-500'; }
+      else if (o.id > 100 && o.id !== 103) { faction = '神'; color = 'text-yellow-300'; bg = 'bg-yellow-900/60'; border = 'border-yellow-400'; rareBorder = 'border-yellow-400'; }
+      
+      return { ...o, faction, color, bg, border, rareBorder, avatar: '', portrait: '' };
     });
 
     const BONDS = [
@@ -363,6 +391,7 @@
           ...DEFAULT_GAME_STATE, 
           ...parsed, 
           occupiedProvinces: parsed.occupiedProvinces || [],
+          stationedOfficers: parsed.stationedOfficers || {}, // 讀取駐軍進度
           materials: parsed.materials || 0,
           equipments: parsed.equipments || [],
           policies: parsed.policies || [],
@@ -383,10 +412,13 @@
       
       const [investPlan, setInvestPlan] = useState({ amount: 10000, repayAmount: 0, target: 'btc' });
       const [activeTab, setActiveTab] = useState('map');
-      const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
-      const [syncStatus, setSyncStatus] = useState('推進中');
       
-      const [siegeMode, setSiegeMode] = useState(false);
+      // 城池 Modal 狀態
+      const [selectedProvinceId, setSelectedProvinceId] = useState(PROVINCES[0].id);
+      const [showCityModal, setShowCityModal] = useState(false);
+      const [cityTab, setCityTab] = useState('attack'); // 'attack', 'build', 'garrison'
+
+      const [syncStatus, setSyncStatus] = useState('推進中');
       const [siegeGenerals, setSiegeGenerals] = useState([]);
       const [combatResult, setCombatResult] = useState(null);
 
@@ -400,8 +432,9 @@
       const [mapZoom, setMapZoom] = useState(1);
 
       const [floatingTexts, setFloatingTexts] = useState([]);
-      const [showReportPreview, setShowReportPreview] = useState(false); // 新增：戰報預覽 Modal 狀態
+      const [showReportPreview, setShowReportPreview] = useState(false);
       const reportRef = useRef(null);
+      const fileInputRef = useRef(null);
 
       const addFloatingText = (text, type = 'dmg') => {
         const id = Date.now() + Math.random();
@@ -411,8 +444,6 @@
           setFloatingTexts(prev => prev.filter(t => t.id !== id));
         }, 1000);
       };
-
-      const fileInputRef = useRef(null);
 
       const realDate = new Date();
       const currentRealYear = realDate.getFullYear();
@@ -451,7 +482,7 @@
         fetchPricesAndWeather();
       }, [gameState.lastCrisisMonth, currentMonthString]);
 
-      const { assets, merit, ownedOfficers, occupiedProvinces, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, totalTasksDone, logs, materials, equipments, policies, achievements, bossHp, bossKills, monthlyTaskCount, monthlyTaskMonth, mainOfficerId, officerExps, activeBlackMarket } = gameState;
+      const { assets, merit, ownedOfficers, occupiedProvinces, stationedOfficers, investCount, lastInvestMonth, lastRoutineMonth, dailyTaskDate, dailyTaskCount, totalTasksDone, logs, materials, equipments, policies, achievements, bossHp, bossKills, monthlyTaskCount, monthlyTaskMonth, mainOfficerId, officerExps, activeBlackMarket } = gameState;
       const displayAssets = localAssets || assets;
 
       const stats = useMemo(() => {
@@ -488,6 +519,14 @@
 
       const bondPaydayBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusPayday, 0), [activeBonds]);
       const bondRoutineBuff = useMemo(() => activeBonds.reduce((acc, bond) => acc + bond.bonusRoutine, 0), [activeBonds]);
+
+      // ==== 核心機制：主將技能判定 ====
+      const mainOfficerBuffs = useMemo(() => {
+         let buffs = { meritBonus: 1, bearResist: 0 };
+         if (mainOfficerId === 1) buffs.meritBonus = 1.05; // 曹操: 微內政軍功+5%
+         if (mainOfficerId === 27) buffs.bearResist = 0.15; // 諸葛亮: 熊市衰退減少
+         return buffs;
+      }, [mainOfficerId]);
 
       const provincesState = useMemo(() => {
         return PROVINCES.map(prov => {
@@ -594,7 +633,7 @@
           setCrisisEvent(null);
       };
 
-      const handleDailyTask = (taskName, meritReward) => {
+      const handleDailyTask = (taskName, baseMerit) => {
           let newState = JSON.parse(JSON.stringify(gameState));
           
           if (newState.dailyTaskDate !== todayString) {
@@ -615,7 +654,10 @@
           newState.dailyTaskCount += 1;
           newState.totalTasksDone = (newState.totalTasksDone || 0) + 1;
           newState.monthlyTaskCount = (newState.monthlyTaskCount || 0) + 1;
-          newState.merit += meritReward;
+          
+          // 計算主將加成
+          const finalMerit = Math.floor(baseMerit * mainOfficerBuffs.meritBonus);
+          newState.merit += finalMerit;
 
           let materialMsg = '';
           if (Math.random() <= 0.3) {
@@ -636,9 +678,9 @@
             }
           }
 
-          addLog(newState, '微內政', `執行【${taskName}】，微幅提升軍心，軍功 +${meritReward}${materialMsg}`);
+          addLog(newState, '微內政', `執行【${taskName}】，微幅提升軍心，軍功 +${finalMerit}${materialMsg}`);
           saveGameState(newState);
-          showToast(`【${taskName}】完成，軍功 +${meritReward}${materialMsg}`, 'success');
+          showToast(`【${taskName}】完成，軍功 +${finalMerit}${materialMsg}`, 'success');
       };
 
       const getOfficerDialogue = (officer) => {
@@ -963,6 +1005,7 @@
         saveGameState(newState);
       };
 
+      // ==== 機制擴充：被動收入與大營巡視 ====
       const executeRoutineTask = () => {
         if (lastRoutineMonth === currentMonthString) {
           showToast("本月已巡視過營地。", 'warn');
@@ -972,11 +1015,24 @@
         if (newState.assets.emergency >= 200000 && newState.assets.entertainment >= 50000) {
           const hasWallPolicy = (newState.policies || []).includes('p_wall');
           let totalGained = (30 + bondRoutineBuff) * (hasWallPolicy ? 2 : 1); 
+          
+          // 加入 SLG 被動稅收機制 (城池與太守駐軍)
+          let taxMsg = '';
+          if (newState.occupiedProvinces.length > 0) {
+              let tax = 0;
+              // 佔領城池基礎歲貢
+              newState.occupiedProvinces.forEach(pid => tax += (Math.floor(Math.random() * 5) + 1));
+              // 駐軍額外加成
+              Object.values(newState.stationedOfficers || {}).forEach(oId => tax += (Math.floor(Math.random() * 5) + 1));
+              totalGained += tax;
+              taxMsg = `，收取各地城池歲貢 +${tax} 軍功`;
+          }
+
           newState.merit += totalGained;
           newState.lastRoutineMonth = currentMonthString;
-          addLog(newState, '內政', `糧草滿編，防禦陣地穩固，獲賞軍功 +${totalGained}。`);
+          addLog(newState, '內政', `糧草滿編，防禦陣地穩固，獲賞軍功 +${totalGained}${taxMsg}。`);
           saveGameState(newState);
-          showToast(`巡視完成，軍功 +${totalGained}`, 'success');
+          showToast(`巡視完成，軍功 +${totalGained}${taxMsg}`, 'success');
         } else {
           showToast("將軍，您的雙防禦尚未滿編！", 'error');
         }
@@ -1006,7 +1062,6 @@
         const prov = provincesState.find(p => p.id === selectedProvinceId);
         if (prov && prov.isConquered) {
             showToast("此城池已在我軍控制之下，無需重複攻打！", "warn");
-            setSiegeMode(false);
             return;
         }
         if (!prov || siegeGenerals.length === 0) return showToast("請至少派遣一名將領出征！", 'warn');
@@ -1037,11 +1092,12 @@
         const mainOffExp = (officerExps || {})[mainOfficerId] || 0;
         const mainOffBuff = mainOfficerId ? Math.floor(mainOffExp / 10) * 0.01 : 0;
 
+        // 計算天氣與主將抵抗Buff
         let weatherMod = 1;
         if (weather.trend === 'bull') weatherMod = 1.2;
         if (weather.trend === 'bear') {
            const hasDiamond = (policies || []).includes('p_diamond');
-           weatherMod = hasDiamond ? 1.1 : 0.9;
+           weatherMod = (hasDiamond ? 1.1 : 0.9) + mainOfficerBuffs.bearResist; // 加上諸葛亮抵抗
         }
 
         const totalAttack = Math.floor(basePower * investDisciplineBuff * (1 + generalMultiplier + equipMultiplier + synergyMultiplier + policyPowerBuff + mainOffBuff) * weatherMod);
@@ -1171,7 +1227,7 @@
           try {
             let importedState = JSON.parse(e.target.result);
             if (importedState && importedState.assets && importedState.merit !== undefined) {
-              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState, occupiedProvinces: importedState.occupiedProvinces || [], materials: importedState.materials || 0, equipments: importedState.equipments || [], policies: importedState.policies || [], achievements: importedState.achievements || [], bossHp: importedState.bossHp !== undefined ? importedState.bossHp : 500000, bossKills: importedState.bossKills || 0, mainOfficerId: importedState.mainOfficerId || null, officerExps: importedState.officerExps || {}, activeBlackMarket: importedState.activeBlackMarket || null }); 
+              saveGameState({ ...DEFAULT_GAME_STATE, ...importedState, occupiedProvinces: importedState.occupiedProvinces || [], stationedOfficers: importedState.stationedOfficers || {}, materials: importedState.materials || 0, equipments: importedState.equipments || [], policies: importedState.policies || [], achievements: importedState.achievements || [], bossHp: importedState.bossHp !== undefined ? importedState.bossHp : 500000, bossKills: importedState.bossKills || 0, mainOfficerId: importedState.mainOfficerId || null, officerExps: importedState.officerExps || {}, activeBlackMarket: importedState.activeBlackMarket || null }); 
               showToast("兵符匯入成功，天下大勢已更新！", "success");
             } else {
               showToast("兵符格式錯誤，無法解讀！", "error");
@@ -1225,7 +1281,7 @@
       };
 
       return (
-        <div className="h-[100dvh] w-full bg-[#0c0906] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
+        <div className="h-[100dvh] w-full bg-[#050505] text-[#e3dac9] font-serif overflow-hidden flex flex-col relative selection:bg-[#4a3525] selection:text-white">
           
           {crisisEvent && (
              <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md">
@@ -1247,28 +1303,29 @@
           )}
 
           {toastMessage && (
-            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-[slideUp_0.3s_ease-out]">
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[999] animate-[slideUp_0.3s_ease-out]">
               <div className={`px-6 py-3 rounded-sm border shadow-2xl backdrop-blur-md font-bold tracking-widest text-sm flex items-center gap-2 whitespace-nowrap
                 ${toastMessage.type === 'error' ? 'bg-[#3b0f0f]/90 text-red-300 border-red-800' : 
                   toastMessage.type === 'success' ? 'bg-[#0f291e]/90 text-green-300 border-green-800' : 
                   toastMessage.type === 'warn' ? 'bg-[#3b2d0f]/90 text-yellow-300 border-yellow-800' : 
-                  'bg-[#0f172a]/90 text-blue-300 border-blue-800'}`}
+                  'bg-metal-dark text-gold border-gold'}`}
               >
                 {toastMessage.msg}
               </div>
             </div>
           )}
 
-          <header className="bg-[#1a1410] border-b border-[#3e2723] shrink-0 z-40 shadow-xl relative">
+          {/* 金屬質感 Header */}
+          <header className="bg-metal-dark border-b border-gold shrink-0 z-40 shadow-xl relative">
             <div className="flex justify-between items-center px-2 md:px-4 py-2 md:py-3 relative z-10 gap-1">
               <div className="flex items-center gap-2 md:gap-3 shrink-0 min-w-0">
-                <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 border border-[#b8860b] bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(184,134,11,0.2)]">
-                  <span className="text-base md:text-lg font-black text-[#e3dac9] leading-none mb-1">魏</span>
-                  <span className="text-[8px] md:text-[9px] text-[#d4af37] bg-[#2a2218] px-1 border border-[#4a3525] rounded-sm whitespace-nowrap">{playerTitle}</span>
+                <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 border border-gold bg-[#0a0705] flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(212,175,55,0.4)]">
+                  <span className="text-base md:text-lg font-black text-gold leading-none mb-1">魏</span>
+                  <span className="text-[8px] md:text-[9px] text-black font-black bg-gold px-1 border border-gold rounded-sm whitespace-nowrap">{playerTitle}</span>
                 </div>
                 <div className="flex flex-col min-w-0 shrink-0">
-                  <h1 className="font-bold text-base md:text-xl tracking-widest text-[#d4af37] drop-shadow-md flex items-center gap-2 whitespace-nowrap">
-                    戰略圖 - 富霸天下
+                  <h1 className="font-bold text-base md:text-xl tracking-widest text-gold drop-shadow-md flex items-center gap-2 whitespace-nowrap">
+                    戰略圖 - SLG史詩版
                   </h1>
                   <div className="text-[8px] md:text-[10px] text-[#8c7e6a] flex items-center gap-1 md:gap-1.5 mt-1 font-mono whitespace-nowrap">
                     <span className="whitespace-nowrap">建安{jianAnYear}年{currentRealMonth}月</span>
@@ -1282,14 +1339,14 @@
                 </div>
               </div>
               <div className="text-right flex flex-col items-end justify-center shrink-0 ml-1">
-                <div className="text-[9px] md:text-[10px] text-[#a3947c] tracking-widest mb-0.5 whitespace-nowrap">總兵力</div>
-                <div className={`text-lg md:text-2xl font-bold font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] whitespace-nowrap ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
-                  <AnimatedNumber value={stats.netWorth / 10000} formatter={fmtInt} /> <span className="text-[9px] md:text-xs text-[#d4af37] font-serif">萬</span>
+                <div className="text-[9px] md:text-[10px] text-gray-400 tracking-widest mb-0.5 whitespace-nowrap">總兵力</div>
+                <div className={`text-lg md:text-2xl font-black font-mono drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] whitespace-nowrap ${stats.netWorth < 0 ? 'text-red-400' : 'text-white'}`}>
+                  <AnimatedNumber value={stats.netWorth / 10000} formatter={fmtInt} /> <span className="text-[9px] md:text-xs text-gold font-serif">萬</span>
                 </div>
               </div>
             </div>
             
-            <div className="flex px-2 md:px-4 py-1.5 md:py-2 gap-2 md:gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide text-[10px] md:text-[11px] font-mono bg-[#0a0705] border-t border-[#2a1a15] relative z-10 shadow-inner">
+            <div className="flex px-2 md:px-4 py-1.5 md:py-2 gap-2 md:gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide text-[10px] md:text-[11px] font-mono bg-black border-t border-[#2a1a15] relative z-10 shadow-inner">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#1c1814] border border-[#3e2723] shrink-0 whitespace-nowrap">
                 <span className="text-[#a3947c] font-serif">軍功</span> <span className="text-[#ffd700] font-bold"><AnimatedNumber value={merit} formatter={(n) => n.toFixed(1)} /></span>
               </div>
@@ -1326,22 +1383,21 @@
                </div>
             )}
 
-            {/* 1. MAP TAB */}
+            {/* ====== 1. MAP TAB (大地圖與 SLG 城池 Modal) ====== */}
             {activeTab === 'map' && (
               <div className="flex flex-col h-full w-full relative">
                 <div className="absolute top-4 right-4 z-[60] flex flex-col gap-2">
-                  <button onClick={() => setMapZoom(z => Math.min(z + 0.25, 2.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">+</button>
-                  <button onClick={() => setMapZoom(1)} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#8c7e6a] rounded-sm font-bold text-xs shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">重置</button>
-                  <button onClick={() => setMapZoom(z => Math.max(z - 0.25, 0.5))} className="w-10 h-10 bg-[#1a1410]/90 border border-[#d4af37] text-[#d4af37] rounded-sm font-bold text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">-</button>
+                  <button onClick={() => setMapZoom(z => Math.min(z + 0.25, 2.5))} className="w-10 h-10 bg-metal-dark border border-gold text-gold rounded-sm font-black text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">+</button>
+                  <button onClick={() => setMapZoom(1)} className="w-10 h-10 bg-metal-dark border border-gold text-[#8c7e6a] rounded-sm font-bold text-xs shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">重置</button>
+                  <button onClick={() => setMapZoom(z => Math.max(z - 0.25, 0.5))} className="w-10 h-10 bg-metal-dark border border-gold text-gold rounded-sm font-black text-xl shadow-lg hover:bg-[#3a2f22] flex items-center justify-center backdrop-blur-sm transition-all active:scale-95">-</button>
                 </div>
 
                 {/* 大本營具象化 UI */}
                 <div className={`absolute top-4 left-4 z-[60] p-3 rounded-sm shadow-2xl backdrop-blur-md flex flex-col items-start gap-2 animate-[slideUp_0.3s_ease-out] border-2 transition-all duration-500
-                    ${baseLevel === 3 ? 'bg-[#1a1410]/95 border-[#d4af37] shadow-[0_0_30px_rgba(212,175,55,0.3)]' : 
+                    ${baseLevel === 3 ? 'bg-[#1a1410]/95 border-gold shadow-[0_0_30px_rgba(212,175,55,0.3)]' : 
                       baseLevel === 2 ? 'bg-[#1a1410]/90 border-[#8b5a2b]' : 
                                         'bg-[#100a0a]/90 border-gray-700'}`}>
                    
-                   {/* 藍色能量護罩 (熊市 + 滿血時觸發) */}
                    {isShieldActive && (
                        <div className="absolute inset-[-6px] border-[3px] border-blue-500/80 rounded-lg animate-pulse shadow-[0_0_20px_rgba(59,130,246,0.6)] pointer-events-none"></div>
                    )}
@@ -1351,7 +1407,7 @@
                           {baseInfo.icon}
                        </div>
                        <div>
-                           <div className={`font-black tracking-widest text-sm md:text-base ${baseLevel === 3 ? 'text-[#d4af37]' : baseLevel === 2 ? 'text-[#cd853f]' : 'text-gray-400'}`}>
+                           <div className={`font-black tracking-widest text-sm md:text-base ${baseLevel === 3 ? 'text-gold' : baseLevel === 2 ? 'text-[#cd853f]' : 'text-gray-400'}`}>
                                {baseInfo.text}
                            </div>
                            <div className="text-[9px] md:text-[10px] text-[#a3947c]">{baseInfo.desc}</div>
@@ -1404,7 +1460,7 @@
                     {provincesState.map(prov => {
                       const IconComponent = prov.type === 'cave' ? ICONS.Cave : prov.type === 'camp' ? ICONS.Camp : prov.type === 'divine' ? ICONS.Divine : ICONS.Castle;
                       let iconColor = 'text-gray-600';
-                      if (prov.isConquered) iconColor = 'text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]';
+                      if (prov.isConquered) iconColor = 'text-gold drop-shadow-[0_0_15px_rgba(212,175,55,0.8)]';
                       else if (prov.isReqMet) {
                          if (prov.type === 'cave') iconColor = 'text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.8)]';
                          else if (prov.type === 'camp') iconColor = 'text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]';
@@ -1412,30 +1468,35 @@
                          else iconColor = 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]';
                       }
 
+                      // 判斷此城是否有駐軍
+                      const hasGarrison = stationedOfficers[prov.id];
+
                       return (
                         <div key={prov.id}
                           className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer flex flex-col items-center group z-10"
                           style={{ left: `${prov.x}%`, top: `${prov.y}%` }}
-                          onClick={() => { setSelectedProvinceId(prov.id); setSiegeMode(false); setCombatResult(null); }}
+                          onClick={() => { 
+                             setSelectedProvinceId(prov.id); 
+                             setShowCityModal(true);
+                             setCityTab('attack');
+                             setCombatResult(null); 
+                          }}
                         >
-                          <div className={`relative w-12 h-12 flex items-center justify-center transition-all duration-300
-                            ${selectedProvinceId === prov.id ? 'scale-125 z-20' : 'hover:scale-110'} ${iconColor}`}
-                          >
+                          <div className={`relative w-12 h-12 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 ${iconColor}`}>
                             <IconComponent className="w-full h-full" />
                             {prov.isConquered && (
                               <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-600 border border-yellow-300 rounded-sm text-[9px] flex items-center justify-center font-black text-black shadow-lg">魏</div>
                             )}
+                            {hasGarrison && (
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-900 border border-blue-400 rounded-full text-[10px] flex items-center justify-center font-black text-white shadow-lg">駐</div>
+                            )}
                             {prov.isReqMet && !prov.isConquered && (
                               <ICONS.Sword className="absolute inset-0 m-auto w-6 h-6 text-red-500 animate-pulse drop-shadow-md" />
                             )}
-                            {selectedProvinceId === prov.id && !prov.isConquered && (
-                              <div className="absolute inset-[-8px] border border-[#d4af37] animate-ping rounded-full opacity-40 pointer-events-none"></div>
-                            )}
                           </div>
                           <div className={`mt-1 px-2 py-0.5 text-[10px] md:text-xs font-bold border rounded-sm shadow-xl whitespace-nowrap tracking-widest backdrop-blur-sm
-                            ${selectedProvinceId === prov.id ? 'bg-[#d4af37] text-black border-white' : 
-                              prov.isConquered ? 'bg-yellow-900/90 text-yellow-200 border-yellow-500' :
-                              prov.isReqMet ? 'bg-blue-900/90 border-blue-500 text-blue-200' : 'bg-[#1a1111]/90 border-red-900/50 text-gray-400'}`}>
+                            ${prov.isConquered ? 'bg-yellow-900/90 text-gold border-gold' : 
+                              prov.isReqMet ? 'bg-blue-900/90 border-blue-500 text-blue-200' : 'bg-black/90 border-gray-700 text-gray-400'}`}>
                             {prov.name}
                           </div>
                         </div>
@@ -1444,117 +1505,166 @@
                   </div>
                 </div>
 
-                <div className="h-64 bg-[#1a1410] border-t-2 border-[#b8860b] p-4 flex flex-col relative shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.8)] z-20">
-                  {!siegeMode && !combatResult ? (
-                    <>
-                      <div className="flex justify-between items-start mb-2">
+                {/* 沉浸式城池 Modal (City View) */}
+                {showCityModal && selectedProvince && (
+                  <div className="absolute inset-0 z-[400] bg-black/90 flex justify-center items-center p-4 backdrop-blur-md animate-[slideUp_0.3s_ease-out]">
+                    <div className="w-full max-w-lg bg-metal-dark border-2 border-gold flex flex-col h-[85vh] relative shadow-[0_0_50px_rgba(212,175,55,0.3)]">
+                      
+                      {/* 漸層插畫感背景 */}
+                      <div className="h-40 bg-gradient-to-b from-[#3b2d0f] to-transparent absolute top-0 w-full pointer-events-none opacity-50"></div>
+                      
+                      <div className="relative z-10 flex justify-between items-center p-4 border-b border-[#3e2723]">
                         <div>
-                          <h2 className="text-[#d4af37] text-lg md:text-xl font-black tracking-widest flex items-center gap-2 whitespace-nowrap">
-                            {selectedProvince?.name}
-                            <span className={`text-[9px] px-1.5 py-0.5 border rounded-sm font-bold whitespace-nowrap
-                              ${selectedProvince?.isConquered ? 'text-yellow-300 border-yellow-500 bg-yellow-900' : 
-                                selectedProvince?.isReqMet ? 'text-blue-300 border-blue-500 bg-blue-900' : 'text-gray-400 border-gray-600'}`}>
-                              {selectedProvince?.isConquered ? '已佔據 (守成中)' : selectedProvince?.isReqMet ? '獲得攻城權' : '條件未滿'}
-                            </span>
-                          </h2>
-                          <p className="text-[10px] md:text-xs text-[#a3947c] mt-1 whitespace-nowrap">{selectedProvince?.title} | 守軍戰力：<span className="text-red-400 font-mono font-bold">{selectedProvince?.def.toLocaleString()}</span></p>
+                          <h2 className="text-3xl font-black text-gold tracking-widest drop-shadow-md">{selectedProvince.name}</h2>
+                          <div className="text-xs text-gray-400 mt-1">{selectedProvince.title} | 守軍: <span className="text-red-400 font-mono font-bold">{selectedProvince.def.toLocaleString()}</span></div>
                         </div>
-                        <div className="text-right shrink-0 ml-2">
-                          <div className="text-[10px] text-[#8c7e6a] tracking-widest whitespace-nowrap">霸業版圖</div>
-                          <div className="font-mono text-[#e3dac9] text-base md:text-lg text-yellow-400 whitespace-nowrap">{occupiedCount}<span className="text-[#8c7e6a] text-xs">/{PROVINCES.length}</span></div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 mt-2 overflow-y-auto pr-2 scrollbar-hide">
-                        <ul className="space-y-3">
-                          {selectedProvince && Object.entries(selectedProvince.req).map(([k, targetVal]) => {
-                            let current = 0;
-                            if (k === 'netWorth') current = stats.netWorth;
-                            else if (k === 'investCount') current = investCount;
-                            else if (k === 'debt') current = displayAssets.debt;
-                            else if (k === 'totalTasksDone') current = totalTasksDone || 0;
-                            else current = displayAssets[k] || 0;
-
-                            const isMet = k === 'debt' ? current <= targetVal : current >= targetVal;
-                            const progress = k === 'debt' ? (current === 0 ? 100 : 0) : Math.min(100, (current / targetVal) * 100);
-                            
-                            return (
-                              <li key={k} className="flex flex-col">
-                                <div className="flex justify-between mb-1 text-[10px] md:text-xs font-bold text-[#e3dac9] whitespace-nowrap">
-                                  <span>{selectedProvince.targetLabel}</span>
-                                  <span className={isMet ? 'text-green-400' : 'text-red-400'}>{isMet ? '達成' : '未滿'}</span>
-                                </div>
-                                <div className="w-full bg-[#0a0705] h-1.5 rounded-full overflow-hidden border border-[#3e2723]">
-                                  <div className={`h-full transition-all duration-1000 ${isMet ? 'bg-green-500' : 'bg-red-800'}`} style={{ width: `${progress}%` }}></div>
-                                </div>
-                                <div className="flex justify-between mt-1 text-[#8c7e6a] text-[9px] font-mono whitespace-nowrap">
-                                  <span>{current.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
-                                  <span>/ {targetVal.toLocaleString()}</span>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
+                        <button onClick={() => setShowCityModal(false)} className="w-8 h-8 border border-gold text-gold hover:bg-gold hover:text-black transition-colors font-bold flex justify-center items-center active:scale-95 shadow-md">X</button>
                       </div>
 
-                      {selectedProvince?.isReqMet && !selectedProvince?.isConquered && (
-                        <button onClick={() => { setSiegeMode(true); setSiegeGenerals([]); }} 
-                          className="w-full py-3 mt-3 bg-[#3b0f0f] text-red-100 border border-red-600 font-black tracking-widest text-sm md:text-base rounded-sm hover:bg-[#5c0000] active:scale-95 animate-pulse-red whitespace-nowrap">
-                          點將攻城 (發起戰力檢定)
-                        </button>
-                      )}
-                    </>
-                  ) : combatResult ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center animate-[stampIn_0.5s_forwards]">
-                      <h2 className={`text-2xl md:text-3xl font-black mb-3 whitespace-nowrap ${combatResult.success ? 'text-yellow-400' : 'text-red-500'}`}>
-                        {combatResult.success ? '大 獲 全 勝' : '折 戟 沉 沙'}
-                      </h2>
-                      <p className="text-xs md:text-sm text-[#e3dac9] mb-5 bg-[#0a0705] p-4 border border-[#3e2723] leading-relaxed w-full max-w-md">{combatResult.logMsg}</p>
-                      <button onClick={() => { setCombatResult(null); setSiegeMode(false); }} className="px-10 py-2.5 bg-[#1c1814] border border-[#d4af37] text-[#d4af37] font-bold rounded-sm tracking-widest hover:bg-[#2a2218] active:scale-95 whitespace-nowrap">確認戰果</button>
+                      {/* Modal 分頁標籤 */}
+                      <div className="flex border-b border-[#3e2723] relative z-10">
+                        {['attack', 'build', 'garrison'].map(tab => (
+                           <button key={tab} onClick={() => setCityTab(tab)} className={`flex-1 py-3 text-sm font-bold tracking-widest transition-colors ${cityTab === tab ? 'bg-[#3b2d0f] text-gold border-b-2 border-gold' : 'text-gray-500 hover:text-gray-300 hover:bg-[#1a1410]'}`}>
+                             {tab === 'attack' ? '城防攻略' : tab === 'build' ? '城池建設' : '太守駐軍'}
+                           </button>
+                        ))}
+                      </div>
+
+                      {/* Modal 內容區 */}
+                      <div className="flex-1 p-5 overflow-y-auto scrollbar-hide relative z-10">
+                        
+                        {combatResult ? (
+                           <div className="h-full flex flex-col items-center justify-center text-center animate-[stampIn_0.5s]">
+                             <h2 className={`text-3xl font-black mb-4 tracking-widest ${combatResult.success ? 'text-gold' : 'text-red-500'}`}>{combatResult.success ? '大 獲 全 勝' : '折 戟 沉 沙'}</h2>
+                             <p className="text-sm bg-black p-4 border border-[#3e2723] mb-6 text-[#e3dac9] leading-relaxed shadow-inner">{combatResult.logMsg}</p>
+                             <button onClick={() => setCombatResult(null)} className="px-8 py-3 bg-metal-dark border border-gold text-gold font-bold active:scale-95 tracking-widest hover:bg-[#3a2f22]">確認戰果</button>
+                           </div>
+                        ) : cityTab === 'attack' ? (
+                           <div className="flex flex-col h-full">
+                             {selectedProvince.isConquered ? (
+                               <div className="flex-1 flex flex-col items-center justify-center text-gold text-lg tracking-widest gap-4">
+                                  <ICONS.Castle className="w-16 h-16 opacity-50" />
+                                  此城已在我軍控制之下，穩如泰山。
+                               </div>
+                             ) : !selectedProvince.isReqMet ? (
+                               <div className="flex-1 flex flex-col items-center justify-center text-red-500 text-lg tracking-widest gap-4">
+                                  <ICONS.Sword className="w-16 h-16 opacity-50" />
+                                  前置理財條件未滿，無法發兵。請至【城池建設】查看。
+                               </div>
+                             ) : (
+                               <>
+                                 <div className="text-gold mb-3 font-bold flex justify-between items-end tracking-widest">
+                                    <span>點將出征 (最多 3 名)</span>
+                                    <span className="text-[10px] text-gray-400">目前選取: {siegeGenerals.length}/3</span>
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-4 gap-2 mb-4 overflow-y-auto max-h-[40vh] scrollbar-hide p-1">
+                                   {Object.keys(officerStats.roster).length === 0 ? <div className="col-span-full text-center text-gray-500 text-xs py-4">無可用將領</div> : 
+                                      Object.keys(officerStats.roster).map(idStr => {
+                                      const id = parseInt(idStr); const off = OFFICERS.find(o=>o.id===id);
+                                      const isSelected = siegeGenerals.includes(id);
+                                      return (
+                                        <div key={id} onClick={() => toggleSiegeGeneral(id)} className={`relative border p-2 text-center cursor-pointer active:scale-95 transition-colors shadow-sm ${isSelected ? 'border-red-500 bg-red-950 text-white' : 'border-[#3e2723] bg-black hover:border-gray-500'}`}>
+                                           <div className={`text-xs font-bold ${off.color} whitespace-nowrap`}>{off.name}</div>
+                                           <div className="text-[9px] text-gray-500 mt-1">戰力加成</div>
+                                        </div>
+                                      )
+                                   })}
+                                 </div>
+                                 
+                                 <div className="mt-auto">
+                                    <div className="bg-black border border-[#3e2723] p-3 mb-3 text-xs text-gray-400 flex justify-between items-center shadow-inner">
+                                       <span>基礎戰力: {Math.max(1, stats.netWorth/10000).toFixed(0)}</span>
+                                       <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' || mainOfficerId ? 'text-green-400' : ''}>各項加成已計算</span>
+                                    </div>
+                                    <button onClick={executeSiege} className="w-full py-4 bg-[#3b0f0f] border border-red-500 text-white font-black tracking-widest text-lg active:scale-95 shadow-[0_0_15px_rgba(239,68,68,0.5)] hover:bg-[#5c0000] animate-pulse-red">發起總攻</button>
+                                 </div>
+                               </>
+                             )}
+                           </div>
+                        ) : cityTab === 'build' ? (
+                           <div className="flex flex-col gap-4 h-full overflow-y-auto pr-2 scrollbar-hide">
+                             <div className="bg-black p-3 border border-[#3e2723] text-xs text-gray-400 leading-relaxed mb-2 shadow-inner">
+                               將軍，攻佔此城需先達成以下大本營之理財建設目標。
+                             </div>
+                             {Object.entries(selectedProvince.req).map(([k, targetVal]) => {
+                                let cur = 0;
+                                if (k === 'netWorth') cur = stats.netWorth;
+                                else if (k === 'investCount') cur = investCount;
+                                else if (k === 'debt') cur = assets.debt;
+                                else if (k === 'totalTasksDone') cur = totalTasksDone || 0;
+                                else cur = assets[k] || 0;
+
+                                let met = k === 'debt' ? cur <= targetVal : cur >= targetVal;
+                                let pct = k === 'debt' ? (cur===0?100:0) : Math.min(100, (cur/targetVal)*100);
+                                return (
+                                  <div key={k} className="bg-metal-dark p-3 border border-[#3e2723] shadow-md">
+                                     <div className="flex justify-between text-xs mb-2 font-bold tracking-widest">
+                                        <span className="text-[#e3dac9]">{selectedProvince.targetLabel}</span>
+                                        <span className={met ? 'text-green-400' : 'text-red-400'}>{met ? '達成' : '未滿'}</span>
+                                     </div>
+                                     <div className="w-full h-2.5 bg-black border border-[#2a1a15] rounded-full overflow-hidden mb-1"><div className={`h-full transition-all duration-1000 ${met?'bg-green-500':'bg-gold'}`} style={{width: `${pct}%`}}></div></div>
+                                     <div className="flex justify-between text-[10px] font-mono text-gray-500">
+                                        <span>{cur.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
+                                        <span>/ {targetVal.toLocaleString()}</span>
+                                     </div>
+                                  </div>
+                                )
+                             })}
+                           </div>
+                        ) : (
+                           <div className="flex flex-col h-full">
+                             {!selectedProvince.isConquered ? (
+                               <div className="flex-1 flex flex-col items-center justify-center text-gray-500 text-sm tracking-widest gap-4">
+                                  <ICONS.Users className="w-12 h-12 opacity-50" />
+                                  需先佔領城池，方可派駐太守。
+                               </div>
+                             ) : (
+                               <>
+                                 <div className="text-xs text-gray-300 mb-4 bg-black p-3 border border-[#3e2723] leading-relaxed shadow-inner">
+                                    將軍，指派麾下武將鎮守此城，可增加每月「大營巡視」時的自動化軍功歲貢。被指派的武將仍可參與攻城或擔任主將。
+                                 </div>
+                                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-y-auto max-h-[50vh] scrollbar-hide p-1">
+                                    {Object.keys(officerStats.roster).length === 0 ? <div className="col-span-full text-center text-gray-500 text-xs py-4">無可用將領</div> : 
+                                       Object.keys(officerStats.roster).map(idStr => {
+                                        const id = parseInt(idStr); const off = OFFICERS.find(o=>o.id===id);
+                                        const isStationedHere = stationedOfficers[selectedProvince.id] === id;
+                                        
+                                        // 檢查是否已在其他城池駐派
+                                        let isStationedElsewhere = false;
+                                        Object.entries(stationedOfficers).forEach(([pId, oId]) => {
+                                           if(oId === id && pId !== selectedProvince.id) isStationedElsewhere = true;
+                                        });
+
+                                        return (
+                                          <div key={id} onClick={() => {
+                                             if (isStationedElsewhere) return showToast("此將領已鎮守其他城池！", "warn");
+                                             let newState = {...gameState};
+                                             if (isStationedHere) delete newState.stationedOfficers[selectedProvince.id];
+                                             else newState.stationedOfficers[selectedProvince.id] = id;
+                                             saveGameState(newState);
+                                          }} className={`border p-2 text-center cursor-pointer active:scale-95 transition-colors flex flex-col items-center relative shadow-md
+                                             ${isStationedHere ? 'border-gold bg-gold text-black shadow-[0_0_15px_rgba(212,175,55,0.6)]' : isStationedElsewhere ? 'border-gray-800 bg-gray-900 text-gray-600 cursor-not-allowed' : 'border-[#3e2723] bg-black text-gray-400 hover:border-gray-500'}`}>
+                                             {isStationedHere && <div className="absolute -top-2 -right-2 text-[10px] bg-black text-gold px-1 font-bold border border-gold tracking-widest">太守</div>}
+                                             {isStationedElsewhere && <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-[10px] text-red-500 font-bold font-mono tracking-widest">已外派</div>}
+                                             <div className={`text-xs font-bold whitespace-nowrap mb-1 tracking-widest ${isStationedHere ? 'text-black' : isStationedElsewhere ? '' : off.color}`}>{off.name}</div>
+                                             <div className={`text-[9px] ${isStationedHere ? 'text-black' : 'text-gray-500'}`}>{off.type}</div>
+                                          </div>
+                                        )
+                                    })}
+                                 </div>
+                               </>
+                             )}
+                           </div>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="flex flex-col h-full animate-[slideUp_0.3s]">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-[#d4af37] font-bold tracking-widest flex items-center gap-2 whitespace-nowrap"><ICONS.Users className="w-4 h-4"/> 點將出征 (最多3名)</h3>
-                        <button onClick={() => setSiegeMode(false)} className="text-[10px] text-[#8c7e6a] border border-[#4a3525] px-3 py-1 hover:bg-[#2a1a15] whitespace-nowrap">取消出征</button>
-                      </div>
-                      
-                      <div className="flex-1 overflow-y-auto mb-3 border border-[#3e2723] p-2 bg-[#0a0705] grid grid-cols-4 md:grid-cols-6 gap-2 scrollbar-hide">
-                        {Object.keys(officerStats.roster).length === 0 ? <p className="text-xs text-gray-500 col-span-full text-center mt-4">尚無將領，僅憑基礎兵力出戰</p> : 
-                          Object.entries(officerStats.roster).map(([idStr, level]) => {
-                            const id = parseInt(idStr);
-                            const off = OFFICERS.find(o => o.id === id);
-                            const isSelected = siegeGenerals.includes(id);
-                            return (
-                              <div key={id} onClick={() => toggleSiegeGeneral(id)} className={`relative border p-1 md:p-2 text-center cursor-pointer transition-all select-none
-                                ${isSelected ? 'border-red-500 bg-red-900/30' : 'border-[#3e2723] bg-[#1a1410] hover:border-gray-500'}`}>
-                                <div className="text-[9px] text-yellow-400 absolute top-0 left-0 bg-black/80 px-1 font-bold whitespace-nowrap">{level}星</div>
-                                <div className={`text-[10px] md:text-xs font-bold mt-3 whitespace-nowrap ${off.color}`}>{off.name}</div>
-                                <div className="text-[8px] text-gray-400 whitespace-nowrap">{off.type} {off.stat}</div>
-                                {isSelected && <div className="absolute inset-0 border-2 border-red-500 pointer-events-none"></div>}
-                              </div>
-                            )
-                          })
-                        }
-                      </div>
-
-                      <div className="flex items-center justify-between bg-[#0a0705] border border-[#2a1a15] p-2">
-                        <div className="text-[10px] md:text-xs text-[#a3947c] leading-tight flex-1 whitespace-nowrap">
-                          基礎戰力: <span className="text-white font-mono">{Math.max(1, stats.netWorth/10000).toFixed(0)}</span><br/>
-                          將領/天象/國策/主將: <span className={siegeGenerals.length > 0 || weather.trend !== 'neutral' || (policies || []).length > 0 || mainOfficerId ? 'text-green-400' : 'text-gray-500'}>已計算</span>
-                        </div>
-                        <button onClick={executeSiege} className={`px-6 py-2 md:py-3 font-black tracking-widest rounded-sm text-sm shrink-0 transition-all whitespace-nowrap
-                          ${siegeGenerals.length > 0 ? 'bg-red-800 text-white border border-red-500 animate-pulse-red active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border border-[#3e2723]'}`}>
-                          全軍出擊
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* 2. COMMAND TAB */}
+            {/* ====== 2. COMMAND TAB (軍令與內政) ====== */}
             {activeTab === 'command' && (
               <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4 pb-6 h-full overflow-y-auto w-full relative">
                 
@@ -1592,25 +1702,25 @@
 
                   <div className="grid grid-cols-2 gap-3 relative z-10">
                       <button onClick={() => handleAttackBoss('merit')}
-                        className="bg-[#2a0808] border border-red-700 p-3 hover:bg-[#3b0f0f] active:scale-95 transition-all text-center group rounded-sm">
+                        className="bg-[#2a0808] border border-red-700 p-3 hover:bg-[#3b0f0f] active:scale-95 transition-all text-center group rounded-sm shadow-md">
                           <div className="text-red-300 font-bold text-xs md:text-sm tracking-widest mb-1 group-hover:text-white">軍功重擊</div>
                           <div className="text-[10px] text-gray-400">消耗 100 軍功</div>
                       </button>
                       <button onClick={() => handleAttackBoss('task')}
-                        className="bg-[#0f172a] border border-blue-700 p-3 hover:bg-[#1e293b] active:scale-95 transition-all text-center group rounded-sm">
+                        className="bg-[#0f172a] border border-blue-700 p-3 hover:bg-[#1e293b] active:scale-95 transition-all text-center group rounded-sm shadow-md">
                           <div className="text-blue-300 font-bold text-xs md:text-sm tracking-widest mb-1 group-hover:text-white">修行奧義</div>
                           <div className="text-[10px] text-gray-400">消耗 5 次本月修行 (目前:{monthlyTaskCount || 0})</div>
                       </button>
                   </div>
                 </div>
 
-                <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative mt-2">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-[#b8860b]"></div>
-                  <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-4 tracking-widest flex items-center gap-2 whitespace-nowrap">
+                <div className="bg-metal-dark border border-[#4a3525] p-5 shadow-lg relative mt-2">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gold"></div>
+                  <h2 className="text-gold font-bold text-lg md:text-xl mb-4 tracking-widest flex items-center gap-2 whitespace-nowrap">
                     <ICONS.Tent className="w-5 h-5"/> 頒布徵兵令 (閒錢定投)
                   </h2>
                   
-                  <div className="bg-[#0a0705] p-3 md:p-4 border border-[#3e2723] mb-5">
+                  <div className="bg-black p-3 md:p-4 border border-[#3e2723] mb-5 shadow-inner">
                     <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed">
                       將軍，軍餉即為戰力。發布軍令僅為推進霸業進度與累積軍功，<span className="text-green-400 font-bold">不扣除法幣餘額</span>。<br/>
                       為確保戰力穩固，軍令僅限招募精銳部隊 (BTC, QQQ, VOO)。<br/>
@@ -1623,7 +1733,7 @@
                         <input type="number" 
                           value={investPlan.amount === 0 ? '' : investPlan.amount}
                           onChange={(e) => setInvestPlan({...investPlan, amount: parseFloat(e.target.value) || 0})}
-                          className="w-full bg-[#1c1814] border border-[#4a3525] text-[#e3dac9] p-3 focus:outline-none focus:border-[#d4af37] font-mono text-base text-right rounded-sm"
+                          className="w-full bg-[#1c1814] border border-[#4a3525] text-[#e3dac9] p-3 focus:outline-none focus:border-gold font-mono text-base text-right rounded-sm"
                         />
                       </div>
                       <div>
@@ -1631,7 +1741,7 @@
                         <select 
                           value={investPlan.target}
                           onChange={(e) => setInvestPlan({...investPlan, target: e.target.value})}
-                          className="w-full bg-[#1c1814] border border-[#4a3525] text-[#e3dac9] p-3 focus:outline-none focus:border-[#d4af37] font-bold text-sm rounded-sm appearance-none"
+                          className="w-full bg-[#1c1814] border border-[#4a3525] text-[#e3dac9] p-3 focus:outline-none focus:border-gold font-bold text-sm rounded-sm appearance-none"
                         >
                           <option value="btc">虎豹騎 (BTC) - 前期主力</option>
                           <option value="qqq">元戎弩 (QQQ) - 中期穩健</option>
@@ -1652,23 +1762,23 @@
 
                   <button 
                     onClick={handlePayday} disabled={!canInvestThisMonth}
-                    className={`w-full py-3 md:py-4 font-black text-base md:text-lg border rounded-sm transition-all tracking-widest relative overflow-hidden whitespace-nowrap
+                    className={`w-full py-3 md:py-4 font-black text-base md:text-lg border rounded-sm transition-all tracking-widest relative overflow-hidden whitespace-nowrap shadow-md
                       ${canInvestThisMonth 
                         ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000] active:scale-95 shadow-[0_0_10px_rgba(139,0,0,0.5)]' 
-                        : 'bg-[#1c1814] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
+                        : 'bg-black text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
                   >
                     <span className="relative z-10">{canInvestThisMonth ? '確認出兵與軍務' : '本月軍令已畢'}</span>
                   </button>
                   
-                  <div className="mt-3 flex justify-between items-center text-[10px] md:text-xs bg-[#0a0705] p-2 border border-[#2a1a15]">
+                  <div className="mt-3 flex justify-between items-center text-[10px] md:text-xs bg-black p-2 border border-[#2a1a15]">
                     <span className="text-[#a3947c] whitespace-nowrap">武將被動: <span className="text-green-400">+{officerStats.passiveBuff.toFixed(1)}</span></span>
                     <span className="text-[#a3947c] whitespace-nowrap">羈絆: <span className="text-yellow-400">+{bondPaydayBuff}</span></span>
-                    <span className="text-[#a3947c] whitespace-nowrap">國策: <span className="text-blue-400">{(policies || []).includes('p_family') ? 'x1.2' : '-'}</span></span>
+                    <span className="text-[#a3947c] whitespace-nowrap">主將/國策: <span className="text-blue-400">+{mainOfficerBuffs.extraPassiveTax} / {(policies || []).includes('p_family') ? 'x1.2' : '-'}</span></span>
                   </div>
                 </div>
 
-                <div className="bg-[#1a1410] border border-[#4a3525] p-5 shadow-lg relative">
-                  <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 tracking-widest flex items-center gap-2">日常內政 (修身齊家)</h3>
+                <div className="bg-metal-dark border border-[#4a3525] p-5 shadow-lg relative">
+                  <h3 className="text-gold font-bold text-sm md:text-base mb-1 tracking-widest flex items-center gap-2">日常內政 (修身齊家)</h3>
                   
                   {mainOfficerId ? (() => {
                      const exp = (officerExps || {})[mainOfficerId] || 0;
@@ -1676,13 +1786,16 @@
                      const off = OFFICERS.find(o => o.id === mainOfficerId);
                      if(!off) return null;
                      return (
-                        <div className="mb-3 bg-[#0a0705] border border-[#3e2723] p-2 flex justify-between items-center text-[10px] md:text-xs">
-                            <span className={`font-bold ${off.color}`}>⚔️ 主將：{off.name} (Lv.{level})</span>
-                            <span className="text-[#a3947c]">羈絆: <AnimatedNumber value={exp} formatter={fmtInt} /> | 戰力加成: <span className="text-green-400">+{level}%</span></span>
+                        <div className="mb-3 bg-[#1a1410] border border-gold p-3 flex flex-col md:flex-row justify-between items-start md:items-center text-[10px] md:text-xs gap-2 shadow-inner">
+                            <div className="flex flex-col">
+                               <span className={`font-bold text-sm tracking-widest ${off.color}`}>⚔️ 主將：{off.name} (Lv.{level})</span>
+                               {off.skillName && <span className="text-blue-400 mt-1 tracking-widest">奧義：{off.skillName}</span>}
+                            </div>
+                            <span className="text-[#a3947c]">戰力加成: <span className="text-green-400">+{level}%</span> / 內政軍功: <span className="text-yellow-400">x{mainOfficerBuffs.meritBonus}</span></span>
                         </div>
                      )
                   })() : (
-                     <div className="mb-3 bg-[#0a0705] border border-[#3e2723] p-2 text-center text-[10px] md:text-xs text-[#8c7e6a]">
+                     <div className="mb-3 bg-black border border-[#3e2723] p-3 text-center text-[10px] md:text-xs text-[#8c7e6a]">
                         尚未指派大營主將 (請至招賢館任命)
                      </div>
                   )}
@@ -1694,36 +1807,36 @@
                   </p>
                   
                   <div className="grid grid-cols-3 gap-2">
-                      <button onClick={() => handleDailyTask('研讀兵法', 10)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-blue-500 hover:bg-[#0a1128] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                      <button onClick={() => handleDailyTask('研讀兵法', 10)} className="bg-black border border-[#3e2723] p-3 hover:border-blue-500 hover:bg-[#0a1128] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm shadow-md">
                           <span className="text-blue-400 text-xs font-bold tracking-widest whitespace-nowrap">研讀兵法</span>
                           <span className="text-[9px] text-gray-500">(知識提升)</span>
                       </button>
-                      <button onClick={() => handleDailyTask('巡視營帳', 10)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-green-500 hover:bg-[#0a1a0f] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                      <button onClick={() => handleDailyTask('巡視營帳', 10)} className="bg-black border border-[#3e2723] p-3 hover:border-green-500 hover:bg-[#0a1a0f] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm shadow-md">
                           <span className="text-green-400 text-xs font-bold tracking-widest whitespace-nowrap">巡視營帳</span>
                           <span className="text-[9px] text-gray-500">(整理家務)</span>
                       </button>
-                      <button onClick={() => handleDailyTask('校場操練', 10)} className="bg-[#0a0705] border border-[#3e2723] p-3 hover:border-red-500 hover:bg-[#2a0808] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm">
+                      <button onClick={() => handleDailyTask('校場操練', 10)} className="bg-black border border-[#3e2723] p-3 hover:border-red-500 hover:bg-[#2a0808] transition-all active:scale-95 flex flex-col items-center justify-center gap-1 rounded-sm shadow-md">
                           <span className="text-red-400 text-xs font-bold tracking-widest whitespace-nowrap">校場操練</span>
                           <span className="text-[9px] text-gray-500">(運動鍛鍊)</span>
                       </button>
                   </div>
                 </div>
 
-                <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex justify-between items-center">
+                <div className="bg-metal-dark border border-[#4a3525] p-4 shadow-lg flex justify-between items-center">
                   <div>
-                    <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-1 whitespace-nowrap">大營巡視 (雙防禦)</h3>
-                    <p className="text-[10px] text-[#8c7e6a] whitespace-nowrap">檢閱預備金 20萬 & 娛樂流動金 5萬</p>
+                    <h3 className="text-gold font-bold text-sm md:text-base mb-1 whitespace-nowrap">大營巡視 (收稅與檢閱)</h3>
+                    <p className="text-[10px] text-[#8c7e6a] whitespace-nowrap">檢閱預備金 20萬 & 娛樂金 5萬，並收取各地歲貢</p>
                   </div>
                   <button onClick={executeRoutineTask} disabled={!canDoRoutineThisMonth}
-                    className={`px-4 py-2 text-xs md:text-sm font-bold border rounded-sm tracking-widest whitespace-nowrap shrink-0 ml-2
-                      ${canDoRoutineThisMonth ? 'bg-[#0f291e] text-green-400 border-green-700 hover:bg-[#14532d] active:scale-95' : 'bg-[#0a0705] text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
+                    className={`px-4 py-2 text-xs md:text-sm font-bold border rounded-sm tracking-widest whitespace-nowrap shrink-0 ml-2 shadow-md
+                      ${canDoRoutineThisMonth ? 'bg-[#0f291e] text-green-400 border-green-700 hover:bg-[#14532d] active:scale-95' : 'bg-black text-[#5c4033] border-[#3e2723] cursor-not-allowed'}`}
                   >
-                    {canDoRoutineThisMonth ? `檢閱領賞 (+${(30 + bondRoutineBuff) * ((policies||[]).includes('p_wall') ? 2 : 1)})` : '已巡視'}
+                    {canDoRoutineThisMonth ? `檢閱領賞` : '已巡視'}
                   </button>
                 </div>
 
-                <div className="bg-[#1a1410] border border-[#4a3525] p-4 shadow-lg flex-1 min-h-[200px] flex flex-col">
-                  <h3 className="text-[#d4af37] text-sm md:text-base font-bold mb-3 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest shrink-0 whitespace-nowrap">
+                <div className="bg-metal-dark border border-[#4a3525] p-4 shadow-lg flex-1 min-h-[200px] flex flex-col">
+                  <h3 className="text-gold text-sm md:text-base font-bold mb-3 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest shrink-0 whitespace-nowrap">
                     <ICONS.Scroll className="w-4 h-4"/> 烽火紀年錄
                   </h3>
                   <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-2">
@@ -1750,20 +1863,20 @@
               </div>
             )}
 
-            {/* 3. POLICY TAB */}
+            {/* ====== 3. POLICY TAB ====== */}
             {activeTab === 'policy' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
-                <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-metal-dark border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
                   <div className="relative z-10 text-center md:text-left flex-1">
-                    <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest whitespace-nowrap">
+                    <h2 className="text-gold font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest whitespace-nowrap">
                       <ICONS.Flag className="w-5 h-5 text-blue-500"/> 國策天賦 (Tech Tree)
                     </h2>
                     <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
                       消耗軍功頒布國策，為我軍帶來永久的天賦增益。部分國策需達成特定財務紀律方可解鎖。
                     </p>
                   </div>
-                  <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0 shadow-inner">
+                  <div className="relative z-10 bg-black border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0 shadow-inner">
                     <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">當前軍功</div>
                     <div className="text-3xl font-black text-yellow-400 font-mono whitespace-nowrap drop-shadow-md"><AnimatedNumber value={merit} formatter={fmtInt} /></div>
                   </div>
@@ -1778,7 +1891,7 @@
                      
                      return (
                        <div key={policy.id} className={`p-4 border rounded-sm relative flex flex-col justify-between transition-all
-                          ${isUnlocked ? 'bg-[#1e293b] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'bg-[#0a0705] border-[#3e2723]'}`}>
+                          ${isUnlocked ? 'bg-[#0f172a] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'bg-metal-dark border-[#3e2723] shadow-md'}`}>
                           {isUnlocked && <div className="absolute right-[-24px] top-[14px] transform rotate-45 bg-blue-600 text-white text-[10px] font-bold py-1 w-28 text-center shadow-lg">已頒布</div>}
                           
                           <div>
@@ -1799,7 +1912,7 @@
                             {!isUnlocked ? (
                                <button onClick={() => handleUnlockPolicy(policy)} disabled={!isAvailable}
                                  className={`px-4 py-2 font-bold text-xs tracking-widest rounded-sm transition-all border
-                                 ${isAvailable ? 'bg-[#0f172a] text-blue-300 border-blue-700 hover:bg-[#1e3a8a] active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border-[#2a1a15] cursor-not-allowed'}`}>
+                                 ${isAvailable ? 'bg-[#0f172a] text-blue-300 border-blue-700 hover:bg-[#1e3a8a] active:scale-95' : 'bg-black text-[#5c4033] border-[#2a1a15] cursor-not-allowed'}`}>
                                  頒布國策
                                </button>
                             ) : (
@@ -1812,14 +1925,14 @@
                 </div>
 
                 {/* 傳奇成就牆 */}
-                <h3 className="text-[#d4af37] font-bold text-lg mb-3 tracking-widest flex items-center gap-2 border-b border-[#3e2723] pb-2">
+                <h3 className="text-gold font-bold text-lg mb-3 tracking-widest flex items-center gap-2 border-b border-[#3e2723] pb-2">
                    <ICONS.Trophy className="w-5 h-5 text-yellow-400" /> 傳奇成就牆 (Trophies)
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                    {ACHIEVEMENTS.map(ach => {
                       const isUnlocked = (achievements || []).includes(ach.id);
                       return (
-                         <div key={ach.id} className={`p-3 border rounded-sm flex flex-col items-center justify-center text-center transition-all ${isUnlocked ? 'bg-[#2a2218] border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.2)]' : 'bg-[#0a0705] border-[#2a1a15] opacity-50 grayscale'}`}>
+                         <div key={ach.id} className={`p-3 border rounded-sm flex flex-col items-center justify-center text-center transition-all ${isUnlocked ? 'bg-[#2a2218] border-gold shadow-[0_0_10px_rgba(212,175,55,0.2)]' : 'bg-black border-[#2a1a15] opacity-50 grayscale shadow-inner'}`}>
                              <div className="text-3xl mb-2 drop-shadow-md">{ach.icon}</div>
                              <div className={`text-xs font-bold tracking-widest mb-1 ${isUnlocked ? 'text-yellow-400' : 'text-gray-500'}`}>{ach.name}</div>
                              <div className="text-[9px] text-[#8c7e6a]">{ach.desc}</div>
@@ -1830,35 +1943,36 @@
               </div>
             )}
 
-            {/* 4. TAVERN TAB */}
+            {/* ====== 4. TAVERN TAB (SLG 視覺化卡牌) ====== */}
             {activeTab === 'tavern' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
                 
-                <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
-                  <div className="relative z-10 text-center md:text-left flex-1">
-                    <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest whitespace-nowrap">
-                      <ICONS.Users className="w-5 h-5"/> 招賢館 (動態將營)
-                    </h2>
-                    <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
-                      消耗 100 軍功設宴招募將領。獲得重複武將將轉化為「將魂」升級星數。<br/>
-                      <span className="text-green-400 font-bold mt-1 inline-block">點擊麾下將領可與其交談，並可將其「設為大營主將」，陪你一同在日常修行中成長！</span>
-                    </p>
-                  </div>
+                <div className="bg-metal-dark border-2 border-gold p-6 mb-6 shadow-[0_0_20px_rgba(212,175,55,0.15)] flex flex-col items-center text-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 opacity-10 pointer-events-none"><ICONS.Users className="w-48 h-48" /></div>
+                  <h2 className="text-gold font-black text-2xl md:text-3xl mb-2 tracking-widest flex items-center gap-3 relative z-10">
+                    <ICONS.Users className="w-6 h-6"/> 招賢館 (動態將營)
+                  </h2>
+                  <p className="text-xs text-gray-400 mb-6 max-w-md relative z-10 leading-relaxed">
+                    消耗軍功招募歷史名將與財商導師加入麾下。<br/>重複獲得將轉化為「將魂」升級星數，大幅提升戰力！<br/>
+                    <span className="text-green-400 font-bold mt-1 inline-block">點擊武將卡牌可【任命主將】啟動專屬奧義。</span>
+                  </p>
                   
-                  <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0">
-                    <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">軍功庫存</div>
-                    <div className="text-2xl font-bold text-yellow-400 font-mono mb-3 whitespace-nowrap"><AnimatedNumber value={merit} formatter={fmtInt} /></div>
-                    <button onClick={drawOfficer} disabled={merit < 100}
-                      className={`w-full py-2.5 font-bold text-sm md:text-base border rounded-sm transition-all tracking-widest whitespace-nowrap
-                        ${merit >= 100 ? 'bg-[#2a2218] text-[#d4af37] border-[#b8860b] hover:bg-[#3a2f22] active:scale-95 shadow-[0_0_10px_rgba(184,134,11,0.2)]' : 'bg-[#110a05] border-[#2a1a15] text-[#5c4033] cursor-not-allowed'}`}
-                    >
-                      設宴招賢 (100)
-                    </button>
+                  <div className="flex gap-4 items-end justify-center w-full max-w-sm relative z-10">
+                     <div className="bg-black border border-[#4a3525] p-3 rounded-sm flex flex-col items-center w-1/3 shadow-inner">
+                        <div className="text-[10px] text-gray-500 tracking-widest mb-1">軍功庫存</div>
+                        <div className="text-xl font-bold text-yellow-400 font-mono"><AnimatedNumber value={merit} formatter={fmtInt} /></div>
+                     </div>
+                     <button onClick={drawOfficer} disabled={merit < 100} 
+                        className={`flex-1 py-4 font-black text-lg md:text-xl border rounded-sm transition-all tracking-widest
+                        ${merit >= 100 ? 'bg-[#2a2218] text-gold border-gold hover:bg-[#3a2f22] active:scale-95 shadow-[0_0_15px_rgba(212,175,55,0.3)]' : 'bg-black border-[#2a1a15] text-[#5c4033] cursor-not-allowed'}`}
+                     >
+                        設宴招賢 (100)
+                     </button>
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest border-l-4 border-[#b8860b] pl-2 mb-3 flex items-center gap-2 whitespace-nowrap">
+                  <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest border-l-4 border-gold pl-2 mb-3 flex items-center gap-2 whitespace-nowrap">
                     <ICONS.Link className="w-4 h-4"/> 英雄羈絆
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1867,9 +1981,9 @@
                       const isActive = bond.req.every(reqId => uniqueOwned.includes(reqId));
                       return (
                         <div key={bond.id} className={`p-3 border rounded-sm relative overflow-hidden transition-colors
-                          ${isActive ? 'bg-[#2a2218] border-[#d4af37]' : 'bg-[#0a0705] border-[#2a1a15]'}`}>
-                          {isActive && <div className="absolute right-[-20px] top-[10px] transform rotate-45 bg-[#b8860b] text-black text-[9px] font-bold py-0.5 w-24 text-center shadow-lg whitespace-nowrap">已解鎖</div>}
-                          <h4 className={`font-bold text-sm mb-1 tracking-widest whitespace-nowrap ${isActive ? 'text-[#d4af37]' : 'text-[#8c7e6a]'}`}>{bond.name}</h4>
+                          ${isActive ? 'bg-[#2a2218] border-gold shadow-md' : 'bg-black border-[#2a1a15]'}`}>
+                          {isActive && <div className="absolute right-[-20px] top-[10px] transform rotate-45 bg-gold text-black text-[9px] font-bold py-0.5 w-24 text-center shadow-lg whitespace-nowrap">已解鎖</div>}
+                          <h4 className={`font-bold text-sm mb-1 tracking-widest whitespace-nowrap ${isActive ? 'text-gold' : 'text-[#8c7e6a]'}`}>{bond.name}</h4>
                           <p className={`text-[10px] ${isActive ? 'text-[#e3dac9]' : 'text-[#5c4033]'}`}>{bond.desc}</p>
                           <div className="flex gap-1 mt-2 flex-wrap">
                             {bond.req.map(reqId => {
@@ -1890,29 +2004,48 @@
                 </div>
                 
                 <div className="flex justify-between items-end mb-3 border-b border-[#3e2723] pb-2 px-1">
-                  <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest whitespace-nowrap">麾下名將 (陣容星級)</h3>
+                  <h3 className="text-[#e3dac9] font-bold text-sm md:text-base tracking-widest whitespace-nowrap">麾下名將 (點擊卡牌檢視)</h3>
                   <span className="text-[10px] md:text-xs text-[#8c7e6a] font-mono whitespace-nowrap">圖鑑解鎖: {Object.keys(officerStats.roster).length} / {OFFICERS.length}</span>
                 </div>
                 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-3">
-                  {Object.keys(officerStats.roster).length === 0 ? <div className="col-span-full py-10 text-center text-[#5c4033] text-xs whitespace-nowrap">尚無將領，大營空虛。</div> : 
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+                  {Object.keys(officerStats.roster).length === 0 ? <div className="col-span-full py-10 text-center text-[#5c4033] text-sm whitespace-nowrap">大營空虛，請先招募將領。</div> : 
                     Object.entries(officerStats.roster).reverse().map(([idStr, level]) => {
                       const id = parseInt(idStr);
                       const officer = OFFICERS.find(o => o.id === id);
                       if(!officer) return null;
+                      
                       return (
-                        <div key={id} onClick={() => setActiveOfficerDialogue(officer)} className={`bg-[#0a0705] border p-2 flex flex-col items-center relative overflow-hidden cursor-pointer hover:scale-105 transition-transform ${officer.border}`}>
-                          <div className={`absolute top-0 right-0 px-1.5 py-0.5 text-[8px] font-black whitespace-nowrap ${officer.bg} ${officer.color} border-b border-l ${officer.border}`}>
+                        <div key={id} onClick={() => setActiveOfficerDialogue(officer)} 
+                          className={`relative h-48 md:h-56 border-[3px] ${officer.rareBorder} bg-gradient-to-b from-[#1a1a1a] to-black flex items-center justify-center overflow-hidden cursor-pointer hover:scale-105 active:scale-95 transition-transform group shadow-lg`}
+                        >
+                          {/* 預留的立繪圖片區塊 */}
+                          {officer.portrait && <img src={officer.portrait} alt={officer.name} className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-screen" />}
+                          
+                          <div className={`absolute top-2 left-2 px-2 py-1 text-[10px] font-black whitespace-nowrap ${officer.bg} ${officer.color} border ${officer.rareBorder} z-10`}>
                             {officer.faction}
                           </div>
-                          <div className="absolute top-0 left-0 bg-yellow-600/90 text-black px-1.5 py-0.5 text-[9px] font-black border-b border-r border-yellow-400 whitespace-nowrap">
+                          <div className="absolute top-2 right-2 bg-yellow-600 text-black px-1.5 py-0.5 text-[10px] font-black border border-yellow-300 whitespace-nowrap z-10 shadow-md">
                             {level} 星
                           </div>
-                          <div className={`text-xs md:text-sm font-bold mt-5 mb-1 tracking-widest whitespace-nowrap ${officer.color}`}>{officer.name}</div>
-                          <div className="text-[9px] text-[#a3947c] whitespace-nowrap">{officer.type}</div>
-                          <div className="w-full border-t border-[#2a1a15] mt-1 pt-1 text-center text-[#8c7e6a] text-[8px] whitespace-nowrap flex items-center justify-center gap-1 hover:text-[#d4af37]">
-                            <ICONS.Message className="w-3 h-3" /> 點擊交談
-                          </div>
+                          
+                          {/* 若無立繪，顯示書法字 */}
+                          {!officer.portrait && (
+                              <div className={`text-4xl md:text-5xl font-black write-vertical ${officer.color} opacity-80 group-hover:scale-110 transition-transform drop-shadow-[0_0_10px_currentColor] z-10`}>
+                                {officer.name}
+                              </div>
+                          )}
+                          
+                          {/* 主將技能標示 */}
+                          {officer.skillName ? (
+                              <div className="absolute bottom-0 w-full bg-blue-900/90 text-blue-200 text-[9px] md:text-[10px] text-center py-1 font-bold z-10 border-t border-blue-500 truncate px-1">
+                                ✨ {officer.skillName}
+                              </div>
+                          ) : (
+                              <div className="absolute bottom-0 w-full bg-black/80 text-gray-500 text-[9px] text-center py-1 z-10 border-t border-[#3e2723]">
+                                {officer.type} {officer.stat}
+                              </div>
+                          )}
                         </div>
                       );
                     })
@@ -1921,13 +2054,13 @@
               </div>
             )}
 
-            {/* 5. FORGE TAB */}
+            {/* ====== 5. FORGE TAB ====== */}
             {activeTab === 'forge' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
-                <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-metal-dark border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
                   <div className="relative z-10 text-center md:text-left flex-1">
-                    <h2 className="text-[#d4af37] font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest whitespace-nowrap">
+                    <h2 className="text-gold font-bold text-xl md:text-2xl mb-2 flex items-center justify-center md:justify-start gap-2 tracking-widest whitespace-nowrap">
                       <ICONS.Flame className="w-5 h-5 text-red-500 animate-pulse"/> 裝備庫房 (軍備升級)
                     </h2>
                     <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed">
@@ -1935,7 +2068,7 @@
                       <span className="text-green-400 font-bold mt-1 inline-block">每持有一件裝備提供 +5% 戰力。湊齊特定套裝將觸發強大共鳴加成。</span>
                     </p>
                   </div>
-                  <div className="relative z-10 bg-[#0a0705] border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0 shadow-inner">
+                  <div className="relative z-10 bg-black border border-[#4a3525] p-3 rounded-sm flex flex-col items-center min-w-[140px] w-full md:w-auto shrink-0 shadow-inner">
                     <div className="text-[10px] text-[#8c7e6a] tracking-widest mb-1 whitespace-nowrap">當前持有素材</div>
                     <div className="text-3xl font-black text-[#e3dac9] font-mono whitespace-nowrap drop-shadow-md"><AnimatedNumber value={materials || 0} formatter={fmtInt} /></div>
                   </div>
@@ -1950,7 +2083,7 @@
                       const isActive = syn.req.every(reqId => (equipments || []).includes(reqId));
                       return (
                          <div key={syn.id} className={`p-3 border rounded-sm relative transition-all
-                            ${isActive ? 'bg-[#3b0f0f]/30 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-[#0a0705] border-[#2a1a15]'}`}>
+                            ${isActive ? 'bg-[#3b0f0f]/30 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-black border-[#2a1a15]'}`}>
                              <div className={`font-bold text-sm mb-1 tracking-widest ${isActive ? 'text-red-400' : 'text-gray-500'}`}>{syn.name}</div>
                              <div className="text-[10px] text-[#8c7e6a] mb-2">{syn.desc}</div>
                              <div className="flex flex-wrap gap-1">
@@ -1974,12 +2107,12 @@
                      
                      return (
                        <div key={item.id} className={`p-4 border rounded-sm relative flex flex-col justify-between transition-all
-                          ${isOwned ? 'bg-[#2a2218] border-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.2)]' : 'bg-[#0a0705] border-[#3e2723]'}`}>
-                          {isOwned && <div className="absolute right-[-24px] top-[14px] transform rotate-45 bg-[#b8860b] text-black text-[10px] font-bold py-1 w-28 text-center shadow-lg">已裝備</div>}
+                          ${isOwned ? 'bg-[#2a2218] border-gold shadow-[0_0_15px_rgba(212,175,55,0.2)]' : 'bg-metal-dark border-[#3e2723] shadow-md'}`}>
+                          {isOwned && <div className="absolute right-[-24px] top-[14px] transform rotate-45 bg-gold text-black text-[10px] font-bold py-1 w-28 text-center shadow-lg">已裝備</div>}
                           
                           <div>
                             <div className="flex justify-between items-start mb-2">
-                                <h3 className={`font-bold text-base md:text-lg tracking-widest ${isOwned ? 'text-[#d4af37]' : 'text-gray-300'}`}>{item.name}</h3>
+                                <h3 className={`font-bold text-base md:text-lg tracking-widest ${isOwned ? 'text-gold' : 'text-gray-300'}`}>{item.name}</h3>
                                 {!isOwned && <div className="text-[10px] md:text-xs font-mono text-[#a3947c] bg-[#1a1410] px-2 py-0.5 border border-[#2a1a15]">需: <span className={hasCooldownPolicy ? "text-green-400" : ""}>{finalCost}</span> 素材</div>}
                             </div>
                             <p className="text-[10px] md:text-xs text-[#8c7e6a] mb-4 leading-relaxed pr-8">{item.desc}</p>
@@ -1990,11 +2123,11 @@
                             {!isOwned ? (
                                <button onClick={() => handleForge(item)} disabled={!canAfford}
                                  className={`px-6 py-2 font-bold text-xs tracking-widest rounded-sm transition-all border
-                                 ${canAfford ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000] active:scale-95' : 'bg-[#1c1814] text-[#5c4033] border-[#2a1a15] cursor-not-allowed'}`}>
+                                 ${canAfford ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000] active:scale-95' : 'bg-black text-[#5c4033] border-[#2a1a15] cursor-not-allowed'}`}>
                                  鍛造神兵
                                </button>
                             ) : (
-                               <span className="px-6 py-2 font-bold text-xs tracking-widest rounded-sm border border-[#b8860b] bg-[#1a1410] text-[#d4af37]">已鍛造</span>
+                               <span className="px-6 py-2 font-bold text-xs tracking-widest rounded-sm border border-gold bg-[#1a1410] text-gold">已鍛造</span>
                             )}
                           </div>
                        </div>
@@ -2004,15 +2137,15 @@
               </div>
             )}
 
-            {/* 6. LEDGER TAB */}
+            {/* ====== 6. LEDGER TAB ====== */}
             {activeTab === 'ledger' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
                 
-                <div className="bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 mb-5 shadow-lg">
-                  <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-2 flex items-center gap-2 tracking-widest whitespace-nowrap">
+                <div className="bg-metal-dark border border-[#4a3525] p-4 md:p-5 mb-5 shadow-lg">
+                  <h2 className="text-gold font-bold text-lg md:text-xl mb-2 flex items-center gap-2 tracking-widest whitespace-nowrap">
                     <ICONS.Scroll className="w-5 h-5"/> 兵力編制 (手動校準)
                   </h2>
-                  <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
+                  <p className="text-[10px] md:text-xs text-[#a3947c] leading-relaxed p-3 bg-black border border-[#3e2723] shadow-inner">
                     將軍，請在此登記載路兵馬的數量。<br/>
                     <span className="text-red-400">注意：</span> 步弩兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
                   </p>
@@ -2020,8 +2153,8 @@
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {Object.keys(DEFAULT_GAME_STATE.assets).map(key => (
-                    <div key={key} className={`bg-[#1a1410] border p-3 transition-colors relative 
-                      ${key === 'debt' ? 'border-red-900 focus-within:border-red-500' : 'border-[#4a3525] focus-within:border-[#d4af37]'}`}>
+                    <div key={key} className={`bg-metal-dark border p-3 transition-colors relative shadow-md
+                      ${key === 'debt' ? 'border-red-900 focus-within:border-red-500' : 'border-[#4a3525] focus-within:border-gold'}`}>
                       <label className="text-[10px] md:text-xs font-bold tracking-widest text-[#a3947c] mb-2 flex justify-between border-b border-[#3e2723] pb-1 uppercase whitespace-nowrap">
                         <span className={key === 'debt' ? 'text-red-400' : ''}>{
                           key === 'twd' ? '活存現金' : key === 'emergency' ? '預備金' : key === 'entertainment' ? '娛樂金' :
@@ -2037,15 +2170,15 @@
                           handleAssetChange(key, val);
                         }}
                         onBlur={handleAssetBlur}
-                        className={`w-full bg-[#0a0705] border border-[#3e2723] p-2 text-right text-sm md:text-base focus:outline-none font-mono shadow-inner
-                          ${key === 'debt' ? 'text-red-400 focus:border-red-500' : 'text-[#e3dac9] focus:border-[#d4af37]'}`}
+                        className={`w-full bg-black border border-[#3e2723] p-2 text-right text-sm md:text-base focus:outline-none font-mono shadow-inner
+                          ${key === 'debt' ? 'text-red-400 focus:border-red-500' : 'text-[#e3dac9] focus:border-gold'}`}
                       />
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-8 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-[#b8860b]"></div>
+                <div className="mt-8 bg-metal-dark border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gold"></div>
                   <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest whitespace-nowrap">
                     <ICONS.Flame className="w-4 h-4"/> 裝備庫存 (戰力加成)
                   </h3>
@@ -2058,7 +2191,7 @@
                       <span className="text-xs text-[#5c4033] py-1">尚無裝備，請至「庫房」進行鍛造。</span>
                     ) : (
                       CRAFTABLE_EQUIPMENTS.filter(eq => (equipments || []).includes(eq.id)).map(eq => (
-                        <span key={eq.id} className="text-[10px] md:text-xs px-2 py-1 bg-[#2a2218] border border-[#d4af37] text-[#d4af37] rounded-sm whitespace-nowrap shadow-sm">
+                        <span key={eq.id} className="text-[10px] md:text-xs px-2 py-1 bg-[#2a2218] border border-gold text-gold rounded-sm whitespace-nowrap shadow-sm">
                           {eq.name}
                         </span>
                       ))
@@ -2066,26 +2199,25 @@
                   </div>
                 </div>
 
-                <div className="mt-4 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
+                <div className="mt-4 bg-metal-dark border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
                   <div className="absolute top-0 left-0 w-1 h-full bg-gray-500"></div>
                   <h3 className="text-[#e3dac9] font-bold text-sm md:text-base mb-2 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest whitespace-nowrap">
                     兵符閣 (存檔管理)
                   </h3>
-                  <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed p-3 bg-[#0a0705] border border-[#3e2723]">
+                  <p className="text-[10px] md:text-xs text-[#a3947c] mb-4 leading-relaxed p-3 bg-black border border-[#3e2723] shadow-inner">
                     為防天災人禍（如意外清除瀏覽器資料），請定期將兵符（本機存檔）匯出保管。<br/>
                     若移防至新設備，可持舊兵符匯入，延續霸業。舊版兵符匯入後將自動相容新版天象與攻城機制。
                   </p>
                   <div className="flex gap-3">
-                    <button onClick={handleExport} className="flex-1 py-3 bg-[#2a2218] text-[#d4af37] border border-[#b8860b] rounded-sm font-bold tracking-widest hover:bg-[#3a2f22] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all whitespace-nowrap">
+                    <button onClick={handleExport} className="flex-1 py-3 bg-[#2a2218] text-gold border border-gold rounded-sm font-bold tracking-widest hover:bg-[#3a2f22] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all whitespace-nowrap shadow-md">
                       <ICONS.Download className="w-4 h-4" /> 匯出兵符
                     </button>
-                    <button onClick={() => fileInputRef.current.click()} className="flex-1 py-3 bg-[#0a0705] text-[#a3947c] border border-[#4a3525] rounded-sm font-bold tracking-widest hover:bg-[#1a1410] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all whitespace-nowrap">
+                    <button onClick={() => fileInputRef.current.click()} className="flex-1 py-3 bg-black text-[#a3947c] border border-[#4a3525] rounded-sm font-bold tracking-widest hover:bg-[#1a1410] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all whitespace-nowrap shadow-md">
                       <ICONS.Upload className="w-4 h-4" /> 匯入兵符
                     </button>
                     <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} className="hidden" />
                   </div>
                   
-                  {/* 新增：生成戰報按鈕 */}
                   <button onClick={() => setShowReportPreview(true)} className="w-full mt-3 py-3 bg-[#0f172a] text-blue-300 border border-blue-700 rounded-sm font-bold tracking-widest hover:bg-[#1e3a8a] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all shadow-[0_0_10px_rgba(59,130,246,0.2)]">
                       <ICONS.Camera className="w-4 h-4" /> 生成霸業戰報 (社群分享)
                   </button>
@@ -2093,28 +2225,21 @@
               </div>
             )}
 
-            {/* ================= OUT-OF-TAB MODALS (隨時覆蓋顯示) ================= */}
+            {/* ================= OUT-OF-TAB MODALS (全域彈窗) ================= */}
             
-            {/* 戰報預覽 Modal */}
+            {/* 1. 戰報預覽 Modal */}
             {showReportPreview && (
                 <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/95 px-4 backdrop-blur-sm" onClick={() => setShowReportPreview(false)}>
                    <div className="max-w-md w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
                        <div className="text-[#a3947c] text-xs mb-2 tracking-widest">戰報預覽 (可直接下載分享)</div>
-                       
-                       {/* 要被截圖的範圍 ref={reportRef} */}
-                       <div ref={reportRef} className="w-full bg-[#0c0906] p-6 border-[3px] border-[#b8860b] relative shadow-[0_0_30px_rgba(184,134,11,0.3)] overflow-hidden font-serif">
-                           {/* 背景浮水印 */}
-                           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[120px] font-black opacity-[0.03] pointer-events-none whitespace-nowrap text-[#d4af37]">富霸天下</div>
-                           
-                           <h2 className="text-2xl text-center text-[#d4af37] font-black tracking-widest border-b border-[#3e2723] pb-2 mb-4 drop-shadow-md">【 富 霸 天 下 ． 霸 業 戰 報 】</h2>
+                       <div ref={reportRef} className="w-full bg-[#0c0906] p-6 border-[3px] border-gold relative shadow-[0_0_30px_rgba(212,175,55,0.3)] overflow-hidden font-serif">
+                           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[120px] font-black opacity-[0.03] pointer-events-none whitespace-nowrap text-gold">富霸天下</div>
+                           <h2 className="text-2xl text-center text-gold font-black tracking-widest border-b border-[#3e2723] pb-2 mb-4 drop-shadow-md">【 富 霸 天 下 ． 霸 業 戰 報 】</h2>
                            <div className="text-right text-[10px] text-[#8c7e6a] mb-5 tracking-widest">建安{jianAnYear}年{currentRealMonth}月</div>
-                           
                            <div className="flex justify-between items-end mb-6">
                                <div>
                                   <div className="text-xs text-[#a3947c] tracking-widest mb-1">大軍總兵力</div>
-                                  <div className="text-3xl font-black text-yellow-400 font-mono drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">
-                                     {(stats.netWorth / 10000).toFixed(0)} <span className="text-sm text-[#d4af37] font-serif">萬</span>
-                                  </div>
+                                  <div className="text-3xl font-black text-yellow-400 font-mono drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">{(stats.netWorth / 10000).toFixed(0)} <span className="text-sm text-gold font-serif">萬</span></div>
                                </div>
                                <div className="text-right flex flex-col items-end">
                                   <div className="text-[10px] text-[#a3947c] tracking-widest mb-1">大營主將</div>
@@ -2123,76 +2248,44 @@
                                   </div>
                                </div>
                            </div>
-
-                           <div className="bg-[#1a1410] border border-[#4a3525] p-3 mb-5 shadow-inner">
-                               <div className="text-[10px] text-[#d4af37] mb-2 font-bold tracking-widest border-b border-[#3e2723] pb-1">解鎖傳奇成就 ({achievements.length}/5)</div>
+                           <div className="bg-metal-dark border border-[#4a3525] p-3 mb-5 shadow-inner">
+                               <div className="text-[10px] text-gold mb-2 font-bold tracking-widest border-b border-[#3e2723] pb-1">解鎖傳奇成就 ({achievements.length}/5)</div>
                                <div className="flex flex-wrap gap-2">
                                    {achievements.length === 0 ? <span className="text-[10px] text-[#5c4033]">尚未解鎖成就...</span> : 
                                       ACHIEVEMENTS.filter(a => achievements.includes(a.id)).map(ach => (
-                                          <div key={ach.id} className="text-[9px] bg-[#0a0705] border border-[#d4af37] text-yellow-300 px-1.5 py-0.5 flex items-center gap-1 shadow-sm rounded-sm">
-                                             <span>{ach.icon}</span> {ach.name}
-                                          </div>
+                                          <div key={ach.id} className="text-[9px] bg-black border border-gold text-yellow-300 px-1.5 py-0.5 flex items-center gap-1 shadow-sm rounded-sm"><span>{ach.icon}</span> {ach.name}</div>
                                       ))
                                    }
                                </div>
                            </div>
-
-                           <div className="text-sm text-[#e3dac9] italic border-l-4 border-red-800 pl-3 leading-relaxed tracking-wide bg-gradient-to-r from-[#1a0505] to-transparent p-2">
-                               "{getReportQuote()}"
-                           </div>
-                           
-                           <div className="mt-8 text-right text-[8px] text-[#5c4033] tracking-widest font-mono">
-                               Generated by 戰略圖 - 富霸天下
-                           </div>
+                           <div className="text-sm text-[#e3dac9] italic border-l-4 border-red-800 pl-3 leading-relaxed tracking-wide bg-gradient-to-r from-[#1a0505] to-transparent p-2">"{getReportQuote()}"</div>
+                           <div className="mt-8 text-right text-[8px] text-[#5c4033] tracking-widest font-mono">Generated by 戰略圖 - 富霸天下</div>
                        </div>
-                       
-                       {/* 彈窗按鈕 */}
                        <div className="flex gap-3 mt-6 w-full">
-                           <button onClick={() => setShowReportPreview(false)} className="flex-1 py-3 bg-[#1c1814] text-[#8c7e6a] border border-[#3e2723] font-bold tracking-widest text-sm transition-colors hover:text-white rounded-sm">
-                               返回
-                           </button>
-                           <button onClick={handleGenerateReportImage} className="flex-1 py-3 bg-blue-900 text-blue-200 border border-blue-500 font-bold tracking-widest text-sm transition-all hover:bg-blue-800 active:scale-95 shadow-[0_0_15px_rgba(59,130,246,0.4)] rounded-sm">
-                               下載戰報圖片
-                           </button>
+                           <button onClick={() => setShowReportPreview(false)} className="flex-1 py-3 bg-black text-[#8c7e6a] border border-[#3e2723] font-bold tracking-widest text-sm transition-colors hover:text-white rounded-sm">返回</button>
+                           <button onClick={handleGenerateReportImage} className="flex-1 py-3 bg-blue-900 text-blue-200 border border-blue-500 font-bold tracking-widest text-sm transition-all hover:bg-blue-800 active:scale-95 shadow-[0_0_15px_rgba(59,130,246,0.4)] rounded-sm">下載戰報圖片</button>
                        </div>
                    </div>
                 </div>
             )}
 
-            {/* 奇遇事件 Modal */}
+            {/* 2. 奇遇事件 Modal */}
             {activeEncounter && (
               <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md">
-                <div className="bg-[#1a1410] border-2 border-[#d4af37] p-6 max-w-sm w-full shadow-[0_0_40px_rgba(212,175,55,0.3)] animate-[slideUp_0.3s_ease-out] relative">
+                <div className="bg-metal-dark border-2 border-gold p-6 max-w-sm w-full shadow-[0_0_40px_rgba(212,175,55,0.3)] animate-[slideUp_0.3s_ease-out] relative">
                   <div className="absolute top-0 left-0 w-full h-1.5 bg-[#b8860b]"></div>
-                  <div className="absolute bottom-0 left-0 w-full h-1.5 bg-[#b8860b]"></div>
-
                   <div className="mb-5 border-b border-[#3e2723] pb-4 text-center">
-                    <h2 className="text-[#a3947c] text-xs font-bold tracking-widest mb-2 flex justify-center items-center gap-2">
-                       <span className="w-4 h-px bg-[#4a3525]"></span> 本月軍情 <span className="w-4 h-px bg-[#4a3525]"></span>
-                    </h2>
-                    <div className={`inline-block px-3 py-1 border rounded-sm text-sm md:text-base font-bold mb-3 shadow-md
-                      ${activeEncounter.baseEvent.type === 'good' ? 'bg-[#0f291e] text-green-400 border-green-800' :
-                        activeEncounter.baseEvent.type === 'bad' ? 'bg-[#3b0f0f] text-red-400 border-red-800' :
-                        'bg-[#1c1814] text-gray-300 border-gray-600'}`}>
-                      {activeEncounter.baseEvent.title}
-                    </div>
+                    <h2 className="text-[#a3947c] text-xs font-bold tracking-widest mb-2 flex justify-center items-center gap-2"><span className="w-4 h-px bg-[#4a3525]"></span> 本月軍情 <span className="w-4 h-px bg-[#4a3525]"></span></h2>
+                    <div className={`inline-block px-3 py-1 border rounded-sm text-sm md:text-base font-bold mb-3 shadow-md ${activeEncounter.baseEvent.type === 'good' ? 'bg-[#0f291e] text-green-400 border-green-800' : activeEncounter.baseEvent.type === 'bad' ? 'bg-[#3b0f0f] text-red-400 border-red-800' : 'bg-[#1c1814] text-gray-300 border-gray-600'}`}>{activeEncounter.baseEvent.title}</div>
                     <p className="text-[#e3dac9] text-xs md:text-sm leading-relaxed">{activeEncounter.baseEvent.msg}</p>
                   </div>
-
                   <div className="text-center mt-2">
                     <h3 className="text-red-400 text-lg md:text-xl font-black tracking-widest mb-2 drop-shadow-md animate-pulse">【 突發奇遇 】</h3>
-                    <h4 className="text-[#d4af37] font-bold text-sm md:text-base mb-3">{activeEncounter.interactiveEvent.title}</h4>
-                    <p className="text-[#a3947c] text-[10px] md:text-xs leading-relaxed mb-6 bg-[#0a0705] p-3 border border-[#3e2723] text-left">
-                      {activeEncounter.interactiveEvent.desc}
-                    </p>
-
+                    <h4 className="text-gold font-bold text-sm md:text-base mb-3">{activeEncounter.interactiveEvent.title}</h4>
+                    <p className="text-[#a3947c] text-[10px] md:text-xs leading-relaxed mb-6 bg-black p-3 border border-[#3e2723] text-left">{activeEncounter.interactiveEvent.desc}</p>
                     <div className="flex flex-col gap-3">
                       {activeEncounter.interactiveEvent.options.map((opt, i) => (
-                        <button key={i} onClick={() => handleEncounterOption(opt.actionId)}
-                          className={`w-full py-3 font-bold tracking-widest text-xs md:text-sm border rounded-sm transition-all active:scale-95 whitespace-nowrap
-                            ${i === 0 ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000]' : 'bg-[#1c1814] text-[#8c7e6a] border-[#3e2723] hover:text-white'}`}>
-                          {opt.label}
-                        </button>
+                        <button key={i} onClick={() => handleEncounterOption(opt.actionId)} className={`w-full py-3 font-bold tracking-widest text-xs md:text-sm border rounded-sm transition-all active:scale-95 whitespace-nowrap ${i === 0 ? 'bg-[#3b0f0f] text-red-100 border-red-700 hover:bg-[#5c0000]' : 'bg-black text-[#8c7e6a] border-[#3e2723] hover:text-white'}`}>{opt.label}</button>
                       ))}
                     </div>
                   </div>
@@ -2200,14 +2293,14 @@
               </div>
             )}
 
-            {/* 武將對話 Modal */}
+            {/* 3. 武將對話與主將任命 Modal (SLG 視覺) */}
             {activeOfficerDialogue && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm" onClick={() => setActiveOfficerDialogue(null)}>
-                   <div className={`border-2 ${activeOfficerDialogue.border} bg-[#0a0705] p-6 max-w-sm w-full relative shadow-[0_0_30px_rgba(0,0,0,0.8)] animate-[slideUp_0.2s_ease-out]`} onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/90 px-4 backdrop-blur-md" onClick={() => setActiveOfficerDialogue(null)}>
+                   <div className={`border-2 ${activeOfficerDialogue.rareBorder} bg-metal-dark p-6 max-w-sm w-full relative shadow-[0_0_30px_rgba(0,0,0,0.8)] animate-[slideUp_0.2s_ease-out]`} onClick={e => e.stopPropagation()}>
                        <div className="flex justify-between items-start mb-4 border-b border-[#3e2723] pb-2">
                            <div>
-                               <div className={`text-xs ${activeOfficerDialogue.color} tracking-widest mb-1`}>{activeOfficerDialogue.faction}軍將領</div>
-                               <h3 className={`text-2xl font-black ${activeOfficerDialogue.color} tracking-widest`}>{activeOfficerDialogue.name}</h3>
+                               <div className={`text-xs ${activeOfficerDialogue.color} tracking-widest mb-1`}>{activeOfficerDialogue.faction}軍 | {activeOfficerDialogue.type}</div>
+                               <h3 className={`text-3xl font-black ${activeOfficerDialogue.color} tracking-widest`}>{activeOfficerDialogue.name}</h3>
                            </div>
                            <div className="text-right">
                                <div className="text-[9px] text-[#8c7e6a]">星級被動加成</div>
@@ -2215,20 +2308,24 @@
                            </div>
                        </div>
                        
-                       <div className="bg-[#1a1410] border border-[#3e2723] p-4 text-sm md:text-base leading-relaxed text-[#e3dac9] italic relative shadow-inner">
+                       <div className="bg-black border border-[#3e2723] p-4 text-sm md:text-base leading-relaxed text-[#e3dac9] italic relative shadow-inner mb-4">
                            <span className="absolute top-2 left-2 text-3xl text-[#4a3525] opacity-50 font-serif leading-none">"</span>
                            <span className="relative z-10 pl-4 block">{getOfficerDialogue(activeOfficerDialogue)}</span>
                        </div>
+
+                       {/* 顯示主將專屬奧義 */}
+                       {activeOfficerDialogue.skillName && (
+                          <div className="bg-[#1a233a] border border-blue-500 p-3 mb-5 shadow-md">
+                             <div className="text-blue-300 text-xs font-bold mb-1 tracking-widest">✨ 主將奧義：{activeOfficerDialogue.skillName}</div>
+                             <div className="text-[10px] text-gray-300">{activeOfficerDialogue.skillDesc}</div>
+                          </div>
+                       )}
                        
-                       <div className="mt-5 flex gap-2">
+                       <div className="mt-2 flex gap-2">
                           {!ownedOfficers.includes(activeOfficerDialogue.id) ? (
-                              <button disabled className="w-full py-3 font-bold bg-[#110a05] text-[#5c4033] border border-[#2a1a15] text-xs tracking-widest cursor-not-allowed">
-                                  尚未登庸
-                              </button>
+                              <button disabled className="w-full py-3 font-bold bg-black text-[#5c4033] border border-[#2a1a15] text-xs tracking-widest cursor-not-allowed">尚未登庸</button>
                           ) : gameState.mainOfficerId === activeOfficerDialogue.id ? (
-                              <button className="w-full py-3 font-bold bg-[#2a2218] text-green-400 border border-green-800 text-xs tracking-widest cursor-default">
-                                  當前大營主將
-                              </button>
+                              <button className="w-full py-3 font-bold bg-[#2a2218] text-green-400 border border-green-800 text-xs tracking-widest cursor-default">當前大營主將</button>
                           ) : (
                               <button onClick={() => {
                                   let newState = JSON.parse(JSON.stringify(gameState));
@@ -2239,52 +2336,41 @@
                                   saveGameState(newState);
                                   showToast(`已任命 ${activeOfficerDialogue.name} 為主將！`, 'success');
                                   setActiveOfficerDialogue(null);
-                              }} className="w-full py-3 font-bold bg-[#3b0f0f] text-red-300 border border-red-700 hover:bg-[#5c0000] transition-colors text-xs tracking-widest active:scale-95">
-                                  設為大營主將
-                              </button>
+                              }} className="w-full py-3 font-bold bg-[#3b0f0f] text-red-300 border border-red-700 hover:bg-[#5c0000] transition-colors text-xs tracking-widest active:scale-95 shadow-md">設為大營主將</button>
                           )}
-                          <button onClick={() => setActiveOfficerDialogue(null)} className="w-full py-3 font-bold bg-[#1c1814] text-[#8c7e6a] border border-[#3e2723] hover:text-white transition-colors text-xs tracking-widest">
-                              結束交談
-                          </button>
+                          <button onClick={() => setActiveOfficerDialogue(null)} className="w-full py-3 font-bold bg-black text-[#8c7e6a] border border-[#3e2723] hover:text-white transition-colors text-xs tracking-widest shadow-md">結束交談</button>
                        </div>
                    </div>
                 </div>
             )}
 
-            {/* 抽卡結果 Modal */}
+            {/* 4. 抽卡全螢幕結果 Modal (SLG 動畫) */}
             {gachaResult && (
-              <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4" onClick={() => setGachaResult(null)}>
-                <div className={`border-2 ${gachaResult.border} ${gachaResult.bg} w-full max-w-xs relative shadow-[0_0_50px_rgba(255,255,255,0.2)] animate-[stampIn_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]`}>
-                  <div className="absolute inset-0 bg-[#0c0906] opacity-80 pointer-events-none mix-blend-multiply"></div>
-                  <div className={`absolute inset-0 flex items-center justify-center text-9xl font-black opacity-10 select-none pointer-events-none ${gachaResult.color}`}>
-                    {gachaResult.faction}
-                  </div>
-                  <div className="relative z-10 flex flex-col items-center p-8">
-                    {gachaResult.isDupe && (
-                      <div className="text-yellow-400 font-black text-sm mb-3 animate-bounce tracking-widest border border-yellow-400 px-3 py-1 bg-yellow-900/50 shadow-[0_0_15px_rgba(234,179,8,0.5)] whitespace-nowrap">
-                        ✨ 獲得將魂！星級提升 ✨
-                      </div>
-                    )}
-                    <div className={`text-xs tracking-widest mb-4 font-bold border ${gachaResult.border} px-3 py-1 bg-black/50 whitespace-nowrap ${gachaResult.color}`}>
-                      【 {gachaResult.faction}軍將領 】
-                    </div>
-                    <h3 className={`text-4xl font-black mb-8 tracking-widest whitespace-nowrap ${gachaResult.color} drop-shadow-lg`}>
-                      {gachaResult.name}
-                    </h3>
-                    <div className="w-full bg-[#0a0705]/80 border border-[#3e2723] p-4 mb-4 backdrop-blur-sm">
-                      <div className="flex justify-between items-center mb-2 whitespace-nowrap">
-                        <span className="text-[#a3947c] text-sm">定位能力</span>
-                        <span className="text-[#e3dac9] font-bold">{gachaResult.type} <span className={gachaResult.color}>{gachaResult.stat}</span></span>
-                      </div>
-                    </div>
-                    <p className="text-[#8c7e6a] text-xs mt-2 animate-pulse whitespace-nowrap">點擊任意處收入麾下</p>
+              <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/95 backdrop-blur-lg px-4" onClick={() => setGachaResult(null)}>
+                <div className={`w-[300px] h-[450px] border-[4px] ${gachaResult.rareBorder} bg-gradient-to-b from-[#1a1a1a] to-black flex flex-col items-center justify-center relative animate-[cardReveal_0.8s_ease-out_forwards] ${gachaResult.stat >= 95 ? 'animate-[cardGlow_2s_infinite]' : ''}`}>
+                  
+                  {/* 立繪預留 */}
+                  {gachaResult.portrait && <img src={gachaResult.portrait} alt={gachaResult.name} className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-screen" />}
+                  
+                  <div className={`absolute top-4 left-4 px-3 py-1 text-sm font-black ${gachaResult.bg} ${gachaResult.color} border ${gachaResult.rareBorder} z-10`}>{gachaResult.faction}</div>
+                  
+                  {gachaResult.isDupe && <div className="absolute -top-6 bg-yellow-600 text-black font-black px-6 py-2 text-sm border-2 border-white animate-bounce tracking-widest z-20 shadow-[0_0_15px_rgba(234,179,8,0.8)]">獲得將魂！星級提升</div>}
+                  
+                  {/* 若無立繪，顯示書法字 */}
+                  {!gachaResult.portrait && <div className={`text-6xl font-black write-vertical ${gachaResult.color} drop-shadow-[0_0_15px_currentColor] z-10`}>{gachaResult.name}</div>}
+                  
+                  <div className="absolute bottom-6 text-center w-full z-10">
+                    <div className="text-gray-400 text-xs tracking-widest mb-1 bg-black/50 mx-10 rounded-full border border-gray-700 py-1">{gachaResult.type}</div>
+                    <div className={`text-3xl font-black font-mono ${gachaResult.color} drop-shadow-md`}>{gachaResult.stat}</div>
                   </div>
                 </div>
+                <div className="absolute bottom-10 text-gray-500 text-sm tracking-widest animate-pulse">點擊任意處繼續</div>
               </div>
             )}
+
           </main>
 
-          <nav className="bg-[#1a1410] border-t border-[#3e2723] flex justify-around items-center shrink-0 h-16 pb-safe z-40 relative shadow-[0_-5px_15px_rgba(0,0,0,0.5)]">
+          <nav className="bg-metal-dark border-t-2 border-gold flex justify-around items-center shrink-0 h-16 pb-safe z-40 relative shadow-[0_-5px_15px_rgba(0,0,0,0.8)]">
             {[
               { id: 'map', label: '大勢', icon: ICONS.Map },
               { id: 'command', label: '軍令', icon: ICONS.Tent },
@@ -2295,10 +2381,10 @@
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className={`flex flex-col items-center justify-center w-full h-full transition-colors relative
-                  ${activeTab === tab.id ? 'text-[#d4af37]' : 'text-[#5c4033] hover:text-[#8c7e6a]'}`}
+                  ${activeTab === tab.id ? 'text-gold' : 'text-[#5c4033] hover:text-[#8c7e6a]'}`}
               >
-                {activeTab === tab.id && <div className="absolute top-0 w-8 h-0.5 bg-[#d4af37]"></div>}
-                <div className={`w-4 h-4 md:w-5 md:h-5 mb-1 ${activeTab === tab.id ? 'animate-bounce' : ''}`} style={{animationDuration: '2s'}}><tab.icon className="w-full h-full" /></div>
+                {activeTab === tab.id && <div className="absolute top-0 w-8 h-1 bg-gold shadow-[0_0_10px_rgba(212,175,55,1)]"></div>}
+                <div className={`w-4 h-4 md:w-5 md:h-5 mb-1 ${activeTab === tab.id ? 'scale-110 drop-shadow-[0_0_5px_currentColor]' : ''}`} style={{animationDuration: '2s'}}><tab.icon className="w-full h-full" /></div>
                 <span className="text-[9px] md:text-[10px] font-bold tracking-widest whitespace-nowrap">{tab.label}</span>
               </button>
             ))}
