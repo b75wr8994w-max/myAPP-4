@@ -347,8 +347,326 @@
       Flame: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>,
       Flag: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>,
       Trophy: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
-      Camera: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+Camera: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     };
+
+    // ==========================================
+    // ⬇️ 步驟一新增區塊開始：圖表與模型引擎 ⬇️
+    // ==========================================
+    const NativeAreaChart = ({ data }) => {
+      const [hoverIndex, setHoverIndex] = useState(null);
+      if (!data || data.length === 0) return <div className="text-slate-500 text-center py-10">Initializing Model...</div>;
+
+      const width = 800;
+      const height = 340;
+      const padding = { top: 20, right: 45, bottom: 40, left: 55 };
+      const innerWidth = width - padding.left - padding.right;
+      const innerHeight = height - padding.top - padding.bottom;
+
+      const maxY = Math.max(...data.map(d => d.total)) * 1.1; 
+      const maxValText = (maxY / 10000000).toFixed(0) + ' 千萬';
+
+      const getX = (index) => padding.left + (index / (data.length - 1)) * innerWidth;
+      const getY = (val) => padding.top + innerHeight - (val / maxY) * innerHeight;
+
+      const vooPathTop = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.voo)}`).join(' ');
+      const vooArea = `${vooPathTop} L ${getX(data.length - 1)} ${getY(0)} L ${getX(0)} ${getY(0)} Z`;
+
+      const qqqPathTop = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.voo + d.qqq)}`).join(' ');
+      const qqqPathBottom = [...data].reverse().map((d, i) => `L ${getX(data.length - 1 - i)} ${getY(data[data.length - 1 - i].voo)}`).join(' ');
+      const qqqArea = `${qqqPathTop} ${qqqPathBottom} Z`;
+
+      const cryptoPathTop = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.total)}`).join(' ');
+      const cryptoPathBottom = [...data].reverse().map((d, i) => `L ${getX(data.length - 1 - i)} ${getY(data[data.length - 1 - i].voo + data[data.length - 1 - i].qqq)}`).join(' ');
+      const cryptoArea = `${cryptoPathTop} ${cryptoPathBottom} Z`;
+      
+      const prinPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.totalPrin)}`).join(' ');
+      const realTotalPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.realTotal)}`).join(' ');
+
+      const handleInteraction = (e) => {
+        if (!e || !e.currentTarget) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        
+        let clientX;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+        } else if (e.clientX !== undefined) {
+            clientX = e.clientX;
+        } else {
+            return;
+        }
+
+        const x = clientX - rect.left;
+        const relativeX = Math.max(0, Math.min(x - (rect.width * (padding.left/width)), rect.width * (innerWidth/width)));
+        const percentage = relativeX / (rect.width * (innerWidth/width));
+        
+        const index = Math.max(0, Math.min(data.length - 1, Math.round(percentage * (data.length - 1))));
+        setHoverIndex(prev => (prev !== index ? index : prev));
+      };
+
+      const fmtMoney = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(val);
+
+      let tooltipStyle = {};
+      if (hoverIndex !== null) {
+          const isRightSide = hoverIndex > (data.length / 2);
+          if (isRightSide) {
+              tooltipStyle = { right: `${100 - (hoverIndex / (data.length - 1)) * 100}%`, marginRight: '15px' };
+          } else {
+              tooltipStyle = { left: `${(hoverIndex / (data.length - 1)) * 100}%`, marginLeft: '15px' };
+          }
+      }
+
+      return (
+        <div className="relative w-full h-full flex flex-col font-mono select-none">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 px-2 z-10">
+            <div className="flex items-center text-[10px] sm:text-xs text-slate-300"><span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-amber-500 rounded-sm mr-1.5 shadow-[0_0_5px_rgba(245,158,11,0.5)]"></span>Crypto</div>
+            <div className="flex items-center text-[10px] sm:text-xs text-slate-300"><span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-blue-500 rounded-sm mr-1.5 shadow-[0_0_5px_rgba(59,130,246,0.5)]"></span>QQQ</div>
+            <div className="flex items-center text-[10px] sm:text-xs text-slate-300"><span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-sm mr-1.5 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></span>VOO</div>
+            <div className="flex items-center text-[10px] sm:text-xs text-slate-300"><span className="w-4 h-0.5 border-t-2 border-dashed border-white mr-1.5"></span>本金</div>
+            <div className="flex items-center text-[10px] sm:text-xs text-slate-300"><span className="w-4 h-0.5 border-t border-dashed border-blue-400 mr-1.5"></span>購買力</div>
+          </div>
+
+          <div className="relative flex-1 touch-none" 
+               onTouchMove={handleInteraction} onTouchStart={handleInteraction} 
+               onMouseMove={handleInteraction} onMouseLeave={() => setHoverIndex(null)}>
+            
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+              <defs>
+                <linearGradient id="gradVOO" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.8"/>
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.2"/>
+                </linearGradient>
+                <linearGradient id="gradQQQ" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8"/>
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.2"/>
+                </linearGradient>
+                <linearGradient id="gradCrypto" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.8"/>
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.2"/>
+                </linearGradient>
+              </defs>
+
+              <rect x={getX(0)} y={padding.top} width={getX(5) - getX(0)} height={innerHeight} fill="rgba(245,158,11,0.03)" />
+              <rect x={getX(6)} y={padding.top} width={getX(13) - getX(6)} height={innerHeight} fill="rgba(59,130,246,0.03)" />
+              <rect x={getX(14)} y={padding.top} width={getX(21) - getX(14)} height={innerHeight} fill="rgba(16,185,129,0.03)" />
+              <text x={getX(2.5)} y={padding.top + 15} fill="#64748b" textAnchor="middle" fontSize="10">Phase 1: BTC</text>
+              <text x={getX(9.5)} y={padding.top + 15} fill="#64748b" textAnchor="middle" fontSize="10">Phase 2: QQQ</text>
+              <text x={getX(17.5)} y={padding.top + 15} fill="#64748b" textAnchor="middle" fontSize="10">Phase 3: VOO</text>
+
+              <line x1={padding.left} y1={padding.top} x2={width - padding.right} y2={padding.top} stroke="#334155" strokeDasharray="4 4" />
+              <text x={padding.left - 10} y={padding.top + 4} fill="#64748b" textAnchor="end">{maxValText}</text>
+              <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="#334155" />
+              <text x={padding.left - 10} y={height - padding.bottom + 4} fill="#64748b" textAnchor="end">0</text>
+
+              {data.map((d, i) => (i % 3 === 0 || i === data.length - 1) && (
+                <text key={i} x={getX(i)} y={height - 10} fill="#94a3b8" textAnchor="middle">{d.year}</text>
+              ))}
+
+              <path d={vooArea} fill="url(#gradVOO)" className="transition-all duration-300" />
+              <path d={qqqArea} fill="url(#gradQQQ)" className="transition-all duration-300" />
+              <path d={cryptoArea} fill="url(#gradCrypto)" className="transition-all duration-300" />
+              
+              <path d={vooPathTop} fill="none" stroke="#059669" strokeWidth="1" opacity="0.5" />
+              <path d={qqqPathTop} fill="none" stroke="#2563eb" strokeWidth="1" opacity="0.5" />
+              <path d={cryptoPathTop} fill="none" stroke="#d97706" strokeWidth="1.5" />
+
+              <path d={prinPath} fill="none" stroke="#f8fafc" strokeWidth="2.5" strokeDasharray="6 4" className="transition-all duration-300 drop-shadow-md" />
+              <path d={realTotalPath} fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="2 4" opacity="0.7" className="transition-all duration-300" />
+
+              <text x={width - padding.right + 4} y={getY(data[data.length - 1].totalPrin) + 4} fill="#f8fafc" fontSize="10" fontWeight="bold">本金</text>
+              <text x={width - padding.right + 4} y={getY(data[data.length - 1].realTotal) + 4} fill="#60a5fa" fontSize="10" fontWeight="bold">購買力</text>
+
+              {hoverIndex !== null && (
+                <g>
+                  <line x1={getX(hoverIndex)} y1={padding.top} x2={getX(hoverIndex)} y2={height - padding.bottom} stroke="rgba(255,255,255,0.3)" strokeWidth="1" strokeDasharray="4 2" />
+                  <circle cx={getX(hoverIndex)} cy={getY(data[hoverIndex].total)} r="4" fill="#0f172a" stroke="#f59e0b" strokeWidth="2" />
+                  <circle cx={getX(hoverIndex)} cy={getY(data[hoverIndex].totalPrin)} r="4" fill="#f8fafc" stroke="#0f172a" strokeWidth="2" />
+                </g>
+              )}
+            </svg>
+
+            {hoverIndex !== null && (
+              <div className="absolute pointer-events-none bg-slate-900/95 backdrop-blur-xl border border-slate-600 p-3 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-20 w-[240px] sm:w-[280px]"
+                   style={{ top: '5px', ...tooltipStyle }}>
+                <div className="flex justify-between items-end border-b border-slate-700 pb-2 mb-2">
+                  <span className="text-white font-bold text-sm sm:text-base">{data[hoverIndex].year} 年</span>
+                  <span className="text-slate-400 font-normal text-[10px] sm:text-xs">年齡: {data[hoverIndex].age} 歲</span>
+                </div>
+                
+                <div className="bg-slate-800/80 rounded p-2 mb-2 border border-slate-700/50">
+                  <p className="text-[10px] text-slate-400 mb-0.5">年度戰略</p>
+                  <p className="text-[11px] sm:text-xs text-blue-300 font-bold leading-tight">{data[hoverIndex].injectDesc}</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <p className="text-[11px] sm:text-xs text-amber-400 flex justify-between items-center">
+                    <span>Crypto</span><span>{fmtMoney(data[hoverIndex].crypto)}</span>
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-blue-400 flex justify-between items-center">
+                    <span>QQQ</span><span>{fmtMoney(data[hoverIndex].qqq)}</span>
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-emerald-400 flex justify-between items-center">
+                    <span>VOO</span><span>{fmtMoney(data[hoverIndex].voo)}</span>
+                  </p>
+
+                  <div className="border-t border-slate-700 my-2 pt-2" />
+                  
+                  <p className="text-xs sm:text-sm font-bold text-white flex justify-between">
+                    <span>帳面淨值</span><span>{fmtMoney(data[hoverIndex].total)}</span>
+                  </p>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-300 flex justify-between items-center">
+                    <span className="flex items-center"><span className="w-2 h-0.5 bg-white mr-1.5"></span>累計本金</span>
+                    <span>{fmtMoney(data[hoverIndex].totalPrin)}</span>
+                  </p>
+                  <p className="text-[10px] sm:text-[11px] text-emerald-400 flex justify-between items-center mt-0.5">
+                    <span>時間複利</span><span>+{fmtMoney(data[hoverIndex].total - data[hoverIndex].totalPrin)}</span>
+                  </p>
+
+                  <div className="bg-blue-900/20 rounded p-1.5 mt-2">
+                     <p className="text-[10px] text-blue-300 flex justify-between">
+                       <span>實質購買力</span>
+                       <span className="font-bold">{fmtMoney(data[hoverIndex].realTotal)}</span>
+                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const WealthSimulatorEngine = ({ currentAssetTWD }) => {
+      const [btcRate, setBtcRate] = useState(12);
+      const [qqqRate, setQqqRate] = useState(10);
+      const [vooRate, setVooRate] = useState(7);
+      const [inflation, setInflation] = useState(2.5);
+
+      const chartData = useMemo(() => {
+        let qqq = 0, voo = 0;
+        let crypto = (currentAssetTWD && currentAssetTWD > 0) ? currentAssetTWD : 5135000;
+        
+        let qqqPrin = 0, vooPrin = 0, cryptoPrin = crypto;
+        const data = [];
+
+        for (let i = 0; i <= 21; i++) {
+          const year = 2026 + i;
+          let injectDesc = "無新增投入 (純複利掛機)";
+          let injectAmount = 0;
+          
+          if (i > 0) {
+            qqq *= (1 + qqqRate/100);
+            voo *= (1 + vooRate/100);
+            crypto *= (1 + btcRate/100);
+          }
+          
+          if (year <= 2031) { 
+            crypto += 156000;
+            cryptoPrin += 156000;
+            injectDesc = "延續 1.3萬/月 定投 BTC";
+            injectAmount = 156000;
+
+            if (year === 2031) {
+              qqq += 300000;
+              qqqPrin += 300000;
+              crypto += 300000;
+              cryptoPrin += 300000;
+              injectDesc = "保單到期灌入 (30w QQQ, 30w BTC)";
+              injectAmount = 756000; 
+            }
+          } else if (year >= 2032 && year <= 2039) {
+            qqq += 534000;
+            qqqPrin += 534000;
+            injectDesc = "信貸清零，啟動 4.45萬/月 定投 QQQ";
+            injectAmount = 534000;
+          } else if (year >= 2040) {
+            voo += 534000;
+            vooPrin += 534000;
+            injectDesc = "順序防禦切換，資金全面轉投 VOO";
+            injectAmount = 534000;
+          }
+          
+          const totalPrin = qqqPrin + vooPrin + cryptoPrin;
+          const total = qqq + voo + crypto;
+          const realTotal = total / Math.pow(1 + inflation/100, i);
+          
+          data.push({
+            year, age: 29 + i, qqq: Math.round(qqq), voo: Math.round(voo), crypto: Math.round(crypto), 
+            total: Math.round(total), qqqPrin: Math.round(qqqPrin), vooPrin: Math.round(vooPrin),
+            cryptoPrin: Math.round(cryptoPrin), totalPrin: Math.round(totalPrin), realTotal: Math.round(realTotal),
+            injectDesc, injectAmount
+          });
+        }
+        return data;
+      }, [btcRate, qqqRate, vooRate, inflation, currentAssetTWD]);
+
+      const SliderControl = ({ label, value, set, min, max, step = 1, color }) => {
+        const colors = {
+          amber: "accent-amber-500 text-amber-400",
+          emerald: "accent-emerald-500 text-emerald-400",
+          blue: "accent-blue-500 text-blue-400",
+          cyan: "accent-cyan-500 text-cyan-400"
+        };
+        return (
+          <div className="flex flex-col">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-[10px] text-slate-400 font-medium">{label}</span>
+              <span className={`text-xs font-mono font-bold ${colors[color].split(' ')[1]}`}>{value}%</span>
+            </div>
+            <input 
+              type="range" min={min} max={max} step={step} value={value} 
+              onChange={(e) => set(Number(e.target.value))} 
+              className={`w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer ${colors[color].split(' ')[0]} outline-none`}
+            />
+          </div>
+        );
+      };
+
+      const fmtMoney = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(val);
+      const finalYear = chartData[chartData.length - 1];
+
+      return (
+        <div className="flex flex-col h-full space-y-4">
+          
+          <div className="bg-[#0a0705] p-3 sm:p-4 rounded-xl border border-[#3e2723] shadow-inner">
+            <div className="flex items-center text-[10px] sm:text-xs text-[#d4af37] mb-3 font-semibold uppercase tracking-wider">
+              <span>⚙️ 量化參數 (Parameters)</span>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
+              <SliderControl label="Crypto (%)" value={btcRate} set={setBtcRate} min={5} max={25} color="amber" />
+              <SliderControl label="QQQ (%)" value={qqqRate} set={setQqqRate} min={5} max={15} color="blue" />
+              <SliderControl label="VOO (%)" value={vooRate} set={setVooRate} min={3} max={12} color="emerald" />
+              <SliderControl label="通膨率 (%)" value={inflation} set={setInflation} min={1} max={5} step={0.1} color="cyan" />
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end px-2 border-b border-[#3e2723] pb-3 gap-3">
+            <div className="w-full sm:w-auto">
+              <p className="text-[10px] text-[#8c7e6a] font-mono mb-0.5">EST. 2047 帳面總淨值</p>
+              <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
+                <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{fmtMoney(finalYear.total)}</p>
+                <span className="text-[10px] sm:text-xs text-[#a3947c] font-normal font-mono bg-[#1a1410] px-2 py-0.5 border border-[#2a1a15] rounded w-fit">
+                  累計本金: {fmtMoney(finalYear.totalPrin)}
+                </span>
+              </div>
+            </div>
+            <div className="w-full sm:w-auto sm:text-right border-t border-[#2a1a15] sm:border-0 pt-2 sm:pt-0">
+              <p className="text-[10px] text-blue-400/70 font-mono mb-0.5">EST. 2047 實質購買力 (扣除通膨)</p>
+              <p className="text-lg sm:text-xl font-bold text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.4)] tracking-tight">
+                {fmtMoney(finalYear.realTotal)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-[300px] sm:min-h-[340px] w-full mt-2 relative">
+            <NativeAreaChart data={chartData} />
+          </div>
+        </div>
+      );
+    };
+    // ==========================================
+    // ⬆️ 步驟一新增區塊結束 ⬆️
+    // ==========================================
 
     function App() {
       const [gameState, setGameState] = useState(() => {
@@ -1753,6 +2071,20 @@
             {/* 3. POLICY TAB */}
             {activeTab === 'policy' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
+{/* ====== 插入：生活防禦絕對紅線 ====== */}
+<div className="bg-[#1a0505] border border-red-800 p-5 mb-5 shadow-[0_0_15px_rgba(220,38,38,0.3)] relative">
+  <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
+  <h2 className="text-red-400 font-bold text-lg md:text-xl mb-3 flex items-center gap-2 tracking-widest">
+    <span className="text-xl">⚠️</span> 生活防禦絕對紅線
+  </h2>
+  <ul className="text-xs md:text-sm space-y-3 text-[#e3dac9]">
+    <li className="flex items-start"><span className="text-red-500 mr-2">✖</span><span><strong className="text-white">債務禁令：</strong>2035前嚴禁新增債務/槓桿。</span></li>
+    <li className="flex items-start"><span className="text-red-500 mr-2">✖</span><span><strong className="text-white">推銷冷靜：</strong>＞$3,000 之消費，強制 24h 冷靜期。</span></li>
+    <li className="flex items-start"><span className="text-red-500 mr-2">✖</span><span><strong className="text-white">街頭防禦：</strong>問卷/試用品視為高風險合約，無視。</span></li>
+    <li className="flex items-start"><span className="text-red-500 mr-2">✖</span><span><strong className="text-white">NPC模式：</strong>職場無視績效，專注考試與家庭。</span></li>
+  </ul>
+</div>
+{/* =================================== */}
                 <div className="bg-[#1a1410] border border-[#4a3525] p-5 mb-5 shadow-lg relative flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
                   <div className="relative z-10 text-center md:text-left flex-1">
@@ -2004,10 +2336,10 @@
               </div>
             )}
 
-            {/* 6. LEDGER TAB */}
+{/* 6. LEDGER TAB */}
             {activeTab === 'ledger' && (
               <div className="max-w-4xl mx-auto p-4 flex flex-col h-full overflow-y-auto pb-6 w-full">
-                
+
                 <div className="bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 mb-5 shadow-lg">
                   <h2 className="text-[#d4af37] font-bold text-lg md:text-xl mb-2 flex items-center gap-2 tracking-widest whitespace-nowrap">
                     <ICONS.Scroll className="w-5 h-5"/> 兵力編制 (手動校準)
@@ -2017,7 +2349,7 @@
                     <span className="text-red-400">注意：</span> 步弩兵(QQQ/VOO)已直接採用等值台幣現值，修改數值並點擊空白處即自動存入本機記憶體。加密貨幣將與即時價格連動，動態反映總戰力。
                   </p>
                 </div>
-                
+
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {Object.keys(DEFAULT_GAME_STATE.assets).map(key => (
                     <div key={key} className={`bg-[#1a1410] border p-3 transition-colors relative 
@@ -2084,12 +2416,25 @@
                     </button>
                     <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} className="hidden" />
                   </div>
-                  
+
                   {/* 新增：生成戰報按鈕 */}
                   <button onClick={() => setShowReportPreview(true)} className="w-full mt-3 py-3 bg-[#0f172a] text-blue-300 border border-blue-700 rounded-sm font-bold tracking-widest hover:bg-[#1e3a8a] active:scale-95 flex items-center justify-center gap-2 text-xs md:text-sm transition-all shadow-[0_0_10px_rgba(59,130,246,0.2)]">
                       <ICONS.Camera className="w-4 h-4" /> 生成霸業戰報 (社群分享)
                   </button>
                 </div>
+
+                {/* ====== 新增：雙引擎退休推算模型 ====== */}
+                <div className="mt-8 bg-[#1a1410] border border-[#4a3525] p-4 md:p-5 shadow-lg relative">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-[#b8860b]"></div>
+                  <h3 className="text-[#d4af37] font-bold text-sm md:text-base mb-4 flex items-center gap-2 border-b border-[#3e2723] pb-2 tracking-widest whitespace-nowrap">
+                    <span className="text-xl">📈</span> 2026-2047 雙引擎退休推算模型
+                  </h3>
+                  <div className="-mx-2 md:mx-0">
+                     <WealthSimulatorEngine currentAssetTWD={stats.netWorth} />
+                  </div>
+                </div>
+                {/* ================================================ */}
+
               </div>
             )}
 
